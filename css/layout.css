@@ -1,0 +1,459 @@
+/* ==========================================================================
+   Layout — header, contenedores, secciones, footer
+   ========================================================================== */
+
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -60px;
+  z-index: 5000;
+  background: var(--yellow);
+  color: var(--black);
+  padding: var(--space-2) var(--space-4);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top var(--dur) var(--ease-out);
+}
+.skip-link:focus { top: var(--space-3); }
+
+/* --- Header --------------------------------------------------------------- */
+header.public-navbar,
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  height: var(--header-h);
+  /* El desenfoque va en una capa aparte (::before). Si se aplica backdrop-filter
+     al propio header, el navegador lo usa como caja de referencia del menú móvil
+     (position: fixed) y el panel queda recortado a la altura del header. */
+  background-color: transparent;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--dur) ease;
+}
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--black); /* sólido: el fondo negro del logo se funde sin bordes */
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  backdrop-filter: saturate(140%) blur(14px);
+  transition: background-color var(--dur) ease;
+  pointer-events: none;
+}
+.site-header.is-scrolled { border-bottom-color: var(--line-dark); }
+/* Con el menú abierto, el header es sólido para fundirse con el panel */
+body.nav-open .site-header::before { background-color: var(--black); }
+
+.header-inner {
+  max-width: var(--container);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--white);
+  flex-shrink: 0;
+}
+ .brand-mark {
+  width: 80px;
+  height: 100px;
+  border-radius: var(--radius);
+  background: var(--yellow);
+  color: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.brand-blade svg, .brand-mark svg { width: 20px; height: 20px; }
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--white);
+  line-height: 1;
+}
+/* Logo de marca (imagen recortada sin margen negro) */
+.brand-img {
+  display: block;
+  height: 46px;
+  width: auto;
+  max-width: none;
+  aspect-ratio: 640 / 267;
+}
+.brand-img-lg { height: 64px; }
+@media (max-width: 480px) {
+  .brand-img { height: 38px; }
+  .brand-img-lg { height: 56px; }
+}
+
+/* Etiqueta corta del CTA en teléfonos pequeños */
+.cta-short { display: none; }
+@media (max-width: 400px) {
+  .cta-long { display: none; }
+  .cta-short { display: inline; }
+}
+.brand-sub {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: var(--on-dark-lo);
+  margin-top: 3px;
+}
+
+.site-nav, .pub-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.pub-nav-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  color: var(--on-dark-md);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--dur-fast) ease;
+}
+.pub-nav-btn::after {
+  content: "";
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: 8px;
+  height: 2px;
+  background: var(--yellow);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease-out);
+}
+.pub-nav-btn:hover { color: var(--white); }
+.pub-nav-btn:hover::after { transform: scaleX(0.4); }
+.pub-nav-btn.active { color: var(--white); }
+.pub-nav-btn.active::after { transform: scaleX(1); }
+
+.header-actions { display: flex; align-items: center; gap: var(--space-2); }
+
+.staff-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  background: none;
+  border: 0;
+  color: var(--on-dark-lo);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast) ease;
+  text-decoration: none;
+}
+.staff-link:hover { color: var(--white); }
+
+.nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line-dark-strong);
+  border-radius: var(--radius);
+  color: var(--white);
+  cursor: pointer;
+}
+.nav-toggle .ic { width: 22px; height: 22px; }
+.nav-mobile-extra { display: none; }
+
+@media (max-width: 960px) {
+  .nav-toggle { display: inline-flex; }
+  .header-actions .staff-link { display: none; }
+  .site-nav {
+    position: fixed;
+    z-index: 899;
+    top: var(--header-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--space-4) var(--space-5) var(--space-7);
+    background: var(--black);
+    border-top: 1px solid var(--line-dark);
+    transform: translateY(-8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur) ease, transform var(--dur) var(--ease-out), visibility 0s linear var(--dur);
+    overflow-y: auto;
+  }
+  .site-nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity var(--dur) ease, transform var(--dur) var(--ease-out);
+  }
+  .site-nav .pub-nav-btn {
+    min-height: 56px;
+    font-size: 1.6rem;
+    padding: 0;
+    border-bottom: 1px solid var(--line-dark);
+  }
+  .site-nav .pub-nav-btn::after { left: 0; right: auto; width: 32px; bottom: 12px; }
+  .nav-mobile-extra {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+  }
+  .nav-mobile-extra .staff-link { padding: 0; justify-content: flex-start; }
+  body.nav-open { overflow: hidden; }
+}
+@media (max-width: 480px) {
+  .header-inner { padding: 0 var(--space-4); gap: var(--space-3); }
+  .header-cta { padding: 0 14px !important; font-size: 0.95rem !important; }
+  .brand-title { font-size: 1.3rem; }
+}
+
+/* --- Contenedores y secciones ------------------------------------------- */
+main { flex: 1 0 auto; }
+
+.page-view { display: block; animation: fadeView var(--dur-slow) var(--ease-out); }
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+@media (max-width: 480px) { .container { padding: 0 var(--space-4); } }
+
+.section { padding: var(--space-9) 0; position: relative; }
+.section-sm { padding: var(--space-8) 0; }
+@media (max-width: 720px) {
+  .section { padding: var(--space-8) 0; }
+  .section-sm { padding: var(--space-7) 0; }
+}
+
+.section-dark { background: var(--black); color: var(--white); }
+.section-ink { background: var(--ink-900); color: var(--white); }
+.section-light { background: var(--white); color: var(--black); }
+.section-light p { color: var(--on-light-md); }
+.section-light .eyebrow-golden { color: var(--black); }
+.section-light .eyebrow-golden::before {
+  content: "";
+  width: 18px;
+  height: 3px;
+  background: var(--yellow);
+  display: inline-block;
+}
+.section-yellow { background: var(--yellow); color: var(--black); }
+.section-yellow p { color: rgba(0, 0, 0, 0.78); }
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-7);
+}
+.section-head h2 { margin-top: var(--space-2); }
+.section-head p { max-width: 520px; margin-top: var(--space-3); }
+
+.page-section-padding { padding: var(--space-8) 0; }
+
+/* Cabecera de páginas internas */
+.page-hero {
+  position: relative;
+  padding: var(--space-8) 0 var(--space-7);
+  background:
+    radial-gradient(900px 300px at 85% 0%, rgba(215, 152, 72, 0.08), transparent 70%),
+    var(--black);
+  border-bottom: 1px solid var(--line-dark);
+  overflow: hidden;
+}
+.page-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4.25rem); margin: var(--space-3) 0 var(--space-4); }
+.page-hero p { max-width: 640px; font-size: var(--fs-md); }
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--on-dark-lo);
+  margin-bottom: var(--space-4);
+}
+.breadcrumb a { text-decoration: none; color: var(--on-dark-lo); }
+.breadcrumb a:hover { color: var(--white); }
+.breadcrumb .ic { width: 14px; height: 14px; }
+
+/* Texto marca de agua (decorativo) */
+.watermark-section { position: relative; overflow: hidden; }
+.watermark-text {
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(5rem, 14vw, 12rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  white-space: nowrap;
+}
+
+/* --- Footer --------------------------------------------------------------- */
+.site-footer {
+  background: var(--black);
+  border-top: 1px solid var(--line-dark);
+  padding: var(--space-8) 0 var(--space-5);
+  color: var(--on-dark-md);
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.2fr 1fr;
+  gap: var(--space-6);
+}
+.footer-brand p { margin-top: var(--space-4); max-width: 300px; font-size: var(--fs-sm); color: var(--on-dark-lo); }
+.footer-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin-bottom: var(--space-4);
+}
+.footer-list { list-style: none; display: grid; gap: var(--space-3); font-size: var(--fs-sm); }
+.footer-list a, .footer-list button {
+  color: var(--on-dark-md);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color var(--dur-fast) ease;
+}
+.footer-list a:hover, .footer-list button:hover { color: var(--yellow); }
+.footer-list li { display: flex; gap: var(--space-2); align-items: flex-start; }
+.footer-list .ic { color: var(--yellow); margin-top: 3px; }
+.footer-bottom {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line-dark);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+  color: var(--on-dark-lo);
+}
+@media (max-width: 900px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .footer-grid { grid-template-columns: 1fr; } }
+
+/* --- Revelado al hacer scroll (progresivo, respeta reduced-motion) ------- */
+.js-reveal .reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out); }
+.js-reveal .reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal .reveal { opacity: 1; transform: none; }
+}
+
+/* --- Banda CTA amarilla (compartida) ----------------------------------- */
+.cta-band { background: var(--yellow); color: var(--black); padding: var(--space-8) 0; position: relative; overflow: hidden; }
+.cta-band::after {
+  content: "";
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 280px;
+  height: 280px;
+  border: 40px solid rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cta-band-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; position: relative; z-index: 1; }
+.cta-band h2 { font-size: clamp(2rem, 4.4vw, 3.4rem); max-width: 640px; }
+.cta-band p { color: rgba(0, 0, 0, 0.75); margin-top: var(--space-3); max-width: 520px; font-size: var(--fs-md); }
+.cta-band-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.cta-band .btn-ghost { color: var(--black); }
+.cta-band :focus-visible { outline-color: var(--black); }
+
+/* ==========================================================================
+   Responsive global
+   ========================================================================== */
+@media (max-width: 960px) {
+  :root { --header-h: 64px; }
+}
+@media (max-width: 560px) {
+  /* Espacio para que el botón flotante de WhatsApp no tape el pie */
+  .footer-bottom { padding-bottom: 72px; }
+  .site-footer { padding-top: var(--space-7); }
+  .footer-grid { gap: var(--space-5); }
+  .page-hero { padding: var(--space-6) 0 var(--space-5); }
+  .page-hero p { font-size: var(--fs-base); }
+  .section-head { margin-bottom: var(--space-5); }
+  .section-head .btn-dark { width: 100%; }
+  .cta-band { padding: var(--space-7) 0; }
+  .cta-band-actions { width: 100%; }
+  .cta-band-actions .btn-black { flex: 1 1 100%; }
+  .cta-band-actions .btn-ghost { width: 100%; }
+}
+/* Teléfono en horizontal: la portada no necesita ocupar toda la altura */
+@media (max-height: 520px) and (orientation: landscape) {
+  .hero { min-height: auto !important; padding: var(--space-6) 0 !important; }
+  .site-nav .pub-nav-btn { min-height: 48px; font-size: 1.3rem; }
+}
+
+/* Con el menú móvil abierto, el botón flotante de WhatsApp no debe taparlo */
+body.nav-open .wsp-float-btn,
+body.nav-open .wsp-modal { display: none; }
+
+/* Barbería no encontrada o suspendida (web pública) */
+.unavailable { padding: var(--space-9) 0; text-align: center; min-height: 60vh; display: flex; align-items: center; }
+.unavailable .container { max-width: 620px; }
+.unavailable-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-5);
+  border-radius: 50%;
+  background: var(--yellow-soft);
+  border: 1px solid var(--yellow-line);
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.unavailable-icon .ic { width: 28px; height: 28px; }
+.unavailable h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); margin-bottom: var(--space-4); }

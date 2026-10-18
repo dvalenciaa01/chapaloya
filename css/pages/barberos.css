@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Barberos & trabajos
+   ========================================================================== */
+.portfolio-filter-bar { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-6); }
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 8px 0 16px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  border: 1px solid var(--line-dark-strong);
+  color: var(--on-dark-md);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+.filter-chip:hover { border-color: var(--white); color: var(--white); }
+.filter-chip.active { background: var(--yellow); border-color: var(--yellow); color: var(--black); }
+.filter-count {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.filter-chip.active .filter-count { background: var(--black); color: var(--yellow); }
+
+.portfolio-list-container { padding: var(--space-8) var(--space-5) var(--space-9); }
+#pub-barbers-showcase-list { display: grid; gap: var(--space-6); }
+
+.barber-showcase-block {
+  background-color: var(--ink-850);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.barber-profile-header {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--line-dark);
+  align-items: center;
+}
+.barber-portrait-frame {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-color: var(--ink-750);
+  position: relative;
+}
+.barber-portrait-frame::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 40%;
+  height: 4px;
+  background: var(--yellow);
+}
+.barber-portrait-frame img { width: 100%; height: 100%; object-fit: cover; }
+.barber-name-heading { font-size: clamp(2.4rem, 4vw, 3.4rem); margin: var(--space-3) 0 var(--space-1); }
+.barber-role-text { color: var(--on-dark-lo); font-size: var(--fs-md); }
+.barber-specs { margin: var(--space-5) 0; }
+.barber-specs-label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-dark-lo);
+  margin-bottom: var(--space-2);
+}
+.specialty-tags-wrap { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.barber-cta-group { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+.barber-works-section { padding: var(--space-5) var(--space-6) var(--space-6); }
+.works-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-4); }
+.works-head h3 { font-size: 1.4rem; }
+.works-count { font-size: var(--fs-sm); color: var(--on-dark-lo); }
+
+.works-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+.work-photo-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background-color: var(--black);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: zoom-in;
+  color: inherit;
+  transition: border-color var(--dur) ease, transform var(--dur) var(--ease-out);
+}
+.work-photo-card:hover { border-color: var(--yellow); transform: translateY(-3px); }
+.work-photo-img-box { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: var(--ink-800); }
+.work-photo-img-box img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--dur-slow) var(--ease-out); }
+.work-photo-card:hover .work-photo-img-box img { transform: scale(1.05); }
+.work-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: all var(--dur) var(--ease-out);
+}
+.work-photo-card:hover .work-zoom, .work-photo-card:focus-visible .work-zoom { opacity: 1; transform: none; }
+.work-zoom .ic { width: 18px; height: 18px; }
+.work-photo-caption { display: block; padding: 12px 14px; }
+.work-photo-title { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--white); text-transform: uppercase; }
+
+.lightbox-frame { background: var(--black); border-radius: var(--radius); overflow: hidden; text-align: center; }
+.lightbox-frame img { max-width: 100%; max-height: 64vh; object-fit: contain; display: block; margin: 0 auto; }
+
+@media (max-width: 860px) {
+  .barber-profile-header { grid-template-columns: 1fr; padding: var(--space-5); }
+  .barber-portrait-frame { max-width: 220px; }
+  .barber-works-section { padding: var(--space-5); }
+  .barber-cta-group .btn-golden, .barber-cta-group .btn-dark { flex: 1 1 100%; }
+}
+@media (max-width: 480px) {
+  .works-gallery-grid { grid-template-columns: 1fr 1fr; }
+  .portfolio-list-container { padding: var(--space-6) var(--space-4) var(--space-8); }
+}

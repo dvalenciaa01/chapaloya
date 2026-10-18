@@ -1,0 +1,20 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias y temporales (el proyecto no las necesita)
+node_modules/
+*.log
+.env
+.env.*
+
+# Reportes descargados durante pruebas
+Reporte-*.pdf
+Reporte-*.xlsx
+*.csv

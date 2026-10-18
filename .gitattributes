@@ -1,0 +1,12 @@
+# Fin de línea uniforme (evita diferencias entre Windows y Mac/Linux)
+* text=auto eol=lf
+
+# Binarios
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.ico binary
+
+# Librerías de terceros minificadas: sin diff y fuera de las estadísticas de lenguaje
+js/vendor/** -diff linguist-vendored

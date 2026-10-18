@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservalope · Consola de plataforma</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23FFD503'/%3E%3Cpath d='M7 8h10M7 12h6M7 16h4' stroke='%23000' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/crm.css" />
+  <link rel="stylesheet" href="css/pages/analytics.css" />
+  <link rel="stylesheet" href="css/pages/reports.css" />
+  <link rel="stylesheet" href="css/pages/reservalope.css" />
+  <script>
+    /* Redirección inmediata si no hay sesión */
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('BARBERSUITE_SESSION') || 'null');
+        if (!s || !s.userId || Date.now() > s.exp) location.replace('login.html');
+      } catch (e) { location.replace('login.html'); }
+    })();
+  </script>
+</head>
+<body data-page="reservalope">
+
+  <a class="skip-link" href="#rl-main">Saltar al contenido</a>
+
+  <header class="site-header crm-header rl-header">
+    <div class="crm-header-inner">
+      <a class="rl-brand" href="reservalope.html" aria-label="Reservalope, inicio de la consola">
+        <span class="rl-mark" aria-hidden="true"><i data-icon="calendar"></i></span>
+        <span class="rl-wordmark">Reservalope</span>
+        <span class="crm-tag">Consola</span>
+      </a>
+      <div class="header-actions">
+        <span class="crm-date" id="rl-date"></span>
+        <div class="user-menu">
+          <button type="button" class="user-chip" id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown" onclick="AdminUI.toggleUserMenu()">
+            <span class="user-avatar" id="user-avatar">·</span>
+            <span class="user-meta"><strong id="user-name">Usuario</strong><small id="user-role">Rol</small></span>
+            <i data-icon="chevronRight" class="user-chevron"></i>
+          </button>
+          <div class="user-dropdown" id="user-dropdown" role="menu" hidden>
+            <div class="user-dropdown-head"><span>Sesión iniciada como</span><strong id="user-email">—</strong></div>
+            <button type="button" role="menuitem" onclick="AdminUI.openChangePassword()"><i data-icon="lock"></i>Cambiar contraseña</button>
+            <button type="button" role="menuitem" class="is-danger" onclick="Auth.logout()"><i data-icon="arrowLeft"></i>Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-view">
+    <div class="crm-shell">
+      <aside class="crm-sidebar" aria-label="Menú de Reservalope">
+        <div>
+          <div class="crm-brand-box">
+            <div class="crm-brand-icon rl-brand-icon"><i data-icon="shield"></i></div>
+            <div>
+              <div class="title-font crm-brand-name">Plataforma</div>
+              <div class="crm-brand-sub">Superadministrador</div>
+            </div>
+          </div>
+          <nav class="crm-nav-list">
+            <span class="crm-nav-group">Análisis</span>
+            <button type="button" class="crm-nav-btn active" data-rl="dashboard" onclick="Reservalope.go('dashboard')">
+              <span class="crm-nav-label"><i data-icon="chart"></i>Dashboard global</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="tenants" onclick="Reservalope.go('tenants')">
+              <span class="crm-nav-label"><i data-icon="store"></i>Barberías</span>
+              <span class="crm-nav-count" id="rl-badge-tenants">0</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="alerts" onclick="Reservalope.go('alerts')">
+              <span class="crm-nav-label"><i data-icon="alert"></i>Alertas</span>
+              <span class="crm-nav-count rl-alert-count" id="rl-badge-alerts">0</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="reports" onclick="Reservalope.go('reports')">
+              <span class="crm-nav-label"><i data-icon="download"></i>Reportes</span>
+            </button>
+            <span class="crm-nav-group">Gestión</span>
+            <button type="button" class="crm-nav-btn" data-rl="users" onclick="Reservalope.go('users')">
+              <span class="crm-nav-label"><i data-icon="shield"></i>Usuarios y accesos</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="audit" onclick="Reservalope.go('audit')">
+              <span class="crm-nav-label"><i data-icon="file"></i>Historial</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="platform" onclick="Reservalope.go('platform')">
+              <span class="crm-nav-label"><i data-icon="sliders"></i>Plataforma</span>
+            </button>
+          </nav>
+        </div>
+        <div class="crm-sidebar-footer">
+          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>Modo demo</div>
+          <p>Los datos se guardan en este navegador.</p>
+        </div>
+      </aside>
+
+      <main class="crm-main" id="rl-main" tabindex="-1">
+
+        <!-- Filtro de período (compartido por Dashboard, Barberías y Ficha) -->
+        <template id="rl-period-tpl">
+          <div class="rl-period" role="group" aria-label="Período de análisis">
+            <div class="segmented rl-presets"></div>
+            <div class="rl-custom" hidden>
+              <label class="sr-only" for="rl-from">Desde</label><input type="date" class="input-dark rl-from" id="rl-from" />
+              <span aria-hidden="true">–</span>
+              <label class="sr-only" for="rl-to">Hasta</label><input type="date" class="input-dark rl-to" id="rl-to" />
+            </div>
+          </div>
+        </template>
+
+        <!-- ================= DASHBOARD ================= -->
+        <div class="crm-pane" id="rl-pane-dashboard">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Todas las barberías</span>
+              <h1 class="crm-title">Dashboard global</h1>
+              <p class="crm-lead" id="rl-dash-compare"></p>
+            </div>
+            <button type="button" class="btn-dark" onclick="Reservalope.exportCSV()"><i data-icon="download"></i>Exportar CSV comparativo</button>
+          </div>
+          <div class="rl-period-slot"></div>
+          <div class="rl-kpis" id="rl-dash-kpis"></div>
+          <div class="rl-platform" id="rl-dash-platform"></div>
+          <div class="rl-charts">
+            <section class="crm-section-card rl-chart-wide">
+              <div class="card-head"><div><h3>Ingresos por día</h3><p class="card-sub">Citas completadas + walk-in atendidos</p></div><div class="chart-legend-inline" id="rl-dash-line-legend"></div></div>
+              <div class="chart-box" id="rl-dash-line"></div>
+            </section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Ranking de barberías</h3><p class="card-sub">Ingresos del período</p></div></div><div id="rl-dash-rank"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Citas por estado</h3><p class="card-sub" id="rl-dash-status-sub"></p></div></div><div id="rl-dash-status"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Servicios más vendidos</h3><p class="card-sub">Atenciones completadas</p></div></div><div id="rl-dash-services"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Horas pico</h3><p class="card-sub">Citas y walk-in por hora de inicio</p></div></div><div id="rl-dash-hours"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Canal de reserva</h3><p class="card-sub" data-channel-sub>Web pública vs. registradas en el CRM</p></div></div><div id="rl-dash-channel"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Alertas activas</h3><p class="card-sub">Lo más urgente primero</p></div><button type="button" class="btn-dark btn-xs" onclick="Reservalope.go('alerts')">Ver todas<i data-icon="arrowRight"></i></button></div><div id="rl-dash-alerts"></div></section>
+          </div>
+        </div>
+
+        <!-- ================= BARBERÍAS ================= -->
+        <div class="crm-pane" id="rl-pane-tenants">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Cartera</span>
+              <h1 class="crm-title">Barberías</h1>
+              <p class="crm-lead">Rendimiento de cada barbería en el período elegido. Abre su ficha para el detalle.</p>
+            </div>
+            <button type="button" class="btn-golden" onclick="AdminUI.openTenantModal()"><i data-icon="plus"></i>Nueva barbería</button>
+          </div>
+          <div class="rl-period-slot"></div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid rl-tenant-filters">
+              <div><label class="field-lbl" for="rl-t-search">Buscar</label><input type="search" id="rl-t-search" class="input-dark" placeholder="Nombre o enlace…" oninput="Reservalope.renderTenants()" /></div>
+              <div><label class="field-lbl" for="rl-t-status">Estado</label><select id="rl-t-status" class="input-dark" onchange="Reservalope.renderTenants()"><option value="ALL">Todas</option><option value="ACTIVE">Activas</option><option value="SUSPENDED">Suspendidas</option></select></div>
+              <div><label class="field-lbl" for="rl-t-plan">Plan</label><select id="rl-t-plan" class="input-dark" onchange="Reservalope.renderTenants()"></select></div>
+            </div>
+          </div>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Barbería</th><th scope="col">Estado</th><th scope="col">Plan</th><th scope="col">Suscripción</th><th scope="col">Ingresos</th><th scope="col">Citas</th><th scope="col">Cancelación</th><th scope="col">Última actividad</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody id="rl-tenants-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= FICHA INDIVIDUAL ================= -->
+        <div class="crm-pane" id="rl-pane-detail">
+          <button type="button" class="btn-ghost rl-back" onclick="Reservalope.go('tenants')"><i data-icon="arrowLeft"></i>Volver a barberías</button>
+          <div id="rl-detail-head"></div>
+          <div class="rl-period-slot"></div>
+          <div class="rl-kpis" id="rl-detail-kpis"></div>
+          <div class="rl-charts">
+            <section class="crm-section-card rl-chart-wide">
+              <div class="card-head"><div><h3>Ingresos por día</h3><p class="card-sub">Citas completadas + walk-in atendidos</p></div><div class="chart-legend-inline" id="rl-detail-line-legend"></div></div>
+              <div class="chart-box" id="rl-detail-line"></div>
+            </section>
+            <section class="crm-section-card rl-chart-wide">
+              <div class="card-head"><div><h3>Rendimiento por barbero</h3><p class="card-sub">Ocupación = horarios reservados / horarios disponibles del período</p></div></div>
+              <div class="crm-table-wrap is-flat"><table class="crm-table"><thead><tr><th scope="col">Barbero</th><th scope="col">Citas</th><th scope="col">Completadas</th><th scope="col">Walk-in</th><th scope="col">Ingresos</th><th scope="col">Ocupación</th></tr></thead><tbody id="rl-detail-barbers"></tbody></table></div>
+            </section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Servicios más vendidos</h3></div></div><div id="rl-detail-services"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Citas por estado</h3></div></div><div id="rl-detail-status"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Horas pico</h3></div></div><div id="rl-detail-hours"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Próximas citas</h3><p class="card-sub">Desde ahora</p></div></div><div id="rl-detail-upcoming"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Configuración</h3><p class="card-sub" id="rl-detail-check-sub"></p></div></div><ul class="rl-checklist" id="rl-detail-checklist"></ul></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Usuarios</h3></div><button type="button" class="btn-dark btn-xs" onclick="Reservalope.newUserFor()"><i data-icon="plus"></i>Nuevo</button></div><div id="rl-detail-users"></div></section>
+            <section class="crm-section-card rl-chart-wide"><div class="card-head"><div><h3>Actividad reciente</h3></div></div><div id="rl-detail-activity"></div></section>
+          </div>
+        </div>
+
+        <!-- ================= REPORTES ================= -->
+        <div class="crm-pane" id="rl-pane-reports">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Análisis</span>
+              <h1 class="crm-title">Reportes</h1>
+              <p class="crm-lead">Elige una barbería o todas, aplica filtros, revisa la vista previa y descarga en PDF o Excel.</p>
+            </div>
+          </div>
+          <div id="rl-reports-root"></div>
+        </div>
+
+        <!-- ================= ALERTAS ================= -->
+        <div class="crm-pane" id="rl-pane-alerts">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Salud de la plataforma</span>
+              <h1 class="crm-title">Alertas</h1>
+              <p class="crm-lead">Se calculan al momento: suscripciones, configuración, actividad, cancelaciones, cuentas bloqueadas y almacenamiento.</p>
+            </div>
+          </div>
+          <div id="rl-alerts-list"></div>
+        </div>
+
+        <!-- ================= USUARIOS (global) ================= -->
+        <div class="crm-pane" id="rl-pane-users">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Seguridad</span>
+              <h1 class="crm-title">Usuarios y accesos</h1>
+              <p class="crm-lead" id="users-lead"></p>
+            </div>
+            <button type="button" class="btn-golden" onclick="AdminUI.openUserModal()"><i data-icon="plus"></i>Nuevo usuario</button>
+          </div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid users-filters">
+              <div><label class="field-lbl" for="usr-search">Buscar</label><input type="search" id="usr-search" class="input-dark" placeholder="Nombre o correo…" oninput="AdminUI.renderUsers()" /></div>
+              <div><label class="field-lbl" for="usr-filter-tenant">Barbería</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
+            </div>
+          </div>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Barbería</th><th scope="col">Barbero</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= HISTORIAL (global) ================= -->
+        <div class="crm-pane" id="rl-pane-audit">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Auditoría</span>
+              <h1 class="crm-title">Historial de actividad</h1>
+              <p class="crm-lead">Todas las barberías y la plataforma.</p>
+            </div>
+            <button type="button" class="btn-dark" onclick="AdminUI.exportAuditCSV()"><i data-icon="download"></i>Exportar CSV</button>
+          </div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid audit-filters">
+              <div><label class="field-lbl" for="aud-search">Buscar</label><input type="search" id="aud-search" class="input-dark" placeholder="Usuario, cliente, detalle…" oninput="AdminUI.renderAudit(false)" /></div>
+              <div><label class="field-lbl" for="aud-tenant">Barbería</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-action">Acción</label><select id="aud-action" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-from">Desde</label><input type="date" id="aud-from" class="input-dark" onchange="AdminUI.renderAudit(false)" /></div>
+            </div>
+          </div>
+          <p class="audit-count" id="audit-count"></p>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Barbería</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+          <div style="text-align:center; margin-top:16px;"><button type="button" class="btn-dark" id="audit-more" onclick="AdminUI.renderAudit(true)" hidden>Mostrar más</button></div>
+        </div>
+
+        <!-- ================= PLATAFORMA ================= -->
+        <div class="crm-pane" id="rl-pane-platform">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Sistema</span>
+              <h1 class="crm-title">Plataforma</h1>
+              <p class="crm-lead">Almacenamiento, políticas de seguridad, respaldo y datos de demostración.</p>
+            </div>
+          </div>
+          <div class="crm-split-2">
+            <section class="crm-section-card">
+              <div class="card-head"><h3>Almacenamiento</h3></div>
+              <div id="rl-storage"></div>
+            </section>
+            <section class="crm-section-card">
+              <div class="card-head"><h3>Políticas de seguridad</h3></div>
+              <ul class="rl-policy" id="rl-policy"></ul>
+            </section>
+            <section class="crm-section-card">
+              <div class="card-head"><h3>Respaldo completo</h3></div>
+              <p class="card-text">Descarga todas las barberías, usuarios (sin contraseñas legibles), datos e historial en un archivo JSON.</p>
+              <button type="button" class="btn-golden" onclick="Reservalope.exportBackup()"><i data-icon="download"></i>Exportar respaldo</button>
+            </section>
+            <section class="crm-section-card">
+              <div class="card-head"><h3>Datos de demostración</h3></div>
+              <p class="card-text" id="rl-demo-text"></p>
+              <div class="btn-row">
+                <button type="button" class="btn-dark" id="rl-demo-clear" onclick="Reservalope.clearDemo()"><i data-icon="trash"></i>Borrar datos de demostración</button>
+              </div>
+              <div class="danger-zone">
+                <div><strong>Restablecer todo</strong><span>Borra barberías, usuarios, datos e historial de este navegador.</span></div>
+                <button type="button" class="btn-danger" onclick="Reservalope.factoryReset()"><i data-icon="trash"></i>Restablecer</button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </section>
+
+  <div class="crm-modal-backdrop" id="crm-modal-overlay">
+    <div class="crm-modal-box" id="crm-modal-content"></div>
+  </div>
+
+  <script src="js/utils/icons.js"></script>
+  <script src="js/utils/image-compressor.js"></script>
+  <script src="js/data/db.js"></script>
+  <script src="js/data/demo-seed.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/core/ui.js"></script>
+  <script src="js/core/tenant-brand.js"></script>
+  <script src="js/core/analytics.js"></script>
+  <script src="js/core/charts.js"></script>
+  <script src="js/core/reports.js"></script>
+  <script src="js/core/report-export.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/report-builder.js"></script>
+  <script src="js/pages/admin.js"></script>
+  <script src="js/pages/reservalope.js"></script>
+</body>
+</html>

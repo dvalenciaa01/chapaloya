@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ingresar al CRM</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/login.css" />
+</head>
+<body data-page="login">
+
+  <main class="login-shell" id="main">
+    <section class="login-brand" aria-hidden="true">
+      <div class="login-brand-inner">
+        <div class="login-logo" id="login-logo">
+          <span class="login-mark"><i data-icon="scissors"></i></span>
+        </div>
+        <h1 class="login-brand-title">Panel de gestión<br/><span class="hl">para barberías</span></h1>
+        <ul class="login-points">
+          <li><i data-icon="calendar"></i>Citas, walk-in y agenda de cada barbero</li>
+          <li><i data-icon="sparkles"></i>Asesoría de imagen + IA en el sillón</li>
+          <li><i data-icon="shield"></i>Accesos por rol: superadministrador, administrador y personal</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="login-card surface-light">
+
+        <!-- Paso 1: ingresar -->
+        <form id="login-form" novalidate>
+          <span class="login-kicker">Acceso al CRM</span>
+          <h2 class="login-title">Ingresa a tu cuenta</h2>
+          <p class="login-sub">Usa el correo y la contraseña que te entregó tu administrador.</p>
+
+          <div class="login-msg" id="login-msg" role="status" hidden></div>
+
+          <div class="field">
+            <label class="field-lbl" for="login-email">Correo</label>
+            <input type="email" id="login-email" class="input-dark" autocomplete="username" inputmode="email" placeholder="nombre@barberia.pe" required />
+          </div>
+
+          <div class="field" style="margin-top:16px;">
+            <label class="field-lbl" for="login-pass">Contraseña</label>
+            <div class="pass-wrap">
+              <input type="password" id="login-pass" class="input-dark" autocomplete="current-password" required />
+              <button type="button" class="pass-toggle" data-target="login-pass" aria-label="Mostrar contraseña" aria-pressed="false"><i data-icon="eye"></i></button>
+            </div>
+          </div>
+
+          <div class="login-error" id="login-error" role="alert"></div>
+
+          <button type="submit" class="btn-black login-submit-btn" id="login-submit" style="margin-top:20px;">
+            <i data-icon="lock"></i><span>Ingresar</span>
+          </button>
+
+          <details class="login-help">
+            <summary>¿Olvidaste tu contraseña?</summary>
+            <p>Por seguridad, la contraseña la restablece tu administrador desde <strong>Usuarios</strong>. Si eres administrador, pídeselo al superadministrador. Recibirás una contraseña temporal que deberás cambiar al ingresar.</p>
+          </details>
+        </form>
+
+        <!-- Paso 2: cambio obligatorio de contraseña temporal -->
+        <form id="change-form" novalidate hidden>
+          <span class="login-kicker">Primer ingreso</span>
+          <h2 class="login-title">Crea tu contraseña</h2>
+          <p class="login-sub" id="change-sub">Tu contraseña actual es temporal. Crea una nueva para continuar.</p>
+
+          <div class="field">
+            <label class="field-lbl" for="new-pass">Nueva contraseña</label>
+            <div class="pass-wrap">
+              <input type="password" id="new-pass" class="input-dark" autocomplete="new-password" required />
+              <button type="button" class="pass-toggle" data-target="new-pass" aria-label="Mostrar contraseña" aria-pressed="false"><i data-icon="eye"></i></button>
+            </div>
+            <ul class="pass-rules" id="pass-rules">
+              <li data-rule="len"><i data-icon="check"></i>Al menos 8 caracteres</li>
+              <li data-rule="mix"><i data-icon="check"></i>Letras y números</li>
+              <li data-rule="match"><i data-icon="check"></i>Ambas contraseñas coinciden</li>
+            </ul>
+          </div>
+
+          <div class="field" style="margin-top:12px;">
+            <label class="field-lbl" for="new-pass2">Repetir contraseña</label>
+            <input type="password" id="new-pass2" class="input-dark" autocomplete="new-password" required />
+          </div>
+
+          <div class="login-error" id="change-error" role="alert"></div>
+
+          <button type="submit" class="btn-black login-submit-btn" style="margin-top:20px;">
+            <i data-icon="check"></i><span>Guardar y entrar</span>
+          </button>
+          <button type="button" class="login-link" id="change-cancel">Volver al inicio de sesión</button>
+        </form>
+      </div>
+
+      <a class="login-back" href="index.html" id="login-back"><i data-icon="arrowLeft"></i>Volver al sitio web</a>
+    </section>
+  </main>
+
+  <script src="js/utils/icons.js"></script>
+  <script src="js/data/db.js"></script>
+  <script src="js/data/demo-seed.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/core/tenant-brand.js"></script>
+  <script src="js/pages/login.js"></script>
+</body>
+</html>

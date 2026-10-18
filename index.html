@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golden Barbería</title>
+  <meta name="description" content="Barbería profesional. Reserva tu corte, barba o asesoría de imagen con IA y recibe confirmación por WhatsApp." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/inicio.css" />
+  <link rel="stylesheet" href="css/pages/servicios.css" />
+</head>
+<body data-page="inicio">
+
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand-logo" href="index.html" aria-label="Golden Barbería, ir al inicio">
+        <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" />
+      </a>
+
+
+      <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
+      <a class="pub-nav-btn active" data-pub="inicio" href="index.html" aria-current="page">Inicio</a>
+      <a class="pub-nav-btn" data-pub="servicios" href="servicios.html">Servicios</a>
+      <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Barberos</a>
+      <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <div class="nav-mobile-extra">
+          <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')"><i data-icon="lock"></i>Acceso staff (CRM)</button>
+        </div>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')" title="Panel CRM y estación IA del barbero"><i data-icon="lock"></i><span>Staff</span></button>
+        <a class="btn-golden header-cta" href="reservar.html"><span class="cta-long">Reservar cita</span><span class="cta-short">Reservar</span></a>
+        <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
+      </div>
+    </div>
+  </header>
+
+  
+
+  <main id="main" tabindex="-1">
+    <section id="pub-inicio" class="page-view">
+      <div class="hero">
+        <div class="hero-media" aria-hidden="true"></div>
+        <div class="container">
+          <div class="hero-content">
+            <h1 class="hero-title">Mantendremos en ti un estilo <span class="hl">impecable</span></h1>
+            <p class="hero-lead">Cortes, barba y asesoría de imagen con maestros barberos. Reserva en menos de un minuto.</p>
+            <div class="hero-actions">
+              <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+              <a class="btn-dark btn-lg" href="servicios.html">Ver servicios</a>
+            </div>
+            <ul class="hero-info">
+              <li data-t-row><i data-icon="pin"></i><span data-t="address">Av. La Marina</span></li>
+              <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="tel:+51999999999">+51 999 999 999</a></li>
+            </ul>
+          </div>
+        </div>
+        <span class="hero-scroll" aria-hidden="true"></span>
+      </div>
+
+    <section class="cta-band" aria-labelledby="cta-title">
+      <div class="container cta-band-inner">
+        <div>
+          <h2 id="cta-title">Tu próximo corte empieza aquí</h2>
+        </div>
+        <div class="cta-band-actions">
+          <a class="btn-black btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="btn-ghost btn-lg" href="consultar-cita.html">Consultar mi cita <i data-icon="arrowRight"></i></a>
+        </div>
+      </div>
+    </section>
+
+      <section class="section section-light" aria-labelledby="srv-title">
+        <div class="container">
+          <div class="section-head reveal">
+            <div>
+              <span class="eyebrow-golden">Servicios</span>
+              <h2 id="srv-title">Lo que ofrecemos</h2>
+              <p>Desde un fade impecable hasta nuestra <strong>Asesoría de Imagen + IA</strong>: tu barbero analiza tus facciones y te propone 4 cortes con barba ideales para ti.</p>
+            </div>
+            <a class="btn-dark" href="servicios.html">Ver todos <i data-icon="arrowRight"></i></a>
+          </div>
+          <div class="services-grid" id="pub-home-services"></div>
+        </div>
+      </section>
+
+      <section class="section section-dark" aria-labelledby="ai-title">
+        <div class="container ai-feature">
+          <div class="reveal">
+            <span class="eyebrow-golden"><i data-icon="sparkles"></i>Asesoría de imagen + IA</span>
+            <h2 id="ai-title">Un corte diseñado para tus facciones</h2>
+            <p>Combinamos el ojo de un maestro barbero con un análisis de visagismo asistido por IA. Sales con un estilo que te favorece y una receta para mantenerlo en casa.</p>
+            <ol class="ai-steps">
+              <li><span class="ai-step-n">01</span><div><strong>Cuestionario de estilo</strong><span>Imagen que quieres proyectar, largo, tipo de cabello y barba.</span></div></li>
+              <li><span class="ai-step-n">02</span><div><strong>Fotos multiángulo</strong><span>Frontal, perfiles y coronilla para medir tus proporciones.</span></div></li>
+              <li><span class="ai-step-n">03</span><div><strong>4 propuestas a medida</strong><span>Corte + barba con técnica, productos y ficha enviada a tu WhatsApp.</span></div></li>
+            </ol>
+            <div class="ai-actions">
+              <button type="button" class="btn-golden btn-lg" onclick="PublicBooking.preselectService('s-ia')"><i data-icon="sparkles"></i>Reservar asesoría IA</button>
+              <button type="button" class="btn-ghost" onclick="AppRouter.openCRM('ai-advisor')"><i data-icon="lock"></i>Soy barbero: abrir estación IA</button>
+            </div>
+          </div>
+          <div class="ai-visual reveal" aria-hidden="true">
+            <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy" />
+            <span class="ai-visual-chip c2"><i data-icon="scan"></i>Escaneo facial</span>
+            <span class="ai-visual-chip c1"><b>4</b>propuestas a tu medida</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-ink" aria-labelledby="team-title">
+        <div class="container">
+          <div class="section-head reveal">
+            <div>
+              <span class="eyebrow-golden">El equipo</span>
+              <h2 id="team-title">Maestros barberos</h2>
+              <p>Conoce a quienes estarán detrás de la silla y mira sus trabajos reales.</p>
+            </div>
+            <a class="btn-dark" href="barberos.html">Ver portafolio <i data-icon="arrowRight"></i></a>
+          </div>
+          <div class="team-grid" id="pub-home-barbers"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
+            <img class="brand-img brand-img-lg" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" loading="lazy" />
+          </a>
+        </div>
+        <div>
+          <h2 class="footer-title">Navegación</h2>
+          <ul class="footer-list">
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="servicios.html">Servicios</a></li>
+            <li><a href="barberos.html">Barberos y trabajos</a></li>
+            <li><a href="reservar.html">Reservar cita</a></li>
+            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="footer-title">Contacto</h2>
+          <ul class="footer-list">
+            <li data-t-row><i data-icon="pin"></i><span data-t="address">Av. La marina</span></li>
+            <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="tel:+51999999999">+51 999 999 999</a></li>
+            <li data-t-row><i data-icon="clock"></i><span data-t="hours">Citas de 9:00 a 20:00</span></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="footer-title">Equipo</h2>
+          <ul class="footer-list">
+            <li><button type="button" onclick="AppRouter.openCRM('dashboard')">Panel CRM</button></li>
+            <li><button type="button" onclick="AppRouter.openCRM('ai-advisor')">Estación IA del barbero</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span data-t="year">2026</span> <span data-t="name">Golden Barbería</span>. Todos los derechos reservados.</span>
+        <span data-t="city">Lima, Perú</span>
+      </div>
+    </div>
+  </footer>
+
+  <button type="button" class="wsp-float-btn" onclick="WhatsAppBot.toggle()" aria-controls="wsp-modal" aria-label="Abrir mensajes de WhatsApp">
+    <i data-icon="message"></i>
+    <span class="wsp-label">WhatsApp</span>
+    <span id="wsp-badge" class="wsp-badge-pill">1</span>
+  </button>
+
+  <div class="wsp-modal" id="wsp-modal" role="dialog" aria-label="Mensajes de WhatsApp">
+    <div class="wsp-head">
+      <div class="wsp-head-id">
+        <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
+        <div>
+          <strong>Golden Barbería</strong>
+          <span>Confirmaciones y reportes de asesoría IA</span>
+        </div>
+      </div>
+      <button type="button" class="wsp-close-btn" onclick="WhatsAppBot.toggle()" aria-label="Cerrar chat"><i data-icon="x"></i></button>
+    </div>
+    <div class="wsp-body" id="wsp-messages"></div>
+  </div>
+
+  <script src="js/utils/icons.js"></script>
+  <script src="js/data/db.js"></script>
+  <script src="js/data/demo-seed.js"></script>
+  <script src="js/core/tenant-brand.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/components/whatsapp-bot.js"></script>
+  <script src="js/pages/public-booking.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

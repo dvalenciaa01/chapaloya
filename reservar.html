@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservar cita | Golden Barbería</title>
+  <meta name="description" content="Reserva tu cita: elige servicio, barbero, fecha y hora. Confirmación por WhatsApp." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/reservar.css" />
+</head>
+<body data-page="reservar">
+
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand-logo" href="index.html" aria-label="Golden Barbería, ir al inicio">
+        <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" />
+      </a>
+
+
+      <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
+      <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
+      <a class="pub-nav-btn" data-pub="servicios" href="servicios.html">Servicios</a>
+      <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Barberos</a>
+      <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <div class="nav-mobile-extra">
+          <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')"><i data-icon="lock"></i>Acceso staff (CRM)</button>
+        </div>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')" title="Panel CRM y estación IA del barbero"><i data-icon="lock"></i><span>Staff</span></button>
+        <a class="btn-golden header-cta is-current" href="reservar.html" aria-current="page"><span class="cta-long">Reservar cita</span><span class="cta-short">Reservar</span></a>
+        <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section id="pub-reservar" class="page-view">
+    <section class="page-hero">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
+        <span class="eyebrow-golden">Reserva online</span>
+        <h1>Reserva tu cita</h1>
+        <p>Completa tus datos, elige servicio, barbero y horario. La confirmación te llega por WhatsApp.</p>
+      </div>
+    </section>
+
+      <div class="booking-section">
+        <div class="container">
+          <div class="booking-layout-grid">
+            <form class="booking-form-card surface-light" onsubmit="PublicBooking.submit(event)" novalidate>
+              <div id="pb-feedback" aria-live="polite"></div>
+
+              <fieldset class="form-step" style="border:0;">
+                <legend class="form-step-head"><span class="form-step-num">1</span><h2>Tus datos</h2></legend>
+                <div class="form-row-2">
+                  <div class="field">
+                    <label class="field-lbl" for="pb-name">Nombre completo<span class="req">*</span></label>
+                    <input type="text" id="pb-name" class="input-dark" placeholder="Ej. Sebastián Alvarado" autocomplete="name" required />
+                  </div>
+                  <div class="field">
+                    <label class="field-lbl" for="pb-phone">Celular<span class="req">*</span></label>
+                    <input type="tel" id="pb-phone" class="input-dark" placeholder="987 654 321" maxlength="9" inputmode="numeric" autocomplete="tel-national" aria-describedby="pb-phone-hint pb-phone-error" oninput="PublicBooking.clearPhoneError()" required />
+                    <span class="field-hint" id="pb-phone-hint">9 dígitos. Aquí te llega la confirmación.</span>
+                    <span class="field-error" id="pb-phone-error"><i data-icon="alert"></i>Ingresa 9 dígitos que empiecen con 9.</span>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="form-step" style="border:0;">
+                <legend class="form-step-head"><span class="form-step-num">2</span><h2>Servicio y barbero</h2></legend>
+                <div class="form-row-2">
+                  <div class="field">
+                    <label class="field-lbl" for="pb-service">Servicio<span class="req">*</span></label>
+                    <select id="pb-service" class="input-dark" onchange="PublicBooking.updateSummary()" required></select>
+                  </div>
+                  <div class="field">
+                    <label class="field-lbl" for="pb-barber">Barbero<span class="req">*</span></label>
+                    <select id="pb-barber" class="input-dark" onchange="PublicBooking.refreshTimes()" required></select>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="form-step" style="border:0;">
+                <legend class="form-step-head"><span class="form-step-num">3</span><h2>Fecha y hora</h2></legend>
+                <div class="form-row-2">
+                  <div class="field">
+                    <label class="field-lbl" for="pb-date">Fecha<span class="req">*</span></label>
+                    <input type="date" id="pb-date" class="input-dark" onchange="PublicBooking.refreshTimes()" required />
+                  </div>
+                  <div class="field">
+                    <label class="field-lbl" for="pb-time">Hora disponible<span class="req">*</span></label>
+                    <select id="pb-time" class="input-dark" onchange="PublicBooking.updateSummary()" required></select>
+                  </div>
+                </div>
+                <p class="field-hint date-note" id="pb-date-note" role="status" hidden></p>
+                <div class="field" style="margin-top:16px;">
+                  <label class="field-lbl" for="pb-notes">Notas o preferencias <span style="font-weight:400; color:var(--on-light-lo);">(opcional)</span></label>
+                  <input type="text" id="pb-notes" class="input-dark" placeholder="Ej. Quiero diagnóstico de asesoría de imagen + IA" />
+                </div>
+              </fieldset>
+
+              <button type="submit" class="btn-black booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
+              <p class="form-legal">Al confirmar, recibirás un mensaje de WhatsApp para validar tu asistencia.</p>
+            </form>
+
+            <aside class="booking-summary-card" aria-label="Resumen de tu cita">
+              <div class="booking-summary-head"><span>Tu ticket</span><i data-icon="scissors"></i></div>
+              <div class="booking-summary-body" aria-live="polite">
+                <div class="booking-summary-row"><span>Servicio</span><strong id="pb-sum-srv">—</strong></div>
+                <div class="booking-summary-row"><span>Barbero</span><strong id="pb-sum-bar">—</strong></div>
+                <div class="booking-summary-row"><span>Fecha y hora</span><strong id="pb-sum-dt">—</strong></div>
+                <div class="booking-summary-row"><span>Duración</span><strong id="pb-sum-dur">—</strong></div>
+                <div class="booking-summary-total">
+                  <span class="title-font">Total</span>
+                  <span id="pb-sum-price" class="title-font booking-total-amount">S/ 0</span>
+                </div>
+              </div>
+              <ul class="booking-perks">
+                <li><i data-icon="message"></i>Confirmación inmediata por WhatsApp</li>
+                <li><i data-icon="clock"></i>Solo te mostramos horarios realmente libres</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
+            <img class="brand-img brand-img-lg" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" loading="lazy" />
+          </a>
+          <p>Barbería profesional con asesoría de imagen y visagismo asistido por IA. Estilo impecable, cita tras cita.</p>
+        </div>
+        <div>
+          <h2 class="footer-title">Navegación</h2>
+          <ul class="footer-list">
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="servicios.html">Servicios</a></li>
+            <li><a href="barberos.html">Barberos y trabajos</a></li>
+            <li><a href="reservar.html">Reservar cita</a></li>
+            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="footer-title">Contacto</h2>
+          <ul class="footer-list">
+            <li data-t-row><i data-icon="pin"></i><span data-t="address">Av. Arenales 1945, Lince — Lima</span></li>
+            <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="tel:+51999999999">+51 932 824 708</a></li>
+            <li data-t-row><i data-icon="clock"></i><span data-t="hours">Citas de 9:00 a 20:00</span></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="footer-title">Equipo</h2>
+          <ul class="footer-list">
+            <li><button type="button" onclick="AppRouter.openCRM('dashboard')">Panel CRM</button></li>
+            <li><button type="button" onclick="AppRouter.openCRM('ai-advisor')">Estación IA del barbero</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span data-t="year">2026</span> <span data-t="name">Golden Barbería</span>. Todos los derechos reservados.</span>
+        <span data-t="city">Lima, Perú</span>
+      </div>
+    </div>
+  </footer>
+
+  <button type="button" class="wsp-float-btn" onclick="WhatsAppBot.toggle()" aria-controls="wsp-modal" aria-label="Abrir mensajes de WhatsApp">
+    <i data-icon="message"></i>
+    <span class="wsp-label">WhatsApp</span>
+    <span id="wsp-badge" class="wsp-badge-pill">1</span>
+  </button>
+
+  <div class="wsp-modal" id="wsp-modal" role="dialog" aria-label="Mensajes de WhatsApp">
+    <div class="wsp-head">
+      <div class="wsp-head-id">
+        <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
+        <div>
+          <strong>Golden Barbería</strong>
+          <span>Confirmaciones y reportes de asesoría IA</span>
+        </div>
+      </div>
+      <button type="button" class="wsp-close-btn" onclick="WhatsAppBot.toggle()" aria-label="Cerrar chat"><i data-icon="x"></i></button>
+    </div>
+    <div class="wsp-body" id="wsp-messages"></div>
+  </div>
+
+  <script src="js/utils/icons.js"></script>
+  <script src="js/data/db.js"></script>
+  <script src="js/data/demo-seed.js"></script>
+  <script src="js/core/tenant-brand.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/components/whatsapp-bot.js"></script>
+  <script src="js/pages/public-booking.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

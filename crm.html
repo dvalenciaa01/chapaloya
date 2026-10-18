@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM</title>
+  <meta name="theme-color" content="#000000" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/barberos.css" />
+  <link rel="stylesheet" href="css/pages/crm.css" />
+  <link rel="stylesheet" href="css/pages/analytics.css" />
+  <link rel="stylesheet" href="css/pages/reports.css" />
+  <script>
+    /* Redirección inmediata si no hay sesión (la verificación completa la hace Auth) */
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('BARBERSUITE_SESSION') || 'null');
+        if (!s || !s.userId || Date.now() > s.exp) {
+          var t = new URLSearchParams(location.search).get('tab');
+          location.replace('login.html' + (t ? '?tab=' + encodeURIComponent(t) : ''));
+        }
+      } catch (e) { location.replace('login.html'); }
+    })();
+  </script>
+</head>
+<body data-page="crm">
+
+  <a class="skip-link" href="#crm-main">Saltar al contenido</a>
+
+  <header class="site-header crm-header">
+    <div class="crm-header-inner">
+      <a class="brand-logo" href="index.html" id="crm-brand-link" aria-label="Ir al sitio público">
+        <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="" width="640" height="267" />
+        <span class="crm-tag">CRM</span>
+      </a>
+
+      <div class="header-actions">
+        <a class="btn-dark btn-xs rl-return" href="reservalope.html" data-role="SUPERADMIN"><i data-icon="arrowLeft"></i><span>Reservalope</span></a>
+        <div class="tenant-switch" data-role="SUPERADMIN">
+          <i data-icon="store"></i>
+          <label class="sr-only" for="tenant-switcher">Barbería activa</label>
+          <select id="tenant-switcher" class="input-dark" onchange="AdminUI.switchTenant(this.value)"></select>
+        </div>
+        <span class="crm-date" id="crm-current-date-label"></span>
+        <a class="staff-link" id="crm-public-link" href="index.html" target="_blank" rel="noopener"><i data-icon="external"></i><span>Ver sitio público</span></a>
+        <button type="button" class="btn-golden btn-xs header-ai-btn" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i><span>Asesoría IA</span></button>
+
+        <div class="user-menu">
+          <button type="button" class="user-chip" id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown" onclick="AdminUI.toggleUserMenu()">
+            <span class="user-avatar" id="user-avatar">·</span>
+            <span class="user-meta"><strong id="user-name">Usuario</strong><small id="user-role">Rol</small></span>
+            <i data-icon="chevronRight" class="user-chevron"></i>
+          </button>
+          <div class="user-dropdown" id="user-dropdown" role="menu" hidden>
+            <div class="user-dropdown-head"><span>Sesión iniciada como</span><strong id="user-email">—</strong></div>
+            <button type="button" role="menuitem" onclick="AdminUI.openChangePassword()"><i data-icon="lock"></i>Cambiar contraseña</button>
+            <a role="menuitem" id="user-public-link" href="index.html" onclick="this.href=document.getElementById('crm-public-link').href"><i data-icon="external"></i>Ver sitio público</a>
+            <button type="button" role="menuitem" class="is-danger" onclick="Auth.logout()"><i data-icon="arrowLeft"></i>Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="crm-viewport" class="page-view">
+    <div class="crm-shell">
+
+      <aside class="crm-sidebar" aria-label="Menú del CRM">
+        <div>
+          <div class="crm-brand-box">
+            <div class="crm-brand-icon"><i data-icon="scissors"></i></div>
+            <div>
+              <div class="title-font crm-brand-name" id="crm-sidebar-shopname">Barbería</div>
+              <div class="crm-brand-sub" id="crm-sidebar-role">—</div>
+            </div>
+          </div>
+
+          <nav class="crm-nav-list">
+            <span class="crm-nav-group">General</span>
+            <button type="button" class="crm-nav-btn active" data-crm="dashboard" onclick="CRM.switchTab('dashboard')">
+              <span class="crm-nav-label"><i data-icon="dashboard"></i>Panel principal</span>
+            </button>
+            <button type="button" class="crm-nav-btn ai-special-btn" data-crm="ai-advisor" onclick="CRM.switchTab('ai-advisor')">
+              <span class="crm-nav-label"><i data-icon="sparkles"></i>Asesoría imagen + IA</span>
+              <span class="crm-nav-new">Nuevo</span>
+            </button>
+
+            <span class="crm-nav-group">Operación</span>
+            <button type="button" class="crm-nav-btn" data-crm="appointments" onclick="CRM.switchTab('appointments')">
+              <span class="crm-nav-label"><i data-icon="calendar"></i>Citas</span>
+              <span class="crm-nav-count" id="badge-nav-appts">0</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="walkins" onclick="CRM.switchTab('walkins')">
+              <span class="crm-nav-label"><i data-icon="hourglass"></i>Cola walk-in</span>
+              <span class="crm-nav-count" id="badge-nav-walkins">0</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="barbers" onclick="CRM.switchTab('barbers')">
+              <span class="crm-nav-label"><i data-icon="users"></i>Barberos y portafolio</span>
+              <span class="crm-nav-count" id="badge-nav-barbers">0</span>
+            </button>
+
+            <span class="crm-nav-group">Negocio</span>
+            <button type="button" class="crm-nav-btn" data-crm="sales" onclick="CRM.switchTab('sales')">
+              <span class="crm-nav-label"><i data-icon="wallet"></i>Ventas</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="customers" onclick="CRM.switchTab('customers')">
+              <span class="crm-nav-label"><i data-icon="user"></i>Clientes</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="services" onclick="CRM.switchTab('services')">
+              <span class="crm-nav-label"><i data-icon="tag"></i>Servicios</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="reports" onclick="CRM.switchTab('reports')">
+              <span class="crm-nav-label"><i data-icon="chart"></i>Reportes</span>
+            </button>
+
+            <span class="crm-nav-group">Administración</span>
+            <button type="button" class="crm-nav-btn" data-crm="users" onclick="CRM.switchTab('users')">
+              <span class="crm-nav-label"><i data-icon="shield"></i>Usuarios y accesos</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="audit" onclick="CRM.switchTab('audit')">
+              <span class="crm-nav-label"><i data-icon="file"></i>Historial</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="settings" onclick="CRM.switchTab('settings')">
+              <span class="crm-nav-label"><i data-icon="sliders"></i>Configuración</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="crm-sidebar-footer">
+          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>Modo demo</div>
+          <p>Los datos se guardan en este navegador.</p>
+          <button type="button" class="btn-dark btn-xs btn-block" onclick="AppRouter.goPublic('inicio')">
+            <i data-icon="arrowLeft"></i>Volver a la web pública
+          </button>
+        </div>
+      </aside>
+
+      <main class="crm-main" id="crm-main" tabindex="-1">
+
+        <!-- ================= ASESORÍA IA ================= -->
+        <div id="crm-pane-ai-advisor" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Estación del barbero · Visagismo</span>
+              <h1 class="crm-title">Asesoría de imagen + IA</h1>
+              <p class="crm-lead">Haz el cuestionario al cliente, sube las fotos de su rostro y genera 4 propuestas de corte + barba adaptadas a sus facciones.</p>
+            </div>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="AIAdvisor.loadSampleSession()"><i data-icon="zap"></i>Cargar cliente de prueba</button>
+              <button type="button" class="btn-golden" onclick="AIAdvisor.generate4Proposals()"><i data-icon="sparkles"></i>Generar 4 propuestas</button>
+            </div>
+          </div>
+
+          <ol class="ai-stepper-bar">
+            <li class="ai-step-pill active">
+              <div class="ai-step-num">1</div>
+              <div>
+                <div class="ai-step-title">Cuestionario al cliente</div>
+                <span class="ai-step-sub">Estilo, largo deseado, cabello y barba</span>
+              </div>
+            </li>
+            <li class="ai-step-pill active">
+              <div class="ai-step-num">2</div>
+              <div>
+                <div class="ai-step-title">Fotos multiángulo</div>
+                <span class="ai-step-sub">Subida ilimitada + malla de facciones</span>
+              </div>
+            </li>
+            <li class="ai-step-pill active">
+              <div class="ai-step-num">3</div>
+              <div>
+                <div class="ai-step-title">4 propuestas IA</div>
+                <span class="ai-step-sub">Corte + barba con receta técnica</span>
+              </div>
+            </li>
+          </ol>
+
+          <div class="crm-section-card is-accent">
+            <div class="ai-client-grid">
+              <div>
+                <label class="field-lbl" for="ai-active-barber">Barbero que atiende <span class="req">*</span></label>
+                <select id="ai-active-barber" class="input-dark"></select>
+              </div>
+              <div>
+                <label class="field-lbl" for="ai-select-existing-client">Cliente de citas / cola</label>
+                <select id="ai-select-existing-client" class="input-dark" onchange="AIAdvisor.onSelectExistingClient(this.value)"></select>
+              </div>
+              <div>
+                <label class="field-lbl" for="ai-client-name">Cliente en sillón <span class="req">*</span></label>
+                <input type="text" id="ai-client-name" class="input-dark" value="Sebastián Alvarado" placeholder="Nombre del cliente" />
+              </div>
+              <div>
+                <label class="field-lbl" for="ai-client-phone">WhatsApp del cliente</label>
+                <input type="tel" id="ai-client-phone" class="input-dark" value="987654321" maxlength="9" inputmode="numeric" />
+              </div>
+            </div>
+          </div>
+
+          <div class="crm-split-2">
+            <div class="crm-section-card">
+              <div class="card-head">
+                <div>
+                  <span class="card-kicker">Paso 01 · Diagnóstico previo</span>
+                  <h3>Cuestionario de estilo</h3>
+                </div>
+                <span class="st-badge st-EN_SILLON">10 preguntas</span>
+              </div>
+
+              <div class="q-grid">
+                <div>
+                  <label class="field-lbl" for="q-style-vibe">1. Imagen que desea proyectar</label>
+                  <select id="q-style-vibe" class="input-dark">
+                    <option value="URBANO_MODERNO">Urbano / Moderno y en tendencia</option>
+                    <option value="EJECUTIVO">Ejecutivo / Corporativo y formal</option>
+                    <option value="CLASICO_SARTORIAL">Clásico sartorial / Elegante</option>
+                    <option value="VANGUARDISTA">Vanguardista / Atrevido (textura fuerte)</option>
+                    <option value="DEPORTIVO">Deportivo / Práctico y fresco</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-top-length">2. Largo deseado arriba</label>
+                  <select id="q-top-length" class="input-dark">
+                    <option value="MEDIO_PEINABLE">Medio peinable (4 a 6 cm, con movimiento)</option>
+                    <option value="CORTO_TEXTURIZADO">Corto texturizado (2 a 3 cm, crop / César)</option>
+                    <option value="MANTENER_LARGO">Mantener largo actual (solo limpiar puntas)</option>
+                    <option value="MUY_CORTO_BUZZ">Muy corto / Buzz cut (0.5 a 1.5 cm)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-side-fade">3. Degradado en laterales y nuca</label>
+                  <select id="q-side-fade" class="input-dark">
+                    <option value="MID_FADE">Mid fade (altura media equilibrada)</option>
+                    <option value="SKIN_FADE">Skin fade / Navaja (al ras 0.0)</option>
+                    <option value="LOW_FADE">Low fade (bajo, sutil y oscuro)</option>
+                    <option value="TAPER_FADE">Taper fade (solo patillas y nuca)</option>
+                    <option value="TIJERA_CLASICO">Clásico a tijera (sin máquina al ras)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-face-shape">4. Forma del rostro</label>
+                  <select id="q-face-shape" class="input-dark">
+                    <option value="OVALADO">Ovalado (equilibrado)</option>
+                    <option value="REDONDO">Redondo (requiere alargar verticalmente)</option>
+                    <option value="CUADRADO">Cuadrado (mandíbula angulosa fuerte)</option>
+                    <option value="DIAMANTE">Diamante (pómulos marcados)</option>
+                    <option value="ALARGADO">Alargado / Rectangular</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-hair-type">5. Tipo y textura de cabello</label>
+                  <select id="q-hair-type" class="input-dark">
+                    <option value="ONDULADO">Ondulado con volumen medio</option>
+                    <option value="LISO_GRUESO">Liso grueso (tiende a pararse en los lados)</option>
+                    <option value="LISO_FINO">Liso fino (necesita volumen y densidad)</option>
+                    <option value="RIZADO">Rizado / Crespo con textura</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-hair-issues">6. Zonas a disimular</label>
+                  <select id="q-hair-issues" class="input-dark">
+                    <option value="NINGUNA">Ninguna en especial</option>
+                    <option value="ENTRADAS">Entradas pronunciadas (cubrir con flequillo/textura)</option>
+                    <option value="FRENTE_AMPLIA">Frente amplia</option>
+                    <option value="REMOLINO">Remolino fuerte en la coronilla</option>
+                    <option value="POCA_DENSIDAD">Poca densidad en la zona superior</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-beard-style">7. Diseño y tamaño de barba</label>
+                  <select id="q-beard-style" class="input-dark">
+                    <option value="BARBA_MEDIA_CONECTADA">Barba media corporativa conectada al fade</option>
+                    <option value="BARBA_3_DIAS">Barba corta / Sombra de 3 días perfilada</option>
+                    <option value="BARBA_LARGA_ESCULPIDA">Barba larga / Esculpida en V</option>
+                    <option value="CANDADO_BIGOTE">Candado / Bigote + perilla marcada</option>
+                    <option value="SIN_BARBA">Sin barba / Afeitado completo al ras</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-beard-density">8. Densidad del vello facial</label>
+                  <select id="q-beard-density" class="input-dark">
+                    <option value="COMPLETA">Tupida y uniforme en mejillas y mentón</option>
+                    <option value="MEDIA_CLAROS">Media (ligeros claros en mejillas)</option>
+                    <option value="SOLO_MENTON">Concentrada en bigote y mentón</option>
+                    <option value="NULA">Sin barba</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-maintenance">9. Tiempo diario para peinarse</label>
+                  <select id="q-maintenance" class="input-dark">
+                    <option value="MEDIO_3_MIN">3 a 5 minutos (cera o polvo texturizador)</option>
+                    <option value="BAJO_1_MIN">Menos de 1 minuto (peinar con los dedos)</option>
+                    <option value="ALTO_SECADORA">5 a 10 minutos (secadora, cepillo y fijador)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="field-lbl" for="q-finish">10. Acabado visual preferido</label>
+                  <select id="q-finish" class="input-dark">
+                    <option value="MATE_NATURAL">Mate natural (sin brillo, efecto seco)</option>
+                    <option value="SEMIMATE">Semimate (definición limpia, brillo sutil)</option>
+                    <option value="BRILLO_CLASICO">Brillo clásico (efecto pomada / húmedo)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;">
+                <label class="field-lbl" for="q-custom-notes">Observaciones del cliente <span class="text-grey" style="font-weight:400;">(opcional)</span></label>
+                <input type="text" id="q-custom-notes" class="input-dark" placeholder="Ej. Tiene un evento el sábado, quiere que la barba afine la mandíbula" />
+              </div>
+            </div>
+
+            <div class="crm-section-card">
+              <div class="card-head">
+                <div>
+                  <span class="card-kicker">Paso 02 · Captura biométrica</span>
+                  <h3>Fotos del cliente (<span id="ai-photo-counter">0</span>)</h3>
+                </div>
+                <button type="button" class="btn-dark btn-xs" onclick="AIAdvisor.clearPhotos()"><i data-icon="trash"></i>Limpiar</button>
+              </div>
+
+              <p class="card-text">Sube todas las fotos necesarias: <strong>frontal, perfil derecho, perfil izquierdo y coronilla</strong>. Puedes elegir varias imágenes a la vez desde el celular o la computadora.</p>
+
+              <div class="ai-upload-row">
+                <div>
+                  <label class="field-lbl" for="ai-upload-angle-tag">Ángulo de la foto</label>
+                  <select id="ai-upload-angle-tag" class="input-dark">
+                    <option value="Rostro Frontal + Barba">1. Rostro frontal + barba</option>
+                    <option value="Perfil Lateral Derecho">2. Perfil lateral derecho</option>
+                    <option value="Perfil Lateral Izquierdo">3. Perfil lateral izquierdo</option>
+                    <option value="Zona Superior / Remolino">4. Zona superior / coronilla</option>
+                    <option value="Ángulo Adicional">5. Ángulo adicional</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="upload-dropzone" role="button" tabindex="0" onclick="document.getElementById('ai-client-files-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                    <i data-icon="camera" class="text-golden"></i>
+                    <span class="upload-txt">Subir foto(s): cámara o archivo</span>
+                    <input type="file" id="ai-client-files-input" accept="image/*" multiple style="display:none;" onchange="AIAdvisor.handleUploadFiles(event)" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ai-photos-upload-grid" id="ai-client-photos-grid"></div>
+
+              <div class="card-foot">
+                <button type="button" class="btn-golden btn-lg btn-block" onclick="AIAdvisor.generate4Proposals()">
+                  <i data-icon="sparkles"></i>Analizar facciones y generar 4 cortes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="crm-section-card is-accent" id="ai-results-container">
+            <div class="card-head" style="flex-wrap:wrap;">
+              <div>
+                <span class="card-kicker">Paso 03 · Motor de visagismo Golden IA</span>
+                <h2 class="ai-results-title" id="ai-results-headline">4 propuestas de corte y barba según sus facciones</h2>
+              </div>
+              <span class="st-badge st-CONFIRMADA_WSP" id="ai-analysis-summary-badge">Listo para revisar con el cliente</span>
+            </div>
+
+            <div id="ai-biometric-diagnosis-banner" class="ai-diagnosis-banner"></div>
+
+            <div class="ai-proposals-4-grid" id="ai-4-proposals-grid"></div>
+          </div>
+
+          <div class="crm-section-card">
+            <div class="card-head"><h3>Historial de asesorías realizadas</h3></div>
+            <div id="ai-saved-history-list"></div>
+          </div>
+        </div>
+
+        <!-- ================= PANEL PRINCIPAL ================= -->
+        <div id="crm-pane-dashboard" class="crm-pane active-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Resumen de hoy</span>
+              <h1 class="crm-title">Panel principal</h1>
+            </div>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="CRM.openWalkInModal()"><i data-icon="plus"></i>Walk-in</button>
+              <button type="button" class="btn-dark" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Cita</button>
+              <button type="button" class="btn-golden" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i>Nueva asesoría IA</button>
+            </div>
+          </div>
+
+          <div class="crm-kpi-grid-4" id="dashboard-kpis-row1"></div>
+          <div class="crm-kpi-grid-4" id="dashboard-kpis-row2"></div>
+
+          <div class="crm-section-card" id="quick-start-box">
+            <div class="card-head">
+              <h3>Inicio rápido</h3>
+              <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
+            </div>
+            <div class="quick-actions">
+              <button type="button" class="quick-action" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i><span>Abrir asesoría IA</span></button>
+              <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span>Barberos y portafolio</span></button>
+              <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span>Agregar cita</span></button>
+              <button type="button" class="quick-action" onclick="CRM.openWalkInModal()"><i data-icon="hourglass"></i><span>Agregar walk-in</span></button>
+            </div>
+          </div>
+
+          <div class="crm-section-card">
+            <div class="card-head">
+              <div>
+                <h3>Barberos en vivo</h3>
+                <p id="barber-live-summary-txt" class="card-sub">0 trabajando • 0 disponibles</p>
+              </div>
+              <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('barbers')"><i data-icon="camera"></i>Gestionar portafolio</button>
+            </div>
+            <div class="barber-live-grid" id="dashboard-barber-live"></div>
+          </div>
+
+          <div class="crm-split-2">
+            <div class="crm-section-card">
+              <div class="card-head">
+                <h3>Próximas citas de hoy</h3>
+                <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')">Ver citas<i data-icon="arrowRight"></i></button>
+              </div>
+              <div id="dashboard-upcoming-list"></div>
+            </div>
+            <div class="crm-section-card">
+              <div class="card-head">
+                <h3>Cola de espera actual</h3>
+                <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('walkins')">Ver cola<i data-icon="arrowRight"></i></button>
+              </div>
+              <div id="dashboard-queue-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= BARBEROS ================= -->
+        <div id="crm-pane-barbers" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Equipo</span>
+              <h1 class="crm-title">Barberos y portafolio</h1>
+              <p class="crm-lead">Administra nombre, foto, especialidades y las fotos de cortes realizados por cada barbero.</p>
+            </div>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="AppRouter.goPublic('barberos')"><i data-icon="eye"></i>Ver página pública</button>
+              <button type="button" class="btn-golden" onclick="CRM.openBarberProfileModal()"><i data-icon="plus"></i>Nuevo barbero</button>
+            </div>
+          </div>
+          <div class="cards-grid-2" id="crm-barbers-portfolio-grid"></div>
+        </div>
+
+        <!-- ================= CITAS ================= -->
+        <div id="crm-pane-appointments" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Agenda</span>
+              <h1 class="crm-title">Citas</h1>
+              <p class="crm-lead">Gestiona la agenda e inicia la asesoría IA directamente desde cada cita.</p>
+            </div>
+            <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Agregar cita</button>
+          </div>
+          <div class="segmented" id="appt-quick-tabs" role="group" aria-label="Filtro rápido de citas">
+            <button type="button" class="btn-dark active" data-atab="TODAY" onclick="CRM.setApptTab('TODAY')">Hoy</button>
+            <button type="button" class="btn-dark" data-atab="UPCOMING" onclick="CRM.setApptTab('UPCOMING')">Próximas</button>
+            <button type="button" class="btn-dark" data-atab="COMPLETADA" onclick="CRM.setApptTab('COMPLETADA')">Completadas</button>
+            <button type="button" class="btn-dark" data-atab="CANCELADA" onclick="CRM.setApptTab('CANCELADA')">Canceladas</button>
+            <button type="button" class="btn-dark" data-atab="NO_ASISTIO" onclick="CRM.setApptTab('NO_ASISTIO')">No asistió</button>
+            <button type="button" class="btn-dark" data-atab="ALL" onclick="CRM.setApptTab('ALL')">Todas</button>
+          </div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid">
+              <div><label class="field-lbl" for="flt-appt-q">Buscar</label><input type="search" id="flt-appt-q" class="input-dark" placeholder="Nombre, teléfono, barbero…" oninput="CRM.renderAppointments()" /></div>
+              <div><label class="field-lbl" for="flt-appt-barber">Barbero</label><select id="flt-appt-barber" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
+              <div><label class="field-lbl" for="flt-appt-service">Servicio</label><select id="flt-appt-service" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
+              <div><label class="field-lbl" for="flt-appt-date">Fecha</label><input type="date" id="flt-appt-date" class="input-dark" onchange="CRM.renderAppointments()" /></div>
+              <div>
+                <label class="field-lbl" for="flt-appt-status">Estado</label>
+                <select id="flt-appt-status" class="input-dark" onchange="CRM.renderAppointments()">
+                  <option value="ALL">Todos</option>
+                  <option value="PROGRAMADA">Programada</option>
+                  <option value="CONFIRMADA_WSP">Confirmada</option>
+                  <option value="COMPLETADA">Completada</option>
+                  <option value="CANCELADA">Cancelada</option>
+                </select>
+              </div>
+              <div><button type="button" class="btn-dark" onclick="CRM.clearApptFilters()"><i data-icon="refresh"></i>Limpiar</button></div>
+            </div>
+          </div>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Cliente</th><th scope="col">Servicio</th><th scope="col">Barbero</th><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+              <tbody id="crm-appts-tbody"></tbody>
+            </table>
+          </div>
+          <div style="text-align:center; margin-top:16px;"><button type="button" class="btn-dark" id="appt-more" onclick="CRM.showMoreAppts()" hidden>Mostrar más</button></div>
+        </div>
+
+        <!-- ================= WALK-IN ================= -->
+        <div id="crm-pane-walkins" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Atención sin cita</span>
+              <h1 class="crm-title">Cola de espera</h1>
+            </div>
+            <button type="button" class="btn-golden" onclick="CRM.openWalkInModal()"><i data-icon="plus"></i>Agregar walk-in</button>
+          </div>
+          <div class="crm-section-card">
+            <div class="card-head"><h3>Barberos en vivo</h3></div>
+            <div class="barber-live-grid" id="walkin-barber-live"></div>
+          </div>
+          <div class="cards-grid-2" id="walkin-active-grid" style="margin-bottom:24px;"></div>
+          <div class="crm-section-card">
+            <div class="card-head">
+              <h3>Finalizados hoy</h3>
+              <span id="walkin-finished-count" class="st-badge st-COMPLETADA">0 completados</span>
+            </div>
+            <div id="walkin-finished-list"></div>
+          </div>
+        </div>
+
+        <!-- ================= VENTAS ================= -->
+        <div id="crm-pane-sales" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Ingresos</span>
+              <h1 class="crm-title">Ventas</h1>
+            </div>
+          </div>
+          <div class="crm-kpi-grid-3" id="sales-kpis-grid"></div>
+          <div class="crm-split-2">
+            <div class="crm-section-card"><div class="card-head"><h3>Ingresos por barbero</h3></div><div id="sales-by-barber-bars"></div></div>
+            <div class="crm-section-card"><div class="card-head"><h3>Ingresos por servicio</h3></div><div id="sales-by-service-bars"></div></div>
+          </div>
+          <div class="crm-section-card">
+            <div class="card-head"><h3>Ventas completadas recientes</h3></div>
+            <div class="crm-table-wrap is-flat">
+              <table class="crm-table">
+                <thead><tr><th scope="col">Fecha</th><th scope="col">Cliente</th><th scope="col">Servicio</th><th scope="col">Barbero</th><th scope="col">Origen</th><th scope="col">Ingreso</th></tr></thead>
+                <tbody id="sales-recent-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= CLIENTES ================= -->
+        <div id="crm-pane-customers" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Cartera</span>
+              <h1 class="crm-title">Clientes</h1>
+            </div>
+            <button type="button" class="btn-golden" onclick="CRM.openCustomerModal()"><i data-icon="plus"></i>Agregar cliente</button>
+          </div>
+          <div class="search-bar">
+            <i data-icon="search"></i>
+            <label for="cust-search-q" class="sr-only">Buscar cliente</label>
+            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre, teléfono o diagnóstico IA…" oninput="CRM.renderCustomers()" />
+          </div>
+          <div class="cards-grid-3" id="crm-customers-grid"></div>
+        </div>
+
+        <!-- ================= SERVICIOS ================= -->
+        <div id="crm-pane-services" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Catálogo</span>
+              <h1 class="crm-title">Servicios</h1>
+            </div>
+            <button type="button" class="btn-golden" onclick="CRM.openServiceModal()"><i data-icon="plus"></i>Agregar servicio</button>
+          </div>
+          <div class="cards-grid-3" id="crm-services-grid"></div>
+        </div>
+
+        <!-- ================= REPORTES ================= -->
+        <div id="crm-pane-reports" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Análisis</span>
+              <h1 class="crm-title">Reportes</h1>
+              <p class="crm-lead">Aplica filtros, revisa la vista previa y descarga en PDF o Excel.</p>
+            </div>
+          </div>
+          <div id="crm-reports-root"></div>
+        </div>
+
+        <!-- ================= CONFIGURACIÓN ================= -->
+        <div id="crm-pane-settings" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Barbería activa</span>
+              <h1 class="crm-title">Configuración</h1>
+              <p class="crm-lead">Datos públicos de <strong id="set-tenant-name">esta barbería</strong>. Se muestran en su web: <a id="set-public-link" class="inline-link" href="index.html" target="_blank" rel="noopener">index.html</a></p>
+            </div>
+          </div>
+          <div class="crm-split-2">
+            <div class="crm-section-card">
+              <div class="card-head"><h3>Datos de contacto</h3></div>
+              <div class="form-grid-2">
+                <div><label class="field-lbl" for="set-owner-name">Propietario</label><input type="text" id="set-owner-name" class="input-dark" /></div>
+                <div>
+                  <label class="field-lbl" for="set-currency">Moneda</label>
+                  <select id="set-currency" class="input-dark">
+                    <option value="S/">S/ (Soles)</option>
+                    <option value="$">$ (Dólares)</option>
+                    <option value="€">€ (Euros)</option>
+                  </select>
+                </div>
+                <div><label class="field-lbl" for="set-address">Dirección</label><input type="text" id="set-address" class="input-dark" /></div>
+                <div><label class="field-lbl" for="set-phone">Teléfono / WhatsApp</label><input type="tel" id="set-phone" class="input-dark" /></div>
+                <div><label class="field-lbl" for="set-hours">Horario</label><input type="text" id="set-hours" class="input-dark" placeholder="Citas de 9:00 a 20:00" /></div>
+                <div><label class="field-lbl" for="set-city">Ciudad</label><input type="text" id="set-city" class="input-dark" placeholder="Lima, Perú" /></div>
+              </div>
+              <p class="form-note" data-role="ADMIN">El nombre, el logo, el color de marca y el enlace público los administra el superadministrador.</p>
+              <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSettings()"><i data-icon="check"></i>Guardar configuración</button></div>
+            </div>
+            <div class="crm-section-card">
+              <div class="card-head"><h3>Respaldo</h3></div>
+              <p class="card-text">Descarga una copia de los datos de esta barbería (barberos, servicios, citas, clientes y asesorías).</p>
+              <div class="btn-row">
+                <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
+              </div>
+              <div class="danger-zone" data-role="SUPERADMIN">
+                <div>
+                  <strong>Zona de riesgo · Superadministrador</strong>
+                  <span>Reemplazar los datos de esta barbería por datos de ejemplo, o borrar el sistema completo.</span>
+                </div>
+                <div class="btn-row">
+                  <button type="button" class="btn-dark" onclick="CRM.reloadDemoData()"><i data-icon="refresh"></i>Cargar datos demo</button>
+                  <button type="button" class="btn-danger" onclick="CRM.factoryReset()"><i data-icon="trash"></i>Restablecer todo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= USUARIOS Y ACCESOS ================= -->
+        <div id="crm-pane-users" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Seguridad</span>
+              <h1 class="crm-title">Usuarios y accesos</h1>
+              <p class="crm-lead" id="users-lead"></p>
+            </div>
+            <button type="button" class="btn-golden" onclick="AdminUI.openUserModal()"><i data-icon="plus"></i>Nuevo usuario</button>
+          </div>
+
+          <div class="role-legend" data-role="SUPERADMIN,ADMIN">
+            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-super">Superadministrador</span><p>Acceso total: todas las barberías, usuarios y permisos.</p></div>
+            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-admin">Administrador</span><p>Su barbería: citas, walk-in, servicios, barberos, personal y los módulos que le otorgues.</p></div>
+            <div class="role-legend-item"><span class="role-badge role-staff">Personal</span><p>Panel, citas y walk-in (ver, crear y avanzar) y Asesoría IA. Si está vinculado a un barbero, solo ve sus citas.</p></div>
+          </div>
+
+          <div class="crm-section-card">
+            <div class="appt-filters-grid users-filters">
+              <div><label class="field-lbl" for="usr-search">Buscar</label><input type="search" id="usr-search" class="input-dark" placeholder="Nombre o correo…" oninput="AdminUI.renderUsers()" /></div>
+              <div data-role="SUPERADMIN"><label class="field-lbl" for="usr-filter-tenant">Barbería</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
+            </div>
+          </div>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Barbería</th><th scope="col">Barbero</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= HISTORIAL ================= -->
+        <div id="crm-pane-audit" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Auditoría</span>
+              <h1 class="crm-title">Historial de actividad</h1>
+              <p class="crm-lead">Quién hizo qué y cuándo: accesos, citas, walk-in, barberos, servicios, usuarios y configuración.</p>
+            </div>
+            <button type="button" class="btn-dark" onclick="AdminUI.exportAuditCSV()"><i data-icon="download"></i>Exportar CSV</button>
+          </div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid audit-filters">
+              <div><label class="field-lbl" for="aud-search">Buscar</label><input type="search" id="aud-search" class="input-dark" placeholder="Usuario, cliente, detalle…" oninput="AdminUI.renderAudit(false)" /></div>
+              <div data-role="SUPERADMIN"><label class="field-lbl" for="aud-tenant">Barbería</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-action">Acción</label><select id="aud-action" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-from">Desde</label><input type="date" id="aud-from" class="input-dark" onchange="AdminUI.renderAudit(false)" /></div>
+            </div>
+          </div>
+          <p class="audit-count" id="audit-count"></p>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Barbería</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+          <div style="text-align:center; margin-top:16px;"><button type="button" class="btn-dark" id="audit-more" onclick="AdminUI.renderAudit(true)" hidden>Mostrar más</button></div>
+        </div>
+
+      </main>
+    </div>
+  </section>
+
+  <div class="crm-modal-backdrop" id="crm-modal-overlay">
+    <div class="crm-modal-box" id="crm-modal-content"></div>
+  </div>
+
+  <button type="button" class="wsp-float-btn" onclick="WhatsAppBot.toggle()" aria-controls="wsp-modal" aria-label="Abrir mensajes de WhatsApp">
+    <i data-icon="message"></i>
+    <span class="wsp-label">WhatsApp</span>
+    <span id="wsp-badge" class="wsp-badge-pill">1</span>
+  </button>
+
+  <div class="wsp-modal" id="wsp-modal" role="dialog" aria-label="Mensajes de WhatsApp">
+    <div class="wsp-head">
+      <div class="wsp-head-id">
+        <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
+        <div>
+          <strong>Golden Barbería</strong>
+          <span>Confirmaciones y reportes de asesoría IA</span>
+        </div>
+      </div>
+      <button type="button" class="wsp-close-btn" onclick="WhatsAppBot.toggle()" aria-label="Cerrar chat"><i data-icon="x"></i></button>
+    </div>
+    <div class="wsp-body" id="wsp-messages"></div>
+  </div>
+
+  <script src="js/utils/icons.js"></script>
+  <script src="js/utils/image-compressor.js"></script>
+  <script src="js/data/db.js"></script>
+  <script src="js/data/demo-seed.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/core/ui.js"></script>
+  <script src="js/core/tenant-brand.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/whatsapp-bot.js"></script>
+  <script src="js/core/analytics.js"></script>
+  <script src="js/core/charts.js"></script>
+  <script src="js/core/reports.js"></script>
+  <script src="js/core/report-export.js"></script>
+  <script src="js/components/report-builder.js"></script>
+  <script src="js/pages/ai-advisor.js"></script>
+  <script src="js/pages/crm.js"></script>
+  <script src="js/pages/admin.js"></script>
+  <script src="js/core/guard.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
