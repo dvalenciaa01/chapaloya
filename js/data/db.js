@@ -42,6 +42,18 @@ const DB = {
   DEFAULT_SLOTS: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
   TIME_SLOTS: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
 
+  // Horario semanal que recibe cada barbería (igual que private.default_schedule() en la migración 6).
+  // week: 0 = domingo … 6 = sábado; cada día es una lista de tramos [desde, hasta]; [] = cerrado.
+  DEFAULT_SCHEDULE: {
+    interval: 30, maxDays: 60,
+    week: { 0: [['09:00', '13:00'], ['14:00', '20:30']], 1: [['09:00', '13:00'], ['14:00', '20:30']],
+            2: [['09:00', '13:00'], ['14:00', '20:30']], 3: [['09:00', '13:00'], ['14:00', '20:30']],
+            4: [['09:00', '13:00'], ['14:00', '20:30']], 5: [['09:00', '13:00'], ['14:00', '20:30']],
+            6: [['09:00', '13:00'], ['14:00', '20:30']] }
+  },
+  INTERVALS: [10, 15, 20, 30, 45, 60, 90, 120],
+  DAY_NAMES: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+
   PLANS: {
     BASICO: { label: 'Básico', fee: 79 },
     PRO: { label: 'Pro', fee: 149 },
@@ -98,6 +110,8 @@ const DB = {
     const m = String((err && (err.message || err.error_description || err.error)) || err || '');
     if (/row-level security|permission denied|42501/i.test(m)) return 'No tienes permiso para guardar este cambio.';
     if (/customers_tenant_id_phone_key/i.test(m)) return 'Ya existe un cliente con ese celular.';
+    if (/schedule_exceptions_tenant_id_barber_id_date_key/i.test(m)) return 'Ya hay una fecha especial para ese día.';
+    if (/schedule_valid|ranges_check/i.test(m)) return 'El horario no es válido: revisa que cada tramo empiece antes de terminar.';
     if (/appointments_no_double_booking|duplicate key/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
     if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
     if (/JWT|token|session/i.test(m)) return 'Tu sesión expiró. Vuelve a ingresar.';
@@ -126,6 +140,7 @@ const DB = {
       address: r.address || '', phone: r.phone || '', hours: r.hours || '', city: r.city || '',
       currency: r.currency || 'S/', timezone: r.timezone || 'America/Lima',
       timeSlots: Array.isArray(r.time_slots) && r.time_slots.length ? r.time_slots.map(x => this.hhmm(x)) : this.DEFAULT_SLOTS.slice(),
+      schedule: this.normSchedule(r.schedule),
       plan: r.plan || 'PRO', planFee: r.plan_fee == null ? 0 : Number(r.plan_fee),
       subscriptionEnd: r.subscription_end || '', status: r.status || 'ACTIVE',
       createdAt: r.created_at, whatsapp: r.whatsapp || null
@@ -138,7 +153,7 @@ const DB = {
       palette: t.palette || this.DEFAULT_PALETTE, address: t.address || '', phone: t.phone || '',
       hours: t.hours || '', city: t.city || '', currency: t.currency || 'S/',
       plan: t.plan || 'PRO', plan_fee: Number(t.planFee) || 0, subscription_end: t.subscriptionEnd || null,
-      status: t.status || 'ACTIVE'
+      status: t.status || 'ACTIVE', schedule: this.normSchedule(t.schedule)
     };
   },
   fromProfile(r) {
@@ -166,15 +181,30 @@ const DB = {
       table: 'barbers', soft: true,
       from(r, works) {
         return { id: r.id, name: r.name, role: r.role_title || '', photo: r.photo_url || '',
-          specialties: r.specialties || [], works: works || [] };
+          specialties: r.specialties || [], works: works || [], schedule: DB.normWeek(r.schedule) };
       },
-      logical(b) { return { name: b.name, role: b.role || '', photo: b.photo || '', specialties: b.specialties || [] }; },
+      logical(b) { return { name: b.name, role: b.role || '', photo: b.photo || '', specialties: b.specialties || [], schedule: b.schedule ? { week: DB.normWeek(b.schedule).week } : null }; },
       columns(l) {
         const c = {};
         if ('name' in l) c.name = l.name;
         if ('role' in l) c.role_title = l.role;
         if ('photo' in l) c.photo_url = l.photo || null;
         if ('specialties' in l) c.specialties = l.specialties;
+        if ('schedule' in l) c.schedule = l.schedule;
+        return c;
+      }
+    },
+    // Fechas especiales: feriados, días con otro horario o el día libre de un barbero
+    exceptions: {
+      table: 'schedule_exceptions',
+      from(r) { return { id: r.id, barberId: r.barber_id || null, date: r.date, ranges: DB.normRanges(r.ranges), note: r.note || '' }; },
+      logical(e) { return { barberId: e.barberId || null, date: e.date, ranges: DB.normRanges(e.ranges), note: e.note || '' }; },
+      columns(l) {
+        const c = {};
+        if ('barberId' in l) c.barber_id = l.barberId;
+        if ('date' in l) c.date = l.date;
+        if ('ranges' in l) c.ranges = l.ranges;
+        if ('note' in l) c.note = l.note;
         return c;
       }
     },
@@ -290,7 +320,7 @@ const DB = {
       }
     }
   },
-  ORDER: ['barbers', 'works', 'services', 'customers', 'appointments', 'walkins', 'ai'],
+  ORDER: ['barbers', 'works', 'exceptions', 'services', 'customers', 'appointments', 'walkins', 'ai'],
 
   barberIdByName(tid, name) {
     const st = this.root.data[tid];
@@ -330,7 +360,8 @@ const DB = {
   emptyState(t) {
     return {
       settings: { shopName: t.name, ownerName: t.ownerName, currency: t.currency || 'S/', showQuickStart: this.pref('quick:' + t.id) !== false },
-      barberProfiles: [], services: [], customers: [], appointments: [], walkIns: [], aiConsultations: []
+      barberProfiles: [], services: [], customers: [], appointments: [], walkIns: [], aiConsultations: [],
+      scheduleExceptions: []
     };
   },
 
@@ -356,14 +387,16 @@ const DB = {
   emptySnap() { const s = {}; this.ORDER.forEach(k => { s[k] = new Map(); }); return s; },
 
   async loadTenantData(ids) {
-    const [barbers, works, services, customers, appts, walks, ai] = await Promise.all([
+    const today = this.todayISO();
+    const [barbers, works, services, customers, appts, walks, ai, excs] = await Promise.all([
       this.fetchRows('barbers', ids),
       this.fetchRows('barber_works', ids, { order: 'created_at', asc: false }),
       this.fetchRows('services', ids, { order: 'sort' }),
       this.fetchRows('customers', ids, { order: 'created_at', asc: false }),
       this.fetchRows('appointments', ids, { order: 'starts_at', asc: false }),
       this.fetchRows('walk_ins', ids, { order: 'created_at', asc: false }),
-      this.fetchRows('ai_consultations', ids, { order: 'created_at', asc: false })
+      this.fetchRows('ai_consultations', ids, { order: 'created_at', asc: false }),
+      this.fetchRows('schedule_exceptions', ids, { order: 'date', filter: q => q.gte('date', today) })
     ]);
     const S = this.SPECS;
     ids.forEach(tid => {
@@ -382,6 +415,7 @@ const DB = {
       st.appointments = mine(appts).map(r => S.appointments.from(r));
       st.walkIns = mine(walks).map(r => S.walkins.from(r));
       st.aiConsultations = mine(ai).map(r => S.ai.from(r));
+      st.scheduleExceptions = mine(excs).map(r => S.exceptions.from(r));
       st.settings.shopName = t.name;
       st.settings.currency = t.currency;
       st.settings.ownerName = t.ownerName;
@@ -459,15 +493,17 @@ const DB = {
     const t = this.fromTenant({
       id: r.id, slug: r.slug, name: r.name, logo_url: r.logo_url, palette: r.palette, address: r.address,
       phone: r.phone, hours: r.hours, city: r.city, currency: r.currency, timezone: r.timezone,
-      time_slots: r.time_slots, status: 'ACTIVE'
+      time_slots: r.time_slots, schedule: r.schedule, status: 'ACTIVE'
     });
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: s.duration_min, desc: s.description || '', featured: !!s.featured }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
-      works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair
+      works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
+      schedule: this.normWeek(b.schedule)
     }));
+    st.scheduleExceptions = (data.exceptions || []).map(e => this.SPECS.exceptions.from(e));
     st.walkIns = st.barberProfiles.filter(b => b.inChair).map(b => ({ id: 'live-' + b.id, barber: b.name, status: 'EN_SILLON' }));
     this.root.data[t.id] = st;
     this.sanitize(st);
@@ -480,7 +516,7 @@ const DB = {
   // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario
   async refreshBusy() {
     if (this.mode !== 'public' || !this.tenant) return;
-    const { data, error } = await this.client().rpc('web_ocupados', { p_slug: this.tenant.slug, p_days: 60 });
+    const { data, error } = await this.client().rpc('web_ocupados', { p_slug: this.tenant.slug, p_days: this.tenant.schedule.maxDays });
     if (error) throw error;
     const byId = {};
     this.state.barberProfiles.forEach(b => { byId[b.id] = b.name; });
@@ -539,6 +575,7 @@ const DB = {
       out.barbers.set(b.id, { rec: b, logical: S.barbers.logical(b) });
       (b.works || []).forEach(w => { fix(w); w._barberId = b.id; out.works.set(w.id, { rec: w, logical: S.works.logical(w) }); delete w._barberId; });
     });
+    (st.scheduleExceptions || []).forEach(e => { fix(e); out.exceptions.set(e.id, { rec: e, logical: S.exceptions.logical(e) }); });
     (st.services || []).forEach(s => { fix(s); out.services.set(s.id, { rec: s, logical: S.services.logical(s) }); });
     (st.customers || []).forEach(c => { fix(c); out.customers.set(c.id, { rec: c, logical: S.customers.logical(c) }); });
     (st.appointments || []).forEach(a => { fix(a); out.appointments.set(a.id, { rec: a, logical: S.appointments.logical(a) }); });
@@ -729,6 +766,7 @@ const DB = {
       this._channel = this.client().channel('reservalope-cambios')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, reload)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'walk_ins' }, reload)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_exceptions' }, reload)
         .subscribe();
     } catch (e) { console.warn('[DB] Tiempo real no disponible', e); }
   },
@@ -791,7 +829,72 @@ const DB = {
       .then(({ error }) => { if (error) console.warn('[DB] Historial', error.message); });
   },
 
-  /* ---------------- Horarios (igual que la demo) ---------------- */
+  /* ---------------- Horarios ----------------
+     Mismo cálculo que private.horario_slots() en la base de datos (migración 6):
+       barbería  = su fecha especial, o su horario semanal
+       barbero   = su fecha especial, o su horario semanal propio (si tiene)
+       resultado = horarios de la barbería que caben en el horario del barbero
+     La base de datos vuelve a validar cada cita: esto solo arma las listas. */
+  normRanges(v) {
+    const ok = (x) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(x || ''));
+    return (Array.isArray(v) ? v : [])
+      .filter(r => Array.isArray(r) && r.length === 2 && ok(r[0]) && ok(r[1]) && r[0] < r[1])
+      .map(r => [r[0], r[1]]).slice(0, 3);
+  },
+  normWeek(v) {
+    if (!v || typeof v !== 'object' || !v.week || typeof v.week !== 'object') return null;
+    const week = {};
+    for (let d = 0; d < 7; d++) week[d] = this.normRanges(v.week[d]);
+    return { week };
+  },
+  normSchedule(v) {
+    const base = this.DEFAULT_SCHEDULE;
+    const s = (v && typeof v === 'object') ? v : {};
+    const interval = this.INTERVALS.includes(Number(s.interval)) ? Number(s.interval) : base.interval;
+    const maxDays = Math.min(365, Math.max(1, parseInt(s.maxDays, 10) || base.maxDays));
+    const week = (this.normWeek(s) || this.normWeek(base)).week;
+    return { interval, maxDays, week };
+  },
+  dayOfWeek(iso) { return new Date(iso + 'T12:00:00').getDay(); },
+  fromMinutes(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); },
+  rangesSlots(ranges, interval) {
+    const out = [];
+    this.normRanges(ranges).forEach(r => {
+      for (let m = this.toMinutes(r[0]); m + interval <= this.toMinutes(r[1]); m += interval) out.push(this.fromMinutes(m));
+    });
+    return Array.from(new Set(out)).sort();
+  },
+  slotFits(time, interval, ranges) {
+    const m = this.toMinutes(time);
+    return this.normRanges(ranges).some(r => m >= this.toMinutes(r[0]) && m + interval <= this.toMinutes(r[1]));
+  },
+  exceptionFor(date, barberId) {
+    return ((this.state && this.state.scheduleExceptions) || []).find(e => e.date === date && (e.barberId || null) === (barberId || null)) || null;
+  },
+  // Horas de inicio disponibles para un barbero (por nombre) en una fecha. Sin barbero = horario de la barbería.
+  slotsFor(date, barberName) {
+    if (!this.tenant || !date) return [];
+    const sch = this.tenant.schedule || this.normSchedule(null);
+    const dow = this.dayOfWeek(date);
+    const shopExc = this.exceptionFor(date, null);
+    let slots = this.rangesSlots(shopExc ? shopExc.ranges : sch.week[dow], sch.interval);
+    const b = barberName ? (this.state.barberProfiles || []).find(x => x.name === barberName) : null;
+    if (b) {
+      const bExc = this.exceptionFor(date, b.id);
+      const ranges = bExc ? bExc.ranges : (b.schedule ? (b.schedule.week[dow] || []) : null);
+      if (ranges) slots = slots.filter(t => this.slotFits(t, sch.interval, ranges));
+    }
+    return slots;
+  },
+  maxBookDate() { return this.addDays(this.todayISO(), (this.tenant && this.tenant.schedule ? this.tenant.schedule.maxDays : 60)); },
+  // Promedio de horarios por día de la semana (para calcular la ocupación en reportes)
+  avgDailySlots(t) {
+    const sch = (t && t.schedule) || this.normSchedule(null);
+    let n = 0;
+    for (let d = 0; d < 7; d++) n += this.rangesSlots(sch.week[d], sch.interval).length;
+    return n / 7;
+  },
+
   nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); },
   toMinutes(t) { const p = String(t || '0:0').split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); },
   isPastDate(date) { return !date || date < this.todayISO(); },
@@ -808,19 +911,18 @@ const DB = {
     if (barber && this.isBusySlot(date, time, barber, excludeId)) return 'busy';
     return 'free';
   },
-  freeSlots(date, barber) { return this.TIME_SLOTS.filter(t => this.slotState(date, t, barber) === 'free'); },
+  freeSlots(date, barber) { return this.slotsFor(date, barber).filter(t => this.slotState(date, t, barber) === 'free'); },
   firstBookableDate(barber) {
-    let d = this.todayISO();
-    for (let i = 0; i < 60; i++) {
+    const last = this.maxBookDate();
+    for (let d = this.todayISO(); d <= last; d = this.addDays(d, 1)) {
       if (this.freeSlots(d, barber).length) return d;
-      d = this.addDays(d, 1);
     }
     return this.todayISO();
   },
   validateBooking(date, time, barber, excludeId) {
     if (!date || !time) return 'Selecciona fecha y hora.';
     if (this.isPastDate(date)) return 'No se puede reservar en una fecha que ya pasó.';
-    if (!this.TIME_SLOTS.includes(time)) return 'Selecciona un horario de la lista.';
+    if (!this.slotsFor(date, barber).includes(time)) return (barber || 'La barbería') + ' no atiende en ese horario. Elige otro de la lista.';
     if (this.isPastSlot(date, time)) return 'Ese horario ya pasó. Elige uno más tarde.';
     if (this.isBusySlot(date, time, barber, excludeId)) return 'Ese horario ya está ocupado para ' + barber + '.';
     return '';

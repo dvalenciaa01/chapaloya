@@ -9,6 +9,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261018000003_reservas.sql` | Reglas de agenda (sin fechas pasadas ni dobles reservas), funciones de la web pública y `crear_reserva` |
 | `migrations/20261018000004_whatsapp.sql` | Cola de mensajes: aviso a la barbería, confirmación, recordatorios configurables y respuestas 1 / 2 / BAJA |
 | `migrations/20261019000005_fase1_app.sql` | Horarios ocupados para la web, uso de la base para Reservalope y el bucket `media` de Storage para fotos y logos |
+| `migrations/20261019000006_horarios.sql` | Horario semanal por barbería y por barbero, fechas especiales (feriados, días libres) y hasta cuántos días adelante se puede reservar |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
 
@@ -22,7 +23,9 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 
 1. Entra a tu proyecto en supabase.com → **SQL Editor** → **New query**.
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
-3. Repite con los archivos `…02`, `…03`, `…04` y `…05`, **en ese orden**.
+3. Repite con los archivos `…02`, `…03`, `…04`, `…05` y `…06`, **en ese orden**.
+
+> Si ya ejecutaste del 1 al 5, solo falta el `…06`. Las barberías existentes quedan con el horario de todos los días de 09:00 a 13:00 y de 14:00 a 20:30, citas cada 30 minutos; cada administrador lo cambia en **Configuración → Horario de atención**.
 
 > Con la Supabase CLI también sirve: `supabase link` y luego `supabase db push`.
 

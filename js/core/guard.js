@@ -157,6 +157,12 @@ const Guard = {
     G.wrap(CRM, 'openCustomerModal', 'customers.manage');
     G.wrap(CRM, 'saveCustomerModal', 'customers.manage', () => ({ action: 'Registró un cliente', detail: G.val('m-cu-name') + ' · ' + G.val('m-cu-phone') }));
     G.wrap(CRM, 'saveSettings', 'settings.manage');
+    G.wrap(CRM, 'saveSchedule', 'settings.manage');
+    G.wrap(CRM, 'addException', 'settings.manage');
+    G.wrap(CRM, 'deleteException', 'settings.manage', null, (id) => {
+      const e = (DB.state.scheduleExceptions || []).find(x => x.id === id);
+      return { title: 'Quitar fecha especial', message: e ? 'El ' + CRM.fmtLongDate(e.date) + ' volverá al horario semanal de ' + CRM.exceptionWho(e).toLowerCase().replace('toda la barbería', 'la barbería') + '.' : 'La fecha volverá al horario semanal.', confirmText: 'Quitar', danger: true };
+    });
     G.wrap(CRM, 'exportJSON', 'settings.manage', () => ({ action: 'Exportó un respaldo', detail: 'Datos de ' + DB.tenant.name }));
     G.wrap(CRM, 'reloadDemoData', 'system.reset');
     G.wrap(CRM, 'factoryReset', 'system.reset');

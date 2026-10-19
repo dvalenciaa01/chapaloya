@@ -246,7 +246,12 @@ const PublicBooking = {
     const today = DB.todayISO();
     const barber = barSel.value;
     dateInp.min = today;
+    dateInp.max = DB.maxBookDate();
     let msg = '';
+    if (dateInp.value && dateInp.value > dateInp.max) {
+      msg = 'Solo se puede reservar hasta ' + DB.tenant.schedule.maxDays + ' días adelante. Te mostramos el primer día disponible.';
+      dateInp.value = '';
+    }
 
     // Fecha vacía o pasada (escrita a mano o por un calendario antiguo) → hoy
     if (!dateInp.value || DB.isPastDate(dateInp.value)) {
@@ -257,9 +262,12 @@ const PublicBooking = {
     if (!DB.freeSlots(dateInp.value, barber).length && (autoAdvance !== false)) {
       const next = DB.firstBookableDate(barber);
       if (next !== dateInp.value) {
-        msg = dateInp.value === today
-          ? 'Hoy ya no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
-          : 'Ese día no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.';
+        const closed = !DB.slotsFor(dateInp.value, barber).length;
+        msg = closed
+          ? (dateInp.value === today ? 'Hoy ' : 'Ese día ') + barber + ' no atiende. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
+          : dateInp.value === today
+            ? 'Hoy ya no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
+            : 'Ese día no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.';
         dateInp.value = next;
       }
     }
@@ -268,7 +276,10 @@ const PublicBooking = {
     const prev = timeSel.value;
     const date = dateInp.value;
     let firstFree = null;
-    timeSel.innerHTML = DB.TIME_SLOTS.map(t => {
+    const slots = DB.slotsFor(date, barber);
+    if (!slots.length && !msg) msg = barber + ' no tiene horarios disponibles por ahora. Prueba con otro barbero.';
+    setNote(msg);
+    timeSel.innerHTML = slots.map(t => {
       const st = DB.slotState(date, t, barber);
       if (st === 'free' && !firstFree) firstFree = t;
       const label = st === 'past' ? ' · Ya pasó' : (st === 'busy' ? ' · Ocupado' : '');

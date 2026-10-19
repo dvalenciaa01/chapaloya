@@ -132,8 +132,8 @@
         </div>
 
         <div class="crm-sidebar-footer">
-          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>Modo demo</div>
-          <p>Los datos se guardan en este navegador.</p>
+          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>En línea</div>
+          <p>Los datos se guardan en el servidor.</p>
           <button type="button" class="btn-dark btn-xs btn-block" onclick="AppRouter.goPublic('inicio')">
             <i data-icon="arrowLeft"></i>Volver a la web pública
           </button>
@@ -640,6 +640,47 @@
               </div>
             </div>
           </div>
+          <div class="crm-section-card sch-card">
+            <div class="card-head"><h3>Horario de atención</h3></div>
+            <p class="card-text">Define qué días y en qué horas se puede reservar. Cada barbero puede tener sus propios días y horas desde su ficha en <strong>Barberos</strong>, siempre dentro de este horario.</p>
+            <div class="form-grid-2">
+              <div>
+                <label class="field-lbl" for="set-sch-interval">Una cita empieza cada</label>
+                <select id="set-sch-interval" class="input-dark"></select>
+              </div>
+              <div>
+                <label class="field-lbl" for="set-sch-maxdays">Se puede reservar en la web hasta</label>
+                <div class="sch-inline"><input type="number" id="set-sch-maxdays" class="input-dark" min="1" max="365" step="1" inputmode="numeric" /><span>días adelante</span></div>
+              </div>
+            </div>
+            <div id="set-sch-week"></div>
+            <p class="form-error" id="set-sch-error" role="alert"></p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSchedule()"><i data-icon="check"></i>Guardar horario</button></div>
+          </div>
+
+          <div class="crm-section-card sch-card">
+            <div class="card-head"><h3>Fechas especiales</h3></div>
+            <p class="card-text">Feriados, días con otro horario o el día libre de un barbero. Reemplazan al horario semanal solo en esa fecha.</p>
+            <div class="sch-exc-form">
+              <div><label class="field-lbl" for="set-exc-date">Fecha</label><input type="date" id="set-exc-date" class="input-dark" /></div>
+              <div><label class="field-lbl" for="set-exc-who">Para</label><select id="set-exc-who" class="input-dark"></select></div>
+              <div>
+                <label class="field-lbl" for="set-exc-kind">Ese día</label>
+                <select id="set-exc-kind" class="input-dark" onchange="CRM.toggleExceptionHours()">
+                  <option value="closed">No se atiende</option>
+                  <option value="hours">Atiende en otro horario</option>
+                </select>
+              </div>
+              <div id="set-exc-hours" hidden>
+                <label class="field-lbl" for="set-exc-from">Horario</label>
+                <div class="sch-inline"><input type="time" step="300" id="set-exc-from" class="input-dark sch-time" value="09:00" /><span>a</span><input type="time" step="300" id="set-exc-to" class="input-dark sch-time" value="13:00" /></div>
+              </div>
+              <div><label class="field-lbl" for="set-exc-note">Motivo (opcional)</label><input type="text" id="set-exc-note" class="input-dark" maxlength="80" placeholder="Ej. Feriado, vacaciones" /></div>
+              <div class="sch-exc-add"><button type="button" class="btn-golden" onclick="CRM.addException()"><i data-icon="plus"></i>Agregar</button></div>
+            </div>
+            <p class="form-error" id="set-exc-error" role="alert"></p>
+            <div id="set-exc-list"></div>
+          </div>
         </div>
 
         <!-- ================= USUARIOS Y ACCESOS ================= -->
@@ -740,6 +781,7 @@
   <script src="js/navigation.js"></script>
   <script src="js/components/modal.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>
+  <script src="js/components/schedule-editor.js"></script>
   <script src="js/core/analytics.js"></script>
   <script src="js/core/charts.js"></script>
   <script src="js/core/reports.js"></script>

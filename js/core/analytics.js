@@ -78,7 +78,7 @@ const Analytics = {
     const bb = (n) => (byBarber[n] = byBarber[n] || { appts: 0, completed: 0, revenue: 0, booked: 0, walkins: 0 });
     appts.forEach(a => { const b = bb(a.barber); b.appts++; if (a.status !== 'CANCELADA') b.booked++; if (a.status === 'COMPLETADA') { b.completed++; b.revenue += Number(a.price || 0); } });
     walks.forEach(w => { const b = bb(w.barber); b.walkins++; b.revenue += Number(w.price || 0); });
-    const capacity = DB.TIME_SLOTS.length * r.days;
+    const capacity = DB.avgDailySlots(t) * r.days;
     Object.values(byBarber).forEach(b => { b.occupancy = capacity ? Math.min(1, b.booked / capacity) : 0; });
 
     return {
