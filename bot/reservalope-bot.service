@@ -1,0 +1,20 @@
+# Servicio de systemd: el bot arranca solo al encender la VM y se reinicia si se cae.
+# Instalación (ver bot/README.md):
+#   sudo cp reservalope-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now reservalope-bot
+[Unit]
+Description=Bot de WhatsApp de Reservalope
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/chapaloya/bot
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

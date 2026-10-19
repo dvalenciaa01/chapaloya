@@ -754,3 +754,23 @@ body[data-page="crm"]:not(.auth-ok) .crm-header .header-actions { visibility: hi
   .sch-exc-form { grid-template-columns: 1fr; }
   .input-dark.sch-time { width: 128px; }
 }
+
+/* ---------- WhatsApp (Configuración) ---------- */
+.wa-link { display: flex; gap: var(--space-4); align-items: flex-start; flex-wrap: wrap; margin-bottom: var(--space-4); }
+.wa-qr { background: #fff; padding: 8px; line-height: 0; }
+.wa-qr img { width: 220px; height: 220px; display: block; }
+.wa-link-text { flex: 1 1 260px; min-width: 0; }
+.wa-enable { display: flex; gap: 8px; align-items: center; margin: var(--space-2) 0 var(--space-4); font-weight: 600; cursor: pointer; }
+.wa-msg { margin-top: var(--space-4); }
+.wa-sub { margin-top: var(--space-5); }
+.wa-rem { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start;
+  padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle); }
+.wa-rem textarea.input-dark { min-height: 72px; }
+.wa-vars { margin-top: var(--space-3); }
+.wa-test { margin-top: var(--space-5); }
+.wa-test .input-dark { max-width: 220px; }
+.wa-hist-body { white-space: pre-line; }
+@media (max-width: 760px) {
+  .wa-rem { grid-template-columns: 1fr; }
+  .wa-qr img { width: 200px; height: 200px; }
+}

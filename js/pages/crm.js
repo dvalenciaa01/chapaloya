@@ -714,6 +714,222 @@ const CRM = {
     if (linkEl) { linkEl.href = 'index.html?b=' + encodeURIComponent(t.slug); linkEl.textContent = 'index.html?b=' + t.slug; }
     this.renderSchedule();
     this.renderExceptions();
+    this.renderWhatsApp();
+  },
+
+  /* ---------- WhatsApp: vincular, mensajes y recordatorios ---------- */
+  WA_KIND: { SHOP_NEW: 'Aviso de reserva', SHOP_CANCEL: 'Aviso de cancelación', SHOP_RESCHEDULE: 'Aviso de cambio',
+    CLIENT_CONFIRM: 'Confirmación', REMINDER: 'Recordatorio', REPLY: 'Respuesta', TEST: 'Prueba' },
+  WA_STATUS: { PENDING: ['Programado', 'PROGRAMADA'], SENDING: ['Enviando', 'PROGRAMADA'], SENT: ['Enviado', 'COMPLETADA'],
+    FAILED: ['Falló', 'CANCELADA'], CANCELLED: ['Anulado', 'NO_ASISTIO'] },
+
+  waConfig() {
+    const c = (DB.tenant && DB.tenant.whatsapp) || {};
+    return Object.assign({ enabled: false, notifyTo: [], templates: {}, reminders: [], quietHours: {} }, c);
+  },
+
+  renderWhatsApp() {
+    const card = document.getElementById('wa-card');
+    if (!card || !DB.tenant) return;
+    if (this.waTenant !== DB.tenant.id) { this.waTenant = DB.tenant.id; this.waDirty = false; this.waSession = null; this.waHistory = []; this.waLastFetch = 0; }
+    if (!this.waDirty) {
+      const c = this.waConfig();
+      document.getElementById('wa-enabled').checked = !!c.enabled;
+      document.getElementById('wa-notify').value = (c.notifyTo || []).join(', ');
+      document.getElementById('wa-quiet-from').value = (c.quietHours && c.quietHours.from) || '';
+      document.getElementById('wa-quiet-to').value = (c.quietHours && c.quietHours.to) || '';
+      document.getElementById('wa-tpl-confirm').value = (c.templates && c.templates.clientConfirm) || '';
+      this.waReminders = (c.reminders || []).map(r => Object.assign({}, r));
+      this.renderWaReminders();
+      document.getElementById('wa-error').textContent = '';
+    }
+    this.renderWaSession();
+    this.waPoll();
+  },
+
+  renderWaReminders() {
+    const box = document.getElementById('wa-reminders');
+    if (!box) return;
+    const rems = this.waReminders || [];
+    box.innerHTML = rems.length ? rems.map((r, i) =>
+      '<div class="wa-rem">' +
+        '<div><label class="field-lbl" for="wa-rem-h-' + i + '">Horas antes de la cita</label>' +
+          '<input type="number" id="wa-rem-h-' + i + '" class="input-dark" min="0.5" max="168" step="0.5" inputmode="decimal" value="' +
+          (Number(r.offsetMinutes) / 60) + '" oninput="CRM.waDirty = true" /></div>' +
+        '<div><label class="field-lbl" for="wa-rem-t-' + i + '">Mensaje</label>' +
+          '<textarea id="wa-rem-t-' + i + '" class="input-dark" rows="3" maxlength="600" oninput="CRM.waDirty = true">' + UI.esc(r.template || '') + '</textarea></div>' +
+        '<div><span class="field-lbl">&nbsp;</span><button type="button" class="btn-dark" onclick="CRM.waRemoveReminder(' + i + ')" aria-label="Quitar recordatorio"><i data-icon="trash"></i></button></div>' +
+      '</div>').join('')
+      : '<p class="sch-exc-empty">Sin recordatorios.</p>';
+    Icons.hydrate(box);
+  },
+
+  // Copia lo escrito en pantalla antes de agregar o quitar un recordatorio
+  readWaReminders() {
+    return (this.waReminders || []).map((r, i) => Object.assign({}, r, {
+      offsetMinutes: Math.round(parseFloat(String(document.getElementById('wa-rem-h-' + i).value).replace(',', '.')) * 60),
+      template: document.getElementById('wa-rem-t-' + i).value.trim()
+    }));
+  },
+
+  waAddReminder() {
+    this.waReminders = this.readWaReminders();
+    if (this.waReminders.length >= 5) { UI.toast('Máximo 5 recordatorios por cita.', 'error'); return; }
+    this.waReminders.push({ id: 'r' + Date.now().toString(36), offsetMinutes: 180, onlyIfNotConfirmed: false,
+      template: '{cliente}, te recordamos tu cita {cuando} a las {hora} con {barbero}. ¡Te esperamos en {barberia}!' });
+    this.waDirty = true;
+    this.renderWaReminders();
+  },
+
+  waRemoveReminder(i) {
+    this.waReminders = this.readWaReminders();
+    this.waReminders.splice(i, 1);
+    this.waDirty = true;
+    this.renderWaReminders();
+  },
+
+  async saveWhatsApp() {
+    const err = document.getElementById('wa-error');
+    err.textContent = '';
+    const nums = document.getElementById('wa-notify').value.split(/[,;\n]/).map(s => s.replace(/\D/g, '')).filter(Boolean);
+    const bad = nums.find(n => !/^(51)?9\d{8}$/.test(n));
+    if (bad) { err.textContent = 'El número ' + bad + ' no es un celular válido (9 dígitos, empieza con 9).'; return; }
+    const reminders = this.readWaReminders();
+    for (const r of reminders) {
+      if (!(r.offsetMinutes >= 30 && r.offsetMinutes <= 10080)) { err.textContent = 'Cada recordatorio debe salir entre media hora y 7 días antes de la cita.'; return; }
+      if (!r.template) { err.textContent = 'Escribe el mensaje de cada recordatorio.'; return; }
+    }
+    const confirmTpl = document.getElementById('wa-tpl-confirm').value.trim();
+    if (!confirmTpl) { err.textContent = 'Escribe el mensaje que se envía al reservar.'; return; }
+    const qf = document.getElementById('wa-quiet-from').value;
+    const qt = document.getElementById('wa-quiet-to').value;
+    const c = this.waConfig();
+    const next = Object.assign({}, c, {
+      enabled: document.getElementById('wa-enabled').checked,
+      notifyTo: nums.map(n => n.slice(-9)),
+      templates: Object.assign({}, c.templates, { clientConfirm: confirmTpl }),
+      reminders,
+      quietHours: qf && qt ? { from: qf, to: qt } : {}
+    });
+    try {
+      const { error } = await DB.client().from('tenants').update({ whatsapp: next }).eq('id', DB.tenant.id);
+      if (error) throw error;
+    } catch (e) {
+      err.textContent = DB.errorText(e);
+      return;
+    }
+    DB.tenant.whatsapp = next;
+    this.waDirty = false;
+    DB.log('Cambió la configuración de WhatsApp', (next.enabled ? 'Activado' : 'Desactivado') + ' · ' + reminders.length + ' recordatorio(s) · avisos a ' + (next.notifyTo.join(', ') || 'nadie'));
+    this.renderWhatsApp();
+    UI.toast(next.enabled && !(this.waSession && this.waSession.status === 'CONNECTED')
+      ? 'Guardado. Los mensajes saldrán cuando vincules el WhatsApp.' : 'Configuración de WhatsApp guardada.');
+  },
+
+  async waRequest(action) {
+    if (action === 'LOGOUT') {
+      const ok = await UI.confirm({ title: 'Desvincular WhatsApp',
+        message: 'Dejarán de salir los mensajes de esta barbería hasta que lo vuelvas a vincular.', confirmText: 'Desvincular', danger: true });
+      if (!ok) return;
+    }
+    try {
+      const { error } = await DB.client().rpc('wa_solicitar', { p_accion: action, p_tenant_id: DB.tenant.id });
+      if (error) throw error;
+    } catch (e) { UI.toast(DB.errorText(e), 'error'); return; }
+    this.waRequestedAt = Date.now();
+    this.waSession = Object.assign({}, this.waSession, { requested_action: action, qr: null,
+      status: action === 'LINK' ? 'WAITING_QR' : (this.waSession && this.waSession.status) || 'DISCONNECTED' });
+    this.renderWaSession();
+    this.waPoll(true);
+  },
+
+  async waTest() {
+    const n = document.getElementById('wa-test-num').value.replace(/\D/g, '');
+    if (!/^9\d{8}$/.test(n)) { UI.toast('Escribe un celular de 9 dígitos que empiece con 9.', 'error'); return; }
+    try {
+      const { error } = await DB.client().rpc('wa_enviar_prueba', { p_numero: n, p_tenant_id: DB.tenant.id });
+      if (error) throw error;
+    } catch (e) { UI.toast(DB.errorText(e), 'error'); return; }
+    UI.toast(this.waSession && this.waSession.status === 'CONNECTED'
+      ? 'Mensaje de prueba en camino. Llega en menos de un minuto.' : 'Mensaje en cola: saldrá cuando el WhatsApp esté vinculado.');
+    this.waPoll(true);
+  },
+
+  // Estado del WhatsApp y últimos envíos: se consultan solo con Configuración abierta
+  waPoll(now) {
+    clearTimeout(this.waTimer);
+    if (this.currentTab !== 'settings' || !DB.tenant) return;
+    const s = this.waSession;
+    const waiting = s && (s.requested_action || s.status === 'WAITING_QR');
+    const due = now ? 0 : (this.waLastFetch || 0) + (waiting ? 3000 : 20000) - Date.now();
+    this.waTimer = setTimeout(() => this.waFetch(), Math.max(400, due));
+  },
+
+  async waFetch() {
+    if (this.currentTab !== 'settings' || !DB.tenant) return;
+    const tid = DB.tenant.id;
+    this.waLastFetch = Date.now();
+    try {
+      const sb = DB.client();
+      const [ses, hist] = await Promise.all([
+        sb.from('wa_sessions').select('*').eq('tenant_id', tid).maybeSingle(),
+        sb.from('wa_outbox').select('kind, recipient, body, status, send_at, sent_at, last_error')
+          .eq('tenant_id', tid).order('created_at', { ascending: false }).limit(12)
+      ]);
+      if (DB.tenant.id !== tid) return;
+      if (!ses.error) this.waSession = ses.data;
+      if (!hist.error) this.waHistory = hist.data || [];
+    } catch (e) { /* sin conexión: se reintenta */ }
+    this.renderWaSession();
+    this.waPoll();
+  },
+
+  renderWaSession() {
+    const s = this.waSession || { status: 'DISCONNECTED' };
+    const badge = document.getElementById('wa-status');
+    const msg = document.getElementById('wa-link-msg');
+    const qr = document.getElementById('wa-qr');
+    if (!badge || !msg || !qr) return;
+    const stale = s.last_seen_at && Date.now() - new Date(s.last_seen_at).getTime() > 3 * 60 * 1000;
+    const noBot = s.requested_action && this.waRequestedAt && Date.now() - this.waRequestedAt > 20000;
+    let label = 'Sin vincular', cls = 'PROGRAMADA', text = 'Pulsa "Vincular WhatsApp" y escanea el código con el celular de la barbería: WhatsApp → Dispositivos vinculados → Vincular un dispositivo.';
+    if (s.status === 'CONNECTED' && !stale) {
+      label = 'Conectado'; cls = 'CONFIRMADA_WSP';
+      text = 'Conectado al número +' + UI.esc(s.phone || '') + '. Los mensajes salen solos.';
+    } else if (s.status === 'CONNECTED' && stale) {
+      label = 'Bot apagado'; cls = 'CANCELADA';
+      text = 'El bot no responde desde ' + new Date(s.last_seen_at).toLocaleString('es-PE') + '. Revisa que la computadora o el servidor del bot esté encendido. Los mensajes esperan en cola.';
+    } else if (s.status === 'WAITING_QR' || s.requested_action === 'LINK') {
+      label = 'Esperando escaneo'; cls = 'PROGRAMADA';
+      text = s.qr ? 'Abre WhatsApp en el celular de la barbería → Dispositivos vinculados → Vincular un dispositivo, y escanea este código.'
+        : (noBot ? 'El bot no responde. Revisa que esté encendido y vuelve a intentarlo.' : 'Generando el código QR…');
+    } else if (s.status === 'LOGGED_OUT') {
+      label = 'Desvinculado'; cls = 'NO_ASISTIO';
+    }
+    if (s.last_error && s.status !== 'CONNECTED') text = UI.esc(s.last_error) + ' ' + text;
+    badge.className = 'st-badge st-' + cls;
+    badge.textContent = label;
+    msg.innerHTML = text;
+    const showQr = !!(s.qr && s.status === 'WAITING_QR');
+    qr.hidden = !showQr;
+    if (showQr && qr.dataset.src !== s.qr) {
+      qr.dataset.src = s.qr;
+      qr.innerHTML = '<img alt="Código QR para vincular WhatsApp" src="' + UI.esc(s.qr) + '" />';
+    }
+    document.getElementById('wa-btn-logout').hidden = !(s.status === 'CONNECTED' || s.status === 'WAITING_QR');
+    document.getElementById('wa-btn-link').hidden = s.status === 'CONNECTED' && !stale;
+
+    const hist = document.getElementById('wa-history');
+    const rows = this.waHistory || [];
+    hist.innerHTML = rows.length ? rows.map(m => {
+      const st = this.WA_STATUS[m.status] || [m.status, 'PROGRAMADA'];
+      const when = new Date(m.sent_at || m.send_at).toLocaleString('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const to = String(m.recipient || '').replace(/^51(?=9\d{8}$)/, '');
+      return '<div class="sch-exc-item"><div><strong>' + UI.esc(this.WA_KIND[m.kind] || m.kind) + ' · ' + UI.esc(to) + '</strong>' +
+        '<span class="wa-hist-body">' + UI.esc(String(m.body || '').slice(0, 140)) + '</span>' +
+        (m.status === 'FAILED' && m.last_error ? '<span>Error: ' + UI.esc(m.last_error) + '</span>' : '') + '</div>' +
+        '<div><span class="st-badge st-' + st[1] + '">' + st[0] + '</span><span style="display:block; margin-top:4px;">' + UI.esc(when) + '</span></div></div>';
+    }).join('') : '<p class="sch-exc-empty">Todavía no hay envíos.</p>';
   },
 
   /* ---------- Horario de atención de la barbería ---------- */

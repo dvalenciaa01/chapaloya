@@ -12,6 +12,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261019000006_horarios.sql` | Horario semanal por barbería y por barbero, fechas especiales (feriados, días libres) y hasta cuántos días adelante se puede reservar |
 | `migrations/20261019000007_quitar_asesoria_ia.sql` | Retira la asesoría IA: borra la tabla `ai_consultations` y el módulo `ai` de los accesos |
 | `migrations/20261019000008_historial_oculto.sql` | Oculta el Historial a todos los administradores hasta que el superadmin se lo habilite |
+| `migrations/20261019000009_whatsapp_confirmar.sql` | WhatsApp: el cliente confirma respondiendo CONFIRMAR (ya no hay 1 / 2 ni cancelación por WhatsApp) y el bot solo toma mensajes de las barberías vinculadas |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
 
@@ -25,9 +26,9 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 
 1. Entra a tu proyecto en supabase.com → **SQL Editor** → **New query**.
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
-3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07` y `…08`, **en ese orden**.
+3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08` y `…09`, **en ese orden**.
 
-> Si ya ejecutaste del 1 al 6, solo faltan el `…07` y el `…08` (y volver a publicar `admin-usuarios`). Si ya ejecutaste del 1 al 5, falta el `…06`. Las barberías existentes quedan con el horario de todos los días de 09:00 a 13:00 y de 14:00 a 20:30, citas cada 30 minutos; cada administrador lo cambia en **Configuración → Horario de atención**.
+> Si ya ejecutaste del 1 al 8, solo falta el `…09`. Si ya ejecutaste del 1 al 6, faltan el `…07` y el `…08` (y volver a publicar `admin-usuarios`). Si ya ejecutaste del 1 al 5, falta el `…06`. Las barberías existentes quedan con el horario de todos los días de 09:00 a 13:00 y de 14:00 a 20:30, citas cada 30 minutos; cada administrador lo cambia en **Configuración → Horario de atención**.
 
 > Con la Supabase CLI también sirve: `supabase link` y luego `supabase db push`.
 
@@ -73,16 +74,13 @@ values ('golden', 'Golden Barbería', 'Nombre del dueño', 'Av. La Marina', '+51
 
 Los barberos, servicios y usuarios de la barbería se cargarán con el script de migración de datos de la Fase 1, o desde el CRM cuando esté conectado.
 
-## 5. Activar WhatsApp en una barbería (cuando el bot esté listo, Fase 3)
+## 5. Activar WhatsApp en una barbería
 
-```sql
-update public.tenants
-set whatsapp = jsonb_set(jsonb_set(whatsapp, '{enabled}', 'true'),
-                         '{notifyTo}', '["999999999"]')   -- celular(es) que reciben el aviso de cada reserva
-where slug = 'golden';
-```
+1. Instala y enciende el bot siguiendo [`bot/README.md`](../bot/README.md).
+2. En el CRM de la barbería: **Configuración → WhatsApp → Vincular WhatsApp** y escanea el QR con el celular de la barbería.
+3. Marca **Enviar mensajes automáticos por WhatsApp**, escribe los celulares que reciben el aviso de cada reserva y pulsa **Guardar WhatsApp**.
 
-Después se configurará desde la pestaña WhatsApp del CRM: plantillas, recordatorios (cuántos y con cuánta anticipación) y horas de silencio.
+Ahí mismo se editan el mensaje al reservar, los recordatorios (cuántos y con cuántas horas de anticipación), las horas de silencio, y se ve el historial de envíos.
 
 ---
 
