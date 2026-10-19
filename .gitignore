@@ -13,6 +13,15 @@ node_modules/
 *.log
 .env
 .env.*
+!.env.example
+
+# Supabase CLI (archivos locales)
+supabase/.temp/
+supabase/.branches/
+
+# Bot de WhatsApp: sesiones vinculadas (nunca subir)
+bot/sessions/
+bot/auth_info*/
 
 # Reportes descargados durante pruebas
 Reporte-*.pdf

@@ -885,3 +885,35 @@ body[data-page="crm"]:not(.auth-ok) .crm-header .header-actions { visibility: hi
 .input-prefix span { white-space: nowrap; }
 /* Contiene elementos absolutos (p. ej. textos solo para lectores de pantalla) dentro del scroll de la tabla */
 .crm-table-wrap { position: relative; }
+
+/* ---------- Horarios (Configuración y ficha del barbero) ---------- */
+.sch-card { margin-top: var(--space-5); }
+.sch-editor { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.sch-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: var(--space-3);
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); }
+.sch-day { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; cursor: pointer; }
+.sch-ranges { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.sch-range { display: inline-flex; align-items: center; gap: var(--space-2); }
+.sch-sep { color: var(--text-grey); font-size: var(--fs-sm); }
+.input-dark.sch-time { width: 136px; min-width: 0; padding-left: 10px; padding-right: 8px; }
+.sch-closed { display: none; color: var(--text-grey); font-size: var(--fs-sm); }
+.sch-row.is-off .sch-range { display: none; }
+.sch-row.is-off .sch-closed { display: inline; }
+.sch-help { color: var(--text-grey); font-size: var(--fs-sm); line-height: 1.5; margin-top: var(--space-2); }
+.sch-copy { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.sch-inline { display: flex; align-items: center; gap: var(--space-2); }
+.sch-inline .input-dark[type="number"] { width: 96px; }
+.sch-exc-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); align-items: end; }
+.sch-exc-add { display: flex; }
+.sch-exc-list { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.sch-exc-item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-3); border: 1px solid var(--border-subtle); }
+.sch-exc-item strong { display: block; }
+.sch-exc-item span { color: var(--text-grey); font-size: var(--fs-sm); }
+.sch-exc-empty { color: var(--text-grey); font-size: var(--fs-sm); margin-top: var(--space-4); }
+.sch-mode { margin: var(--space-2) 0 var(--space-3); }
+@media (max-width: 760px) {
+  .sch-row { grid-template-columns: 1fr; gap: var(--space-2); }
+  .sch-exc-form { grid-template-columns: 1fr; }
+  .input-dark.sch-time { width: 128px; }
+}

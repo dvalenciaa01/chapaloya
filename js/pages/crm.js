@@ -98,6 +98,8 @@ const CRM = {
     const bRole = bp ? bp.role : 'Master Barber';
     const bSpecs = bp ? (bp.specialties || []).join(', ') : 'Asesoría de Imagen + IA, Skin Fade, Afeitado Royal';
     const bPhoto = bp ? bp.photo : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+    const bSchedule = bp ? bp.schedule : null;
+    const shopSchedule = DB.tenant.schedule || DB.normSchedule(null);
 
     ModalComponent.open(
       '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">' + modalTitle + '</h3><button class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
@@ -119,6 +121,18 @@ const CRM = {
         '</div>' +
         '<div style="margin-bottom:16px;">' +
           '<img id="m-bp-preview" src="' + bPhoto + '" style="width:68px; height:68px; object-fit:cover; border:1px solid var(--golden);" />' +
+        '</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<label class="field-lbl" for="m-bp-sch-mode">DÍAS Y HORAS DE TRABAJO</label>' +
+          '<select id="m-bp-sch-mode" class="input-dark sch-mode" onchange="document.getElementById(\'m-bp-sch-box\').hidden = this.value !== \'custom\'">' +
+            '<option value="shop"' + (bSchedule ? '' : ' selected') + '>Igual que el horario de la barbería</option>' +
+            '<option value="custom"' + (bSchedule ? ' selected' : '') + '>Personalizado</option>' +
+          '</select>' +
+          '<div id="m-bp-sch-box"' + (bSchedule ? '' : ' hidden') + '>' +
+            ScheduleEditor.html('m-bp-sch', (bSchedule || shopSchedule).week) +
+            '<p class="sch-help">Solo se ofrecen las horas que también estén dentro del horario de la barbería (' + UI.esc(ScheduleEditor.summary(shopSchedule.week)) + ').</p>' +
+          '</div>' +
+          '<p class="form-error" id="m-bp-error" role="alert"></p>' +
         '</div>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
           '<button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button>' +
@@ -146,6 +160,12 @@ const CRM = {
     const specialties = document.getElementById('m-bp-specs').value.split(',').map(s => s.trim()).filter(Boolean);
     const previewEl = document.getElementById('m-bp-preview');
     const finalPhoto = previewEl.getAttribute('data-uploaded') || previewEl.src;
+    let schedule = null;
+    if (document.getElementById('m-bp-sch-mode').value === 'custom') {
+      const res = ScheduleEditor.read('m-bp-sch');
+      if (res.error) { document.getElementById('m-bp-error').textContent = res.error; return; }
+      schedule = { week: res.week };
+    }
 
     if (editId) {
       const i = DB.state.barberProfiles.findIndex(x => x.id === editId);
@@ -154,9 +174,10 @@ const CRM = {
         DB.state.barberProfiles[i].role = role;
         DB.state.barberProfiles[i].specialties = specialties;
         DB.state.barberProfiles[i].photo = finalPhoto;
+        DB.state.barberProfiles[i].schedule = schedule;
       }
     } else {
-      DB.state.barberProfiles.push({ id: 'bp-' + Date.now(), name, role, photo: finalPhoto, specialties, works: [] });
+      DB.state.barberProfiles.push({ id: 'bp-' + Date.now(), name, role, photo: finalPhoto, specialties, works: [], schedule });
     }
     DB.save();
     this.closeModal();
@@ -698,6 +719,120 @@ const CRM = {
     if (nameEl) nameEl.textContent = t.name;
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = 'index.html?b=' + encodeURIComponent(t.slug); linkEl.textContent = 'index.html?b=' + t.slug; }
+    this.renderSchedule();
+    this.renderExceptions();
+  },
+
+  /* ---------- Horario de atención de la barbería ---------- */
+  renderSchedule() {
+    const sch = DB.tenant.schedule || DB.normSchedule(null);
+    const iv = document.getElementById('set-sch-interval');
+    if (!iv) return;
+    iv.innerHTML = DB.INTERVALS.map(m => '<option value="' + m + '"' + (m === sch.interval ? ' selected' : '') + '>' +
+      (m < 60 ? m + ' minutos' : (m === 60 ? '1 hora' : (m / 60).toString().replace('.', ',') + ' horas')) + '</option>').join('');
+    document.getElementById('set-sch-maxdays').value = sch.maxDays;
+    document.getElementById('set-sch-week').innerHTML = ScheduleEditor.html('set-sch', sch.week);
+    document.getElementById('set-sch-error').textContent = '';
+  },
+
+  saveSchedule() {
+    const err = document.getElementById('set-sch-error');
+    const res = ScheduleEditor.read('set-sch');
+    if (res.error) { err.textContent = res.error; return; }
+    const maxDays = parseInt(document.getElementById('set-sch-maxdays').value, 10);
+    if (!(maxDays >= 1 && maxDays <= 365)) { err.textContent = 'Los días para reservar deben estar entre 1 y 365.'; return; }
+    err.textContent = '';
+    const t = DB.tenant;
+    const before = ScheduleEditor.summary(t.schedule.week) + ' · cada ' + t.schedule.interval + ' min';
+    t.schedule = { interval: Number(document.getElementById('set-sch-interval').value), maxDays, week: res.week };
+    DB.save();
+    DB.log('Cambió el horario de atención', 'Antes: ' + before + ' · Ahora: ' + ScheduleEditor.summary(res.week) + ' · cada ' + t.schedule.interval + ' min');
+    this.renderAll();
+    UI.toast('Horario guardado. La web ya muestra los nuevos horarios.');
+  },
+
+  /* ---------- Fechas especiales ---------- */
+  exceptionWho(e) {
+    if (!e.barberId) return 'Toda la barbería';
+    const b = DB.state.barberProfiles.find(x => x.id === e.barberId);
+    return b ? b.name : 'Barbero eliminado';
+  },
+
+  renderExceptions() {
+    const who = document.getElementById('set-exc-who');
+    const list = document.getElementById('set-exc-list');
+    if (!who || !list) return;
+    const prevWho = who.value;
+    who.innerHTML = '<option value="">Toda la barbería</option>' +
+      DB.state.barberProfiles.map(b => '<option value="' + UI.esc(b.id) + '">' + UI.esc(b.name) + '</option>').join('');
+    if (prevWho && who.querySelector('option[value="' + prevWho + '"]')) who.value = prevWho;
+    const dateEl = document.getElementById('set-exc-date');
+    dateEl.min = DB.todayISO();
+    if (!dateEl.value) dateEl.value = DB.todayISO();
+    const items = (DB.state.scheduleExceptions || []).filter(e => e.date >= DB.todayISO())
+      .sort((a, b) => a.date.localeCompare(b.date) || this.exceptionWho(a).localeCompare(this.exceptionWho(b), 'es'));
+    if (!items.length) { list.innerHTML = '<p class="sch-exc-empty">No hay fechas especiales próximas.</p>'; return; }
+    list.innerHTML = '<div class="sch-exc-list">' + items.map(e =>
+      '<div class="sch-exc-item">' +
+        '<div><strong>' + UI.esc(this.fmtLongDate(e.date)) + ' · ' + UI.esc(this.exceptionWho(e)) + '</strong>' +
+        '<span>' + (e.ranges.length ? 'Atiende ' + UI.esc(e.ranges.map(r => r[0] + ' a ' + r[1]).join(' y ')) : 'No se atiende') +
+          (e.note ? ' · ' + UI.esc(e.note) : '') + '</span></div>' +
+        '<button type="button" class="btn-dark btn-xs" onclick="CRM.deleteException(\'' + e.id + '\')" aria-label="Quitar fecha especial">' + ic('trash') + 'Quitar</button>' +
+      '</div>').join('') + '</div>';
+  },
+
+  fmtLongDate(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    const m = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return DB.DAY_NAMES[d.getDay()] + ' ' + d.getDate() + ' de ' + m[d.getMonth()];
+  },
+
+  toggleExceptionHours() {
+    const box = document.getElementById('set-exc-hours');
+    if (box) box.hidden = document.getElementById('set-exc-kind').value !== 'hours';
+  },
+
+  addException() {
+    const err = document.getElementById('set-exc-error');
+    const date = document.getElementById('set-exc-date').value;
+    const barberId = document.getElementById('set-exc-who').value || null;
+    const kind = document.getElementById('set-exc-kind').value;
+    const note = document.getElementById('set-exc-note').value.trim().slice(0, 80);
+    if (!date || date < DB.todayISO()) { err.textContent = 'Elige una fecha de hoy en adelante.'; return; }
+    let ranges = [];
+    if (kind === 'hours') {
+      const f = document.getElementById('set-exc-from').value;
+      const t = document.getElementById('set-exc-to').value;
+      if (!f || !t || f >= t) { err.textContent = 'La hora de inicio debe ser antes de la de cierre.'; return; }
+      ranges = [[f, t]];
+    }
+    const list = DB.state.scheduleExceptions || (DB.state.scheduleExceptions = []);
+    if (list.some(e => e.date === date && (e.barberId || null) === barberId)) {
+      err.textContent = 'Ya hay una fecha especial ese día para ' + (barberId ? this.exceptionWho({ barberId }) : 'toda la barbería') + '. Quítala primero.';
+      return;
+    }
+    const affected = DB.visibleAppointments().filter(a => a.date === date && (a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP') &&
+      (!barberId || a.barber === this.exceptionWho({ barberId })) && !(ranges.length && DB.slotFits(a.time, DB.tenant.schedule.interval, ranges)));
+    err.textContent = '';
+    list.push({ id: DB.uid(), barberId, date, ranges, note });
+    DB.save();
+    DB.log('Agregó una fecha especial', date + ' · ' + this.exceptionWho({ barberId }) + ' · ' + (ranges.length ? ranges[0].join('–') : 'No se atiende') + (note ? ' · ' + note : ''));
+    document.getElementById('set-exc-note').value = '';
+    this.renderAll();
+    UI.toast(affected.length
+      ? 'Fecha guardada. Ojo: ya hay ' + affected.length + ' cita(s) agendada(s) fuera de ese horario; revísalas en Citas.'
+      : 'Fecha especial guardada.', affected.length ? 'error' : undefined);
+  },
+
+  deleteException(id) {
+    const list = DB.state.scheduleExceptions || [];
+    const i = list.findIndex(e => e.id === id);
+    if (i < 0) return;
+    const e = list[i];
+    list.splice(i, 1);
+    DB.save();
+    DB.log('Quitó una fecha especial', e.date + ' · ' + this.exceptionWho(e));
+    this.renderAll();
   },
 
   saveSettings() {
@@ -727,40 +862,13 @@ const CRM = {
     a.click();
   },
 
-  /* Solo superadmin: reemplaza los datos de la barbería ACTIVA por los de demostración */
+  /* En producción no existen "cargar datos demo" ni "borrar todo": los datos viven en Supabase. */
   reloadDemoData() {
-    UI.confirm({
-      title: 'Cargar datos de demostración',
-      message: 'Se reemplazarán los barberos, servicios, citas, walk-in, clientes y asesorías de ' + DB.tenant.name + ' por datos de ejemplo. Los usuarios del personal quedarán sin barbero vinculado.',
-      confirmText: 'Reemplazar datos', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      const root = DB.load();
-      root.data[DB.tenant.id] = DB.getDemoData();
-      root.users.forEach(u => { if (u.tenantId === DB.tenant.id) u.barberId = null; });
-      DB.useTenant(DB.tenant.id);
-      DB.save();
-      DB.log('Cargó datos de demostración', DB.tenant.name);
-      this.renderAll();
-      UI.toast('Datos de demostración cargados.');
-    });
+    UI.toast('No disponible en producción.', 'error');
   },
 
-  /* Solo superadmin: borra TODO el sistema (barberías, usuarios, datos e historial) */
   factoryReset() {
-    UI.confirm({
-      title: 'Restablecer todo el sistema',
-      message: 'Se borrarán TODAS las barberías, usuarios, citas e historial guardados en este navegador y se volverá a la configuración inicial de la demo. No se puede deshacer.',
-      confirmText: 'Borrar todo', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      try {
-        localStorage.removeItem(DB.KEY);
-        localStorage.removeItem(DB.LEGACY_KEY);
-        localStorage.removeItem(Auth.SESSION_KEY);
-      } catch (e) {}
-      window.location.replace('login.html?msg=' + encodeURIComponent('Sistema restablecido. Ingresa con las cuentas iniciales.'));
-    });
+    UI.toast('No disponible en producción.', 'error');
   },
 
   closeModal() { ModalComponent.close(); },
@@ -786,6 +894,8 @@ const CRM = {
           '<div><label class="field-lbl" for="m-ap-date">Fecha</label><input type="date" id="m-ap-date" class="input-dark" min="' + DB.todayISO() + '" value="' + firstDate + '" onchange="CRM.refreshApptSlots()" required /></div>' +
           '<div><label class="field-lbl" for="m-ap-time">Hora</label><select id="m-ap-time" class="input-dark" required></select></div>' +
         '</div>' +
+        '<label class="check-line" style="display:flex; gap:8px; align-items:flex-start; margin-top:12px;"><input type="checkbox" id="m-ap-wa" style="margin-top:3px;" />' +
+          '<span>El cliente acepta recibir la confirmación y los recordatorios por WhatsApp</span></label>' +
         '<p class="field-hint" id="m-ap-note" style="margin-top:10px;"></p>' +
         '<div class="form-error" id="m-ap-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + 'Guardar cita</button></div>' +
@@ -809,13 +919,15 @@ const CRM = {
     if (!DB.freeSlots(dateInp.value, barber).length) {
       const next = DB.firstBookableDate(barber);
       if (next !== dateInp.value) {
-        msg = 'No quedan horarios ese día para ' + barber + '; se muestra el ' + next + '.';
+        msg = (DB.slotsFor(dateInp.value, barber).length ? 'No quedan horarios ese día para ' : 'Ese día no atiende ') + barber + '; se muestra el ' + next + '.';
         dateInp.value = next;
       }
     }
     const prev = timeSel.value;
     let first = null;
-    timeSel.innerHTML = DB.TIME_SLOTS.map(t => {
+    const slots = DB.slotsFor(dateInp.value, barber);
+    if (!slots.length) msg = msg || (barber + ' no tiene horarios disponibles en los próximos días. Revisa su horario en Barberos.');
+    timeSel.innerHTML = slots.map(t => {
       const st = DB.slotState(dateInp.value, t, barber);
       if (st === 'free' && !first) first = t;
       return '<option value="' + t + '"' + (st !== 'free' ? ' disabled' : '') + '>' + t + (st === 'past' ? ' · Ya pasó' : st === 'busy' ? ' · Ocupado' : '') + '</option>';
@@ -834,13 +946,18 @@ const CRM = {
     const date = document.getElementById('m-ap-date').value;
     const time = document.getElementById('m-ap-time').value;
     if (!name) { err.textContent = 'Escribe el nombre del cliente.'; return; }
+    const phone = document.getElementById('m-ap-phone').value.replace(/\D/g, '');
+    if (phone && !/^9\d{8}$/.test(phone)) { err.textContent = 'El celular debe tener 9 dígitos y empezar con 9.'; return; }
+    const waOptIn = !!(document.getElementById('m-ap-wa') || {}).checked;
+    if (waOptIn && !phone) { err.textContent = 'Para enviar WhatsApp escribe el celular del cliente.'; return; }
     const slotError = DB.validateBooking(date, time, barber);
     if (slotError) { err.textContent = slotError; this.refreshApptSlots(); return; }
     const srvObj = DB.state.services.find(s => s.name === srvName);
     const payload = {
       id: 'a-' + Date.now(),
       customerName: name,
-      phone: document.getElementById('m-ap-phone').value.trim(),
+      phone,
+      waOptIn,
       service: srvName,
       barber, date, time,
       price: srvObj ? srvObj.price : 0,

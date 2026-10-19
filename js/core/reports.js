@@ -246,11 +246,12 @@ const Reports = {
       } else if (r.status === 'FINALIZADO') b.walkins++;
       if (r.sale) { b.sales++; b.revenue += r.price; }
     });
-    const capacity = DB.TIME_SLOTS.length * range.days;
+    // Capacidad = horarios promedio por día del horario de cada barbería × días del periodo
+    const capByTenant = {}; tenants.forEach(t => { capByTenant[t.name] = DB.avgDailySlots(t) * range.days; });
     return Object.values(map).map(b => Object.assign(b, {
       avgTicket: b.sales ? b.revenue / b.sales : 0,
       lostRate: b.appts ? (b.cancelled + b.noShow) / b.appts : null,
-      occupancy: capacity ? Math.min(1, b.booked / capacity) : 0
+      occupancy: capByTenant[b.tenantName] ? Math.min(1, b.booked / capByTenant[b.tenantName]) : 0
     })).sort((a, b) => b.revenue - a.revenue || b.appts - a.appts || a.barber.localeCompare(b.barber, 'es'));
   },
 

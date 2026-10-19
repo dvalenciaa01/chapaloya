@@ -1,6 +1,30 @@
 const PublicBooking = {
   selectedBarberFilter: 'ALL',
 
+  /* Captcha de Cloudflare Turnstile (solo si está configurado en js/config.js) */
+  initCaptcha() {
+    const key = (window.RESERVALOPE_CONFIG || {}).turnstileSiteKey;
+    const box = document.getElementById('pb-captcha');
+    if (!key || !box || this.captchaWidget != null) return;
+    const sc = document.createElement('script');
+    sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    sc.async = true;
+    sc.onload = () => {
+      this.captchaWidget = window.turnstile.render(box, {
+        sitekey: key, language: 'es',
+        callback: (t) => { this.captchaToken = t; },
+        'expired-callback': () => { this.captchaToken = ''; },
+        'error-callback': () => { this.captchaToken = ''; }
+      });
+    };
+    document.head.appendChild(sc);
+  },
+
+  aiOn() {
+    const f = (window.RESERVALOPE_CONFIG && window.RESERVALOPE_CONFIG.features) || {};
+    return !!f.aiAdvisor;
+  },
+
   esc(str) {
     return String(str == null ? '' : str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -76,7 +100,7 @@ const PublicBooking = {
             (specs ? '<div class="barber-specs"><span class="barber-specs-label">Especialidades</span><div class="specialty-tags-wrap">' + specs + '</div></div>' : '') +
             '<div class="barber-cta-group">' +
               '<button type="button" class="btn-golden" onclick="PublicBooking.bookWithBarber(\'' + this.jsArg(bp.name) + '\')">' + ic('calendar') + 'Reservar con ' + this.esc(bp.name) + '</button>' +
-              '<button type="button" class="btn-dark" onclick="PublicBooking.bookAIWithBarber(\'' + this.jsArg(bp.name) + '\')">' + ic('sparkles') + 'Asesoría de imagen + IA</button>' +
+              (this.aiOn() ? '<button type="button" class="btn-dark" onclick="PublicBooking.bookAIWithBarber(\'' + this.jsArg(bp.name) + '\')">' + ic('sparkles') + 'Asesoría de imagen + IA</button>' : '') +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -222,7 +246,12 @@ const PublicBooking = {
     const today = DB.todayISO();
     const barber = barSel.value;
     dateInp.min = today;
+    dateInp.max = DB.maxBookDate();
     let msg = '';
+    if (dateInp.value && dateInp.value > dateInp.max) {
+      msg = 'Solo se puede reservar hasta ' + DB.tenant.schedule.maxDays + ' días adelante. Te mostramos el primer día disponible.';
+      dateInp.value = '';
+    }
 
     // Fecha vacía o pasada (escrita a mano o por un calendario antiguo) → hoy
     if (!dateInp.value || DB.isPastDate(dateInp.value)) {
@@ -233,9 +262,12 @@ const PublicBooking = {
     if (!DB.freeSlots(dateInp.value, barber).length && (autoAdvance !== false)) {
       const next = DB.firstBookableDate(barber);
       if (next !== dateInp.value) {
-        msg = dateInp.value === today
-          ? 'Hoy ya no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
-          : 'Ese día no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.';
+        const closed = !DB.slotsFor(dateInp.value, barber).length;
+        msg = closed
+          ? (dateInp.value === today ? 'Hoy ' : 'Ese día ') + barber + ' no atiende. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
+          : dateInp.value === today
+            ? 'Hoy ya no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.'
+            : 'Ese día no quedan horarios con ' + barber + '. Te mostramos el ' + this.fmtDate(next).toLowerCase() + '.';
         dateInp.value = next;
       }
     }
@@ -244,7 +276,10 @@ const PublicBooking = {
     const prev = timeSel.value;
     const date = dateInp.value;
     let firstFree = null;
-    timeSel.innerHTML = DB.TIME_SLOTS.map(t => {
+    const slots = DB.slotsFor(date, barber);
+    if (!slots.length && !msg) msg = barber + ' no tiene horarios disponibles por ahora. Prueba con otro barbero.';
+    setNote(msg);
+    timeSel.innerHTML = slots.map(t => {
       const st = DB.slotState(date, t, barber);
       if (st === 'free' && !firstFree) firstFree = t;
       const label = st === 'past' ? ' · Ya pasó' : (st === 'busy' ? ' · Ocupado' : '');
@@ -312,109 +347,119 @@ const PublicBooking = {
     if (err) err.classList.remove('is-visible');
   },
 
-  submit(e) {
+  async submit(e) {
     e.preventDefault();
+    if (this.sending) return;
     const name = document.getElementById('pb-name').value.trim();
     const phoneInp = document.getElementById('pb-phone');
-    const phone = phoneInp.value.trim();
+    const phone = phoneInp.value.replace(/\D/g, '');
     const service = document.getElementById('pb-service').value;
     const barber = document.getElementById('pb-barber').value;
     const date = document.getElementById('pb-date').value;
     const time = document.getElementById('pb-time').value;
     const notes = document.getElementById('pb-notes').value.trim();
+    const waEl = document.getElementById('pb-wa');
+    const waOptIn = !!(waEl && waEl.checked);
     const fb = document.getElementById('pb-feedback');
+    const showError = (msg) => {
+      fb.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>' + this.esc(msg) + '</span></div>';
+      fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
 
+    if (name.length < 2) { showError('Escribe tu nombre.'); document.getElementById('pb-name').focus(); return; }
     if (!/^9\d{8}$/.test(phone)) {
       phoneInp.setAttribute('aria-invalid', 'true');
       const err = document.getElementById('pb-phone-error');
       if (err) err.classList.add('is-visible');
-      else fb.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>El celular debe tener 9 dígitos y empezar con 9.</span></div>';
+      else showError('El celular debe tener 9 dígitos y empezar con 9.');
       phoneInp.focus();
       return;
     }
     this.clearPhoneError();
 
-    // Validación de horario (aunque se manipule el formulario)
+    // Validación de horario en pantalla (el servidor la repite)
     const slotError = DB.validateBooking(date, time, barber);
-    if (slotError) {
-      fb.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>' + this.esc(slotError) + '</span></div>';
-      this.refreshTimes();
-      fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
+    if (slotError) { showError(slotError); this.refreshTimes(); return; }
 
     const srvObj = DB.state.services.find(s => s.name === service);
-    const newAppt = {
-      id: 'a-' + Date.now(),
-      customerName: name,
-      phone,
-      service,
-      barber,
-      date,
-      time,
-      price: srvObj ? srvObj.price : 45,
-      status: 'PROGRAMADA',
-      source: 'WEB',
-      createdAt: new Date().toISOString(),
-      notes: notes || 'Reserva desde Web Pública'
-    };
+    const barberObj = DB.state.barberProfiles.find(b => b.name === barber);
+    if (!srvObj || !barberObj) { showError('Selecciona un servicio y un barbero.'); return; }
 
-    DB.state.appointments.unshift(newAppt);
-    DB.ensureCustomer(name, phone, notes);
-    DB.save();
-    DB.log('Reserva desde la web', name + ' · ' + service + ' · ' + barber + ' · ' + date + ' ' + time, { actorName: name + ' (web)', actorRole: 'PUBLIC' });
+    const btn = e.target.querySelector('button[type="submit"]');
+    this.sending = true;
+    if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+    let res;
+    try {
+      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, captcha: this.captchaToken || '' });
+    } catch (ex) {
+      showError(ex.message || 'No se pudo registrar la reserva. Inténtalo de nuevo.');
+      try { await DB.refreshBusy(); } catch (e2) { /* sin conexión */ }
+      this.refreshTimes();
+      return;
+    } finally {
+      this.sending = false;
+      if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
+      if (window.turnstile && this.captchaWidget != null) { this.captchaToken = ''; try { window.turnstile.reset(this.captchaWidget); } catch (e3) { /* sin captcha */ } }
+    }
 
-    WhatsAppBot.sendConfirmation(newAppt, true);
-
+    const code = res && res.code ? res.code : '';
     fb.innerHTML = '<div class="alert alert-success" role="status">' + ic('checkCircle') +
       '<div><strong style="display:block; font-size:1rem; margin-bottom:2px;">¡Reserva registrada!</strong>' +
-      'Te esperamos el ' + this.esc(this.fmtDate(date).toLowerCase()) + ' a las ' + this.esc(time) + ' con ' + this.esc(barber) + '. Te enviamos la confirmación por WhatsApp.' +
+      'Te esperamos el ' + this.esc(this.fmtDate(date).toLowerCase()) + ' a las ' + this.esc(time) + ' con ' + this.esc(barber) + '.' +
+      (code ? '<span style="display:block; margin-top:8px;">Tu código de reserva es <strong style="font-size:1.15rem; letter-spacing:0.08em;">' + this.esc(code) + '</strong>. Guárdalo: lo necesitas para consultar tu cita.</span>' : '') +
+      (waOptIn ? '<span style="display:block; margin-top:4px;">Te enviaremos la confirmación por WhatsApp.</span>' : '') +
       '<div class="alert-links">' +
         '<a href="consultar-cita.html">Consultar mi cita ' + ic('arrowRight') + '</a>' +
-        '<button type="button" onclick="AIAdvisor.openForClient(\'' + this.jsArg(name) + '\', \'' + this.jsArg(phone) + '\', \'' + this.jsArg(barber) + '\')">' + ic('lock') + 'Staff: abrir diagnóstico IA</button>' +
       '</div></div>' +
     '</div>';
 
     document.getElementById('pb-name').value = '';
     phoneInp.value = '';
     document.getElementById('pb-notes').value = '';
+    if (waEl) waEl.checked = false;
+    try { await DB.refreshBusy(); } catch (e4) { /* sin conexión */ }
     this.renderPublicViews();
     fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
   },
 
   /* ---------------- Consulta de cita ---------------- */
-  lookup(e) {
+  async lookup(e) {
     if (e) e.preventDefault();
-    const input = document.getElementById('pub-query-input');
+    const phoneInp = document.getElementById('pub-query-phone');
+    const codeInp = document.getElementById('pub-query-code');
     const box = document.getElementById('pub-query-res');
-    if (!input || !box) return;
-    const q = input.value.trim().toLowerCase();
-    if (!q) {
-      box.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>Escribe tu número de celular o tu nombre para buscar.</span></div>';
-      input.focus();
+    if (!phoneInp || !codeInp || !box) return;
+    const phone = phoneInp.value.replace(/\D/g, '');
+    const code = codeInp.value.trim().toUpperCase();
+    if (!/^9\d{8}$/.test(phone) || code.length < 4) {
+      box.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>Escribe tu celular (9 dígitos) y el código de reserva que recibiste al reservar.</span></div>';
+      (phone ? codeInp : phoneInp).focus();
       return;
     }
-    const matches = DB.state.appointments.filter(a =>
-      a.customerName.toLowerCase().includes(q) || (a.phone && a.phone.includes(q))
-    );
+    let matches;
+    try {
+      matches = await DB.consultarCita(phone, code);
+    } catch (ex) {
+      box.innerHTML = '<div class="alert alert-error">' + ic('alert') + '<span>' + this.esc(DB.errorText(ex)) + '</span></div>';
+      return;
+    }
     if (!matches.length) {
       box.innerHTML = '<div class="lookup-empty">' + ic('search') +
-        '<strong>No encontramos citas con ese dato</strong>' +
-        '<span>Revisa el número o el nombre, o agenda una nueva cita.</span>' +
+        '<strong>No encontramos una cita con esos datos</strong>' +
+        '<span>Revisa el celular y el código, o agenda una nueva cita.</span>' +
         '<a class="btn-black btn-xs" href="reservar.html">Reservar cita</a></div>';
       return;
     }
-    box.innerHTML = '<p class="lookup-count">' + matches.length + (matches.length === 1 ? ' cita encontrada' : ' citas encontradas') + '</p>' +
-      matches.map(a =>
-        '<div class="lookup-result">' +
-          '<div class="lookup-date"><span>' + this.esc(a.time) + '</span></div>' +
-          '<div class="lookup-info">' +
-            '<strong>' + this.esc(this.fmtDate(a.date)) + '</strong>' +
-            '<span>' + this.esc(a.service) + ' · con ' + this.esc(a.barber) + '</span>' +
-            '<span class="lookup-name">' + ic('user') + this.esc(a.customerName) + '</span>' +
-          '</div>' +
-          '<span class="st-badge st-' + this.esc(a.status) + '">' + this.esc(DB.statusLabel(a.status)) + '</span>' +
-        '</div>'
-      ).join('');
+    box.innerHTML = matches.map(a =>
+      '<div class="lookup-result">' +
+        '<div class="lookup-date"><span>' + this.esc(a.time) + '</span></div>' +
+        '<div class="lookup-info">' +
+          '<strong>' + this.esc(this.fmtDate(a.date)) + '</strong>' +
+          '<span>' + this.esc(a.service) + ' · con ' + this.esc(a.barber) + '</span>' +
+          '<span class="lookup-name">' + ic('user') + this.esc(a.customerName) + ' · Código ' + this.esc(a.code) + '</span>' +
+        '</div>' +
+        '<span class="st-badge st-' + this.esc(a.status) + '">' + this.esc(DB.statusLabel(a.status)) + '</span>' +
+      '</div>'
+    ).join('');
   }
 };

@@ -83,19 +83,18 @@ const AdminUI = {
     );
   },
 
-  saveChangePassword(e) {
+  async saveChangePassword(e) {
     e.preventDefault();
     const err = document.getElementById('cp-error');
+    err.textContent = '';
     const cur = document.getElementById('cp-current').value;
     const n1 = document.getElementById('cp-new').value;
     const n2 = document.getElementById('cp-new2').value;
-    const u = Auth.user;
-    if (!Auth.verifyPassword(cur, u.passHash)) { err.textContent = 'La contraseña actual no es correcta.'; return; }
     const v = Auth.validatePassword(n1);
     if (v) { err.textContent = v; return; }
     if (n1 !== n2) { err.textContent = 'Las contraseñas nuevas no coinciden.'; return; }
-    if (n1 === cur) { err.textContent = 'La nueva contraseña debe ser distinta a la actual.'; return; }
-    Auth.setPassword(u, n1, false);
+    const res = await Auth.changeOwnPassword(n1, cur);
+    if (!res.ok) { err.textContent = res.error; return; }
     DB.log('Cambió su contraseña', 'Cambio voluntario desde Mi cuenta.');
     ModalComponent.close();
     UI.toast('Contraseña actualizada.');
@@ -234,17 +233,18 @@ const AdminUI = {
     document.getElementById('m-us-barber').innerHTML = this.barberOptions(tid, null);
   },
 
-  saveUser(e, editId) {
+  async saveUser(e, editId) {
     e.preventDefault();
     const me = Auth.user;
     const err = document.getElementById('m-us-error');
+    err.textContent = '';
     const name = document.getElementById('m-us-name').value.trim();
     const email = document.getElementById('m-us-email').value.trim().toLowerCase();
     let role = document.getElementById('m-us-role').value;
     let tenantId = document.getElementById('m-us-tenant').value;
     const barberId = role === 'STAFF' ? (document.getElementById('m-us-barber').value || null) : null;
 
-    // Reglas de negocio (se validan aquí aunque la interfaz ya las limite)
+    // Reglas de negocio (también las vuelve a validar el servidor)
     if (me.role === 'ADMIN') { role = 'STAFF'; tenantId = me.tenantId; }
     if (me.role !== 'SUPERADMIN' && me.role !== 'ADMIN') return Guard.deny();
     if (!name) { err.textContent = 'Escribe el nombre.'; return; }
@@ -253,35 +253,29 @@ const AdminUI = {
     if (dup && dup.id !== editId) { err.textContent = 'Ya existe un usuario con ese correo.'; return; }
     if (role !== 'SUPERADMIN' && !DB.tenantById(tenantId)) { err.textContent = 'Selecciona una barbería.'; return; }
 
-    if (editId) {
-      const u = Auth.findById(editId);
-      if (!u || !Auth.canManageUser(u)) return Guard.deny();
-      const before = Auth.ROLE_LABEL[u.role] + ' · ' + (u.tenantId ? DB.tenantById(u.tenantId).name : 'Todas');
-      u.name = name;
-      u.email = email;
-      if (me.role === 'SUPERADMIN' && u.id !== me.id) {
-        u.role = role;
-        u.tenantId = role === 'SUPERADMIN' ? null : tenantId;
-        if (role === 'ADMIN' && !u.grants) u.grants = Auth.defaultGrants();
-        if (role !== 'ADMIN') u.grants = null;
-      }
-      u.barberId = u.role === 'STAFF' ? barberId : null;
-      DB.persist();
-      DB.log('Editó un usuario', name + ' (' + email + ') · antes: ' + before + ' · ahora: ' + Auth.ROLE_LABEL[u.role], { tenantId: u.tenantId });
-      ModalComponent.close();
-      UI.toast('Usuario actualizado.');
-      this.renderUsers();
-      return;
-    }
-
-    const temp = Auth.tempPassword();
-    let user;
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
     try {
-      user = Auth.createUser({ name, email, role, tenantId, barberId, password: temp, mustChangePassword: true });
-    } catch (ex) { err.textContent = ex.message; return; }
-    DB.log('Creó un usuario', name + ' (' + email + ') · ' + Auth.ROLE_LABEL[role] + (user.tenantId ? ' · ' + DB.tenantById(user.tenantId).name : ''), { tenantId: user.tenantId });
-    this.renderUsers();
-    this.showCredentials(user, temp, 'Usuario creado');
+      if (editId) {
+        const u = Auth.findById(editId);
+        if (!u || !Auth.canManageUser(u)) return Guard.deny();
+        const patch = { name, email, barberId };
+        if (me.role === 'SUPERADMIN' && u.id !== me.id) { patch.role = role; patch.tenantId = role === 'SUPERADMIN' ? null : tenantId; }
+        const res = await Auth.updateUser(editId, patch);
+        DB.log('Editó un usuario', name + ' (' + email + ') · ' + Auth.ROLE_LABEL[res.user.role], { tenantId: res.user.tenantId });
+        ModalComponent.close();
+        UI.toast('Usuario actualizado.');
+        this.renderUsers();
+        return;
+      }
+      const res = await Auth.createUser({ name, email, role, tenantId, barberId });
+      this.renderUsers();
+      this.showCredentials(res.user, res.temp, 'Usuario creado');
+    } catch (ex) {
+      err.textContent = ex.message;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   },
 
   showCredentials(user, temp, title) {
@@ -305,15 +299,15 @@ const AdminUI = {
     if (!u || !Auth.canManageUser(u) || u.id === Auth.user.id) return Guard.deny();
     UI.confirm({
       title: 'Restablecer contraseña',
-      message: 'Se generará una contraseña temporal para ' + u.name + '. Su contraseña actual dejará de funcionar y se desbloqueará la cuenta si estaba bloqueada.',
+      message: 'Se generará una contraseña temporal para ' + u.name + '. Su contraseña actual dejará de funcionar y deberá crear una nueva al ingresar.',
       confirmText: 'Restablecer'
-    }).then(ok => {
+    }).then(async ok => {
       if (!ok) return;
-      const temp = Auth.tempPassword();
-      Auth.setPassword(u, temp, true);
-      DB.log('Restableció una contraseña', u.name + ' (' + u.email + ')', { tenantId: u.tenantId });
-      this.renderUsers();
-      this.showCredentials(u, temp, 'Contraseña restablecida');
+      try {
+        const res = await Auth.resetPassword(id);
+        this.renderUsers();
+        this.showCredentials(res.user, res.temp, 'Contraseña restablecida');
+      } catch (ex) { UI.toast(ex.message, 'error'); }
     });
   },
 
@@ -332,13 +326,14 @@ const AdminUI = {
         : u.name + ' ya no podrá ingresar. Su historial se conserva y puedes reactivarlo cuando quieras.',
       confirmText: activating ? 'Activar' : 'Desactivar',
       danger: !activating
-    }).then(ok => {
+    }).then(async ok => {
       if (!ok) return;
-      u.active = activating;
-      DB.persist();
-      DB.log(activating ? 'Activó un usuario' : 'Desactivó un usuario', u.name + ' (' + u.email + ')', { tenantId: u.tenantId });
-      this.renderUsers();
-      UI.toast(activating ? 'Usuario activado.' : 'Usuario desactivado.');
+      try {
+        await Auth.updateUser(id, { active: activating });
+        DB.log(activating ? 'Activó un usuario' : 'Desactivó un usuario', u.name + ' (' + u.email + ')', { tenantId: u.tenantId });
+        this.renderUsers();
+        UI.toast(activating ? 'Usuario activado.' : 'Usuario desactivado.');
+      } catch (ex) { UI.toast(ex.message, 'error'); }
     });
   },
 
@@ -365,15 +360,16 @@ const AdminUI = {
     );
   },
 
-  savePermissions(e, id) {
+  async savePermissions(e, id) {
     e.preventDefault();
     const u = Auth.findById(id);
     if (!u || u.role !== 'ADMIN' || Auth.user.role !== 'SUPERADMIN') return Guard.deny();
     const before = Object.assign({}, u.grants || {});
-    const g = {};
+    const g = Object.assign({}, before);
     Auth.GRANTABLE.forEach(m => { g[m.key] = document.getElementById('perm-' + m.key).checked; });
-    u.grants = g;
-    DB.persist();
+    try {
+      await Auth.updateUser(id, { grants: g });
+    } catch (ex) { UI.toast(ex.message, 'error'); return; }
     const changes = Auth.GRANTABLE.filter(m => !!before[m.key] !== g[m.key]).map(m => (g[m.key] ? '+' : '−') + m.label);
     DB.log('Cambió permisos de un administrador', u.name + ': ' + (changes.length ? changes.join(', ') : 'sin cambios'), { tenantId: u.tenantId });
     ModalComponent.close();
@@ -562,7 +558,7 @@ const AdminUI = {
     document.getElementById('m-tn-logo-preview').innerHTML = '<span class="brand-wordmark">Sin logo</span>';
   },
 
-  saveTenant(e, editId) {
+  async saveTenant(e, editId) {
     e.preventDefault();
     if (!Auth.can('tenants.manage')) return Guard.deny();
     const err = document.getElementById('m-tn-error');
@@ -596,7 +592,7 @@ const AdminUI = {
       const t = DB.tenantById(editId);
       Object.assign(t, fields);
       if (root.data[t.id]) { root.data[t.id].settings.shopName = t.name; root.data[t.id].settings.currency = t.currency; }
-      DB.persist();
+      await DB.persist();
       DB.log('Editó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label + ' · vence ' + t.subscriptionEnd, { tenantId: t.id });
       ModalComponent.close();
       UI.toast('Barbería actualizada.');
@@ -605,11 +601,12 @@ const AdminUI = {
       this.renderTenants();
       return;
     }
-    const t = Object.assign({ id: DB.uid('t'), status: 'ACTIVE', createdAt: new Date().toISOString() }, fields);
+    const t = Object.assign({ id: DB.uid(), status: 'ACTIVE', createdAt: new Date().toISOString(), timeSlots: DB.DEFAULT_SLOTS.slice() }, fields);
     root.tenants.push(t);
     root.data[t.id] = DB.templateData(t.name);
     root.data[t.id].settings.currency = t.currency;
-    DB.persist();
+    await DB.persist();
+    if (!DB.tenantById(t.id)) return; // el servidor la rechazó (ya se mostró el motivo)
     DB.log('Creó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label, { tenantId: t.id });
     ModalComponent.close();
     this.renderHeader();
