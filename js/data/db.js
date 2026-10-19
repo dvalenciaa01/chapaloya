@@ -396,7 +396,9 @@ const DB = {
       this.fetchRows('appointments', ids, { order: 'starts_at', asc: false }),
       this.fetchRows('walk_ins', ids, { order: 'created_at', asc: false }),
       this.fetchRows('ai_consultations', ids, { order: 'created_at', asc: false }),
+      // Si aún no se ejecutó la migración 6, la página sigue funcionando sin fechas especiales
       this.fetchRows('schedule_exceptions', ids, { order: 'date', filter: q => q.gte('date', today) })
+        .catch(e => { console.warn('[DB] Fechas especiales no disponibles (¿falta la migración 6?)', e); return []; })
     ]);
     const S = this.SPECS;
     ids.forEach(tid => {
