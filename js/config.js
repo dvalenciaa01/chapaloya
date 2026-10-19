@@ -10,6 +10,6 @@ window.RESERVALOPE_CONFIG = {
   supabaseUrl: 'https://cdsstbykktdkhhxtcsnx.supabase.co',
   supabaseKey: 'sb_publishable_hqJty101OjD4pHM7S8WLnA_pdzq2L6O',
 
-  // Cloudflare Turnstile (Fase 2). Vacío = sin captcha (solo pruebas).
-  turnstileSiteKey: ''
+  // Cloudflare Turnstile. Vacío = sin captcha (solo pruebas).
+  turnstileSiteKey: '0x4AAAAAAFcKpHzKtGNIsCCH'
 };
