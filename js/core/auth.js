@@ -47,8 +47,7 @@ const Auth = {
     STAFF: [
       'dashboard.view',
       'appointments.view', 'appointments.create', 'appointments.status',
-      'walkins.view', 'walkins.create', 'walkins.status',
-      'ai.use'
+      'walkins.view', 'walkins.create', 'walkins.status'
     ]
   },
 
@@ -57,7 +56,6 @@ const Auth = {
     customers: ['customers.view', 'customers.manage'],
     reports: ['reports.view'],
     settings: ['settings.manage'],
-    ai: ['ai.use'],
     audit: ['audit.view']
   },
 
@@ -66,7 +64,6 @@ const Auth = {
 
   TAB_PERM: {
     'dashboard': 'dashboard.view',
-    'ai-advisor': 'ai.use',
     'appointments': 'appointments.view',
     'walkins': 'walkins.view',
     'barbers': 'barbers.manage',
@@ -283,8 +280,6 @@ const Auth = {
 
   /* ---------------- Permisos ---------------- */
   featureOn(perm) {
-    const f = (window.RESERVALOPE_CONFIG && window.RESERVALOPE_CONFIG.features) || {};
-    if (perm === 'ai.use' && !f.aiAdvisor) return false;
     return !this.DISABLED.includes(perm);
   },
 

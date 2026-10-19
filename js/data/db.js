@@ -5,7 +5,7 @@
    cambien:
      DB.root  = { tenants[], users[], data{ [tenantId]: state }, audit[] }
      DB.state = datos de la barbería ACTIVA (barberProfiles, services,
-                customers, appointments, walkIns, aiConsultations, settings)
+                customers, appointments, walkIns, settings)
      DB.tenant = barbería activa
    Diferencias con la demo:
      - Se carga desde Supabase al abrir la página (DB.init / initConsole /
@@ -300,27 +300,9 @@ const DB = {
         if ('notes' in l) c.notes = l.notes;
         return c;
       }
-    },
-    ai: {
-      table: 'ai_consultations',
-      from(r) { return Object.assign({}, r.data || {}, { id: r.id, date: r.date, clientName: r.client_name, clientPhone: r.client_phone, barberName: r.barber_name }); },
-      logical(c) {
-        const data = Object.assign({}, c);
-        ['id', 'date', 'clientName', 'clientPhone', 'barberName'].forEach(k => delete data[k]);
-        return { date: c.date || DB.todayISO(), clientName: c.clientName || '', clientPhone: DB.cleanPhone(c.clientPhone), barberName: c.barberName || '', data };
-      },
-      columns(l) {
-        const c = {};
-        if ('date' in l) c.date = l.date;
-        if ('clientName' in l) c.client_name = l.clientName;
-        if ('clientPhone' in l) c.client_phone = l.clientPhone;
-        if ('barberName' in l) c.barber_name = l.barberName;
-        if ('data' in l) c.data = l.data;
-        return c;
-      }
     }
   },
-  ORDER: ['barbers', 'works', 'exceptions', 'services', 'customers', 'appointments', 'walkins', 'ai'],
+  ORDER: ['barbers', 'works', 'exceptions', 'services', 'customers', 'appointments', 'walkins'],
 
   barberIdByName(tid, name) {
     const st = this.root.data[tid];
@@ -360,7 +342,7 @@ const DB = {
   emptyState(t) {
     return {
       settings: { shopName: t.name, ownerName: t.ownerName, currency: t.currency || 'S/', showQuickStart: this.pref('quick:' + t.id) !== false },
-      barberProfiles: [], services: [], customers: [], appointments: [], walkIns: [], aiConsultations: [],
+      barberProfiles: [], services: [], customers: [], appointments: [], walkIns: [],
       scheduleExceptions: []
     };
   },
@@ -388,14 +370,13 @@ const DB = {
 
   async loadTenantData(ids) {
     const today = this.todayISO();
-    const [barbers, works, services, customers, appts, walks, ai, excs] = await Promise.all([
+    const [barbers, works, services, customers, appts, walks, excs] = await Promise.all([
       this.fetchRows('barbers', ids),
       this.fetchRows('barber_works', ids, { order: 'created_at', asc: false }),
       this.fetchRows('services', ids, { order: 'sort' }),
       this.fetchRows('customers', ids, { order: 'created_at', asc: false }),
       this.fetchRows('appointments', ids, { order: 'starts_at', asc: false }),
       this.fetchRows('walk_ins', ids, { order: 'created_at', asc: false }),
-      this.fetchRows('ai_consultations', ids, { order: 'created_at', asc: false }),
       // Si aún no se ejecutó la migración 6, la página sigue funcionando sin fechas especiales
       this.fetchRows('schedule_exceptions', ids, { order: 'date', filter: q => q.gte('date', today) })
         .catch(e => { console.warn('[DB] Fechas especiales no disponibles (¿falta la migración 6?)', e); return []; })
@@ -416,7 +397,6 @@ const DB = {
       st.customers = mine(customers).map(r => S.customers.from(r));
       st.appointments = mine(appts).map(r => S.appointments.from(r));
       st.walkIns = mine(walks).map(r => S.walkins.from(r));
-      st.aiConsultations = mine(ai).map(r => S.ai.from(r));
       st.scheduleExceptions = mine(excs).map(r => S.exceptions.from(r));
       st.settings.shopName = t.name;
       st.settings.currency = t.currency;
@@ -582,7 +562,6 @@ const DB = {
     (st.customers || []).forEach(c => { fix(c); out.customers.set(c.id, { rec: c, logical: S.customers.logical(c) }); });
     (st.appointments || []).forEach(a => { fix(a); out.appointments.set(a.id, { rec: a, logical: S.appointments.logical(a) }); });
     (st.walkIns || []).forEach(w => { fix(w); out.walkins.set(w.id, { rec: w, logical: S.walkins.logical(w) }); });
-    (st.aiConsultations || []).forEach(c => { fix(c); out.ai.set(c.id, { rec: c, logical: S.ai.logical(c) }); });
     return out;
   },
 
@@ -968,7 +947,7 @@ const DB = {
     }
   },
 
-  /* Catálogo base para una barbería nueva (sin la asesoría IA, oculta en el lanzamiento) */
+  /* Catálogo base para una barbería nueva */
   templateData(tenantName) {
     const base = [
       { name: 'Corte de Cabello + Barba', category: 'Paquetes', price: 45, duration: 45, desc: 'Corte degradado completo con perfilado de barba y toalla caliente.' },
@@ -981,7 +960,7 @@ const DB = {
       settings: { shopName: tenantName || 'Nueva barbería', ownerName: '', currency: 'S/', showQuickStart: true },
       barberProfiles: [],
       services: base.map(s => Object.assign({ id: this.uid() }, s)),
-      customers: [], appointments: [], walkIns: [], aiConsultations: []
+      customers: [], appointments: [], walkIns: []
     };
   }
 };

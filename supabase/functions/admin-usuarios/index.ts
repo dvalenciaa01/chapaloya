@@ -19,8 +19,8 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const ROLES = ['SUPERADMIN', 'ADMIN', 'STAFF'];
-const GRANT_KEYS = ['sales', 'customers', 'reports', 'settings', 'ai', 'audit'];
-const DEFAULT_GRANTS = { sales: true, customers: true, reports: true, settings: true, ai: false, audit: true };
+const GRANT_KEYS = ['sales', 'customers', 'reports', 'settings', 'audit'];
+const DEFAULT_GRANTS = { sales: true, customers: true, reports: true, settings: true, audit: true };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 class HttpError extends Error {

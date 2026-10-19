@@ -20,7 +20,6 @@ const DemoSeed = {
 
   FIRST: ['Luis', 'Carlos', 'Jorge', 'Diego', 'Miguel', 'Andrés', 'José', 'Renzo', 'Bruno', 'Sergio', 'Kevin', 'Piero', 'Mateo', 'Gabriel', 'Álvaro', 'Iván', 'Óscar', 'Raúl', 'Fernando', 'Joaquín', 'Rodrigo', 'Martín', 'Daniel', 'Hugo', 'Franco', 'Sebastián', 'Tomás', 'Alonso', 'Eduardo', 'Gustavo'],
   LAST: ['Quispe', 'Flores', 'Rojas', 'Mendoza', 'García', 'Torres', 'Vargas', 'Castillo', 'Ramírez', 'Chávez', 'Díaz', 'Huamán', 'Paredes', 'Salazar', 'Gutiérrez', 'Silva', 'Morales', 'Rivera', 'Herrera', 'Medina', 'Cruz', 'Ríos', 'Vega', 'León', 'Soto'],
-  STYLES: ['Mid Fade + Textura', 'Crop Francés', 'Quiff Ejecutivo', 'Taper Fade Moderno', 'Side Part Clásico', 'Buzz Cut Definido'],
 
   pick(r, arr) { return arr[Math.floor(r() * arr.length)]; },
 
@@ -87,12 +86,6 @@ const DemoSeed = {
         };
         if (status === 'COMPLETADA') {
           appt.completedAt = date + 'T' + time + ':00';
-          if (svc.id === 's-ia' && r() < 0.65) {
-            state.aiConsultations.push({
-              id: 'demo-ai-' + opts.key + '-' + n, date, time, clientName: c.name, clientPhone: c.phone, barberName: barber,
-              chosenStyle: this.pick(r, this.STYLES), match: (88 + Math.floor(r() * 11)) + '% MATCH FACIAL', beardTech: '', demo: true
-            });
-          }
         }
         state.appointments.push(appt);
       }
@@ -145,7 +138,7 @@ const DemoSeed = {
     const golden = root.tenants.find(t => t.id === 't-golden') || root.tenants[0];
     if (golden && root.data[golden.id]) {
       DB.migrateRecords(root.data[golden.id]);
-      this.history(root.data[golden.id], { key: 'g', seed: 20261016, base: 9, customers: 140, cancel: 9, web: 0.48, svcWeight: { 's-ia': 5, s1: 9, s2: 4, s3: 8, s4: 4, s5: 2 } });
+      this.history(root.data[golden.id], { key: 'g', seed: 20261016, base: 9, customers: 140, cancel: 9, web: 0.48, svcWeight: { s1: 9, s2: 4, s3: 8, s4: 4, s5: 2 } });
     }
     if (!root.tenants.some(t => t.slug === 'navaja-norte')) {
       const t2 = this.navajaTenant();
@@ -154,7 +147,7 @@ const DemoSeed = {
       st.barberProfiles = this.navajaBarbers();
       st.settings.ownerName = t2.ownerName;
       root.data[t2.id] = st;
-      this.history(st, { key: 'n', seed: 777, base: 5, customers: 80, cancel: 18, web: 0.3, svcWeight: { 's-ia': 1, s1: 8, s2: 2, s3: 10, s4: 6, s5: 3 } });
+      this.history(st, { key: 'n', seed: 777, base: 5, customers: 80, cancel: 18, web: 0.3, svcWeight: { s1: 8, s2: 2, s3: 10, s4: 6, s5: 3 } });
     }
     root.demoSeed = { v: this.VERSION, at: new Date().toISOString(), usersPending: true };
     return true;
@@ -168,7 +161,7 @@ const DemoSeed = {
     root.users = root.users.filter(u => !demoTenants.includes(u.tenantId));
     let removed = 0;
     Object.values(root.data).forEach(s => {
-      ['appointments', 'walkIns', 'aiConsultations', 'customers'].forEach(k => {
+      ['appointments', 'walkIns', 'customers'].forEach(k => {
         const before = (s[k] || []).length;
         s[k] = (s[k] || []).filter(x => !x.demo);
         removed += before - s[k].length;

@@ -11,8 +11,5 @@ window.RESERVALOPE_CONFIG = {
   supabaseKey: 'sb_publishable_hqJty101OjD4pHM7S8WLnA_pdzq2L6O',
 
   // Cloudflare Turnstile (Fase 2). Vacío = sin captcha (solo pruebas).
-  turnstileSiteKey: '',
-
-  // Funciones ocultas en el lanzamiento
-  features: { aiAdvisor: false }
+  turnstileSiteKey: ''
 };

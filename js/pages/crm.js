@@ -31,9 +31,6 @@ const CRM = {
     const badgeBarbers = document.getElementById('badge-nav-barbers');
     if (badgeBarbers) badgeBarbers.textContent = DB.state.barberProfiles.length;
 
-    if (typeof AIAdvisor !== 'undefined') {
-      AIAdvisor.populateHeaderSelectors();
-    }
     this.renderBarberLiveStatus();
     this.renderDashboard();
     this.renderBarbersPortfolioManager();
@@ -96,7 +93,7 @@ const CRM = {
     const modalTitle = bp ? 'EDITAR BARBERO' : 'NUEVO BARBERO';
     const bName = bp ? bp.name : '';
     const bRole = bp ? bp.role : 'Master Barber';
-    const bSpecs = bp ? (bp.specialties || []).join(', ') : 'Asesoría de Imagen + IA, Skin Fade, Afeitado Royal';
+    const bSpecs = bp ? (bp.specialties || []).join(', ') : 'Skin Fade, Perfilado de barba, Afeitado Royal';
     const bPhoto = bp ? bp.photo : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
     const bSchedule = bp ? bp.schedule : null;
     const shopSchedule = DB.tenant.schedule || DB.normSchedule(null);
@@ -306,15 +303,18 @@ const CRM = {
         '<div class="crm-kpi-card"><div class="crm-kpi-label">CITAS DE HOY</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">Sincronizadas con la web</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">VENTAS COMPLETADAS</div><div class="crm-kpi-val">' + cur + totalRevAll + '</div><div class="crm-kpi-sub">' + totalDone + ' completadas</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">COLA WALK-IN</div><div class="crm-kpi-val">' + DB.state.walkIns.filter(w => w.status !== 'FINALIZADO').length + '</div><div class="crm-kpi-sub">En espera y en sillón</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">ASESORÍAS IA</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.aiConsultations.length + '</div><div class="crm-kpi-sub">Diagnósticos realizados</div></div>';
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">TICKET PROMEDIO</div><div class="crm-kpi-val" style="color:var(--golden);">' + cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0) + '</div><div class="crm-kpi-sub">Por venta completada</div></div>';
     }
 
     const kpi2 = document.getElementById('dashboard-kpis-row2');
     if (kpi2 && showFinance) {
+      const svcCount = {};
+      DB.state.appointments.forEach(a => { if (a.status !== 'CANCELADA') svcCount[a.service] = (svcCount[a.service] || 0) + 1; });
+      const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
       kpi2.innerHTML =
         '<div class="crm-kpi-card"><div class="crm-kpi-label">INGRESOS 7 DÍAS</div><div class="crm-kpi-val">' + cur + weekRev + '</div><div class="crm-kpi-sub">Citas + walk-in de la última semana</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">TOTAL CLIENTES</div><div class="crm-kpi-val">' + DB.state.customers.length + '</div><div class="crm-kpi-sub">En cartera CRM</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">SERVICIO DESTACADO</div><div class="crm-kpi-val" style="font-size:1.25rem;">Asesoría Imagen + IA</div><div class="crm-kpi-sub">Visagismo Corte + Barba</div></div>' +
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">SERVICIO MÁS PEDIDO</div><div class="crm-kpi-val" style="font-size:1.25rem;">' + UI.esc(topService ? topService[0] : '—') + '</div><div class="crm-kpi-sub">' + (topService ? topService[1] + ' citas' : 'Sin citas aún') + '</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">BARBEROS ACTIVOS</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.barberProfiles.length + '</div><div class="crm-kpi-sub">Con portafolio activo</div></div>';
     }
 
@@ -327,7 +327,6 @@ const CRM = {
             '<strong>' + a.time + ' - ' + a.customerName + '</strong>' +
             '<div style="font-size:0.78rem; color:var(--text-grey);">' + a.service + ' • ' + a.barber + '</div>' +
           '</div>' +
-          '<button class="btn-dark btn-xs" onclick="AIAdvisor.openForClient(\'' + a.customerName + '\',\'' + a.phone + '\',\'' + a.barber + '\')">' + ic('sparkles') + 'Iniciar IA</button>' +
         '</div>'
       ).join('') || '<div class="empty-state">' + ic('calendar') + '<strong>Sin citas pendientes</strong>No hay más citas programadas para hoy.</div>';
     }
@@ -341,7 +340,6 @@ const CRM = {
             '<strong>' + w.customerName + '</strong>' +
             '<div style="font-size:0.78rem; color:var(--text-grey);">' + w.service + ' • ' + w.barber + '</div>' +
           '</div>' +
-          '<button class="btn-dark btn-xs" onclick="AIAdvisor.openForClient(\'' + w.customerName + '\',\'\',\'' + w.barber + '\')">' + ic('sparkles') + 'Abrir IA</button>' +
         '</div>'
       ).join('') || '<div class="empty-state">' + ic('hourglass') + '<strong>Cola vacía</strong>Nadie esperando en este momento.</div>';
     }
@@ -445,7 +443,6 @@ const CRM = {
         '<td data-label="Estado"><span class="st-badge st-' + a.status + '">' + DB.statusLabel(a.status) + '</span></td>' +
         '<td data-label="Acciones">' +
           '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
-            '<button class="btn-dark btn-xs" onclick="AIAdvisor.openForClient(\'' + a.customerName + '\',\'' + a.phone + '\',\'' + a.barber + '\')">' + ic('sparkles') + 'Asesoría IA</button>' +
             '<button class="btn-dark btn-xs" onclick="CRM.setApptStatus(\'' + a.id + '\',\'COMPLETADA\')">Completar</button>' +
             '<button class="btn-dark btn-xs" onclick="CRM.setApptStatus(\'' + a.id + '\',\'CANCELADA\')">Cancelar</button>' +
             '<button class="btn-danger btn-xs" onclick="CRM.deleteAppt(\'' + a.id + '\')" aria-label="Eliminar">' + ic('trash') + '</button>' +
@@ -494,7 +491,6 @@ const CRM = {
           '</p>' +
         '</div>' +
         '<div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border-subtle); padding-top:12px;">' +
-          '<button class="btn-golden btn-xs" onclick="AIAdvisor.openForClient(\'' + w.customerName + '\',\'\',\'' + w.barber + '\')">' + ic('sparkles') + 'Iniciar asesoría IA</button>' +
           chairBtn +
           '<button class="btn-dark btn-xs" onclick="CRM.setWalkInStatus(\'' + w.id + '\',\'FINALIZADO\')">Finalizar</button>' +
         '</div>' +
@@ -580,9 +576,6 @@ const CRM = {
           '<div style="color:var(--golden); font-size:0.82rem; font-weight:700; margin-bottom:10px;">' + ic('phone') + ' ' + c.phone + '</div>' +
           '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + (c.notes || 'Sin observaciones') + '</p>' +
         '</div>' +
-        '<div style="display:flex; gap:8px;">' +
-          '<button class="btn-golden btn-xs" onclick="AIAdvisor.openForClient(\'' + c.name + '\',\'' + c.phone + '\',\'' + (DB.assignableBarbers()[0] || '') + '\')">' + ic('sparkles') + 'Nueva asesoría IA</button>' +
-        '</div>' +
       '</div>'
     ).join('');
   },
@@ -599,7 +592,7 @@ const CRM = {
       '<div class="crm-item-card service-admin-card">' +
         '<div>' +
           '<div class="service-admin-top"><span class="service-admin-cat">' + UI.esc(s.category || 'General') + '</span>' +
-            (s.id === 's-ia' ? '<span class="crm-nav-new">Destacado</span>' : '') + '</div>' +
+            (s.featured ? '<span class="crm-nav-new">Destacado</span>' : '') + '</div>' +
           '<h3 style="font-size:1.25rem; margin:6px 0 8px;">' + UI.esc(s.name) + '</h3>' +
           '<div class="service-admin-meta"><strong>' + UI.esc(cur) + ' ' + s.price + '</strong><span>' + ic('clock') + s.duration + ' min</span></div>' +
           '<p style="font-size:0.85rem; line-height:1.5; margin-top:10px;">' + UI.esc(s.desc || 'Sin descripción') + '</p>' +

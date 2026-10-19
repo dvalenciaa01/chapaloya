@@ -487,7 +487,6 @@ img, video, svg { max-width: 100%; }
   html .service-card:hover,
   html .team-card:hover,
   html .work-photo-card:hover,
-  html .ai-proposal-card:hover,
   html .crm-item-card:hover,
   html .wsp-float-btn:hover { transform: none; box-shadow: none; }
   html .btn-golden:hover { box-shadow: none; }

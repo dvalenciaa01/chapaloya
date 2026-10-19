@@ -55,7 +55,6 @@ const Analytics = {
     const clients = new Set();
     appts.filter(a => a.status !== 'CANCELADA').forEach(a => clients.add((a.phone && a.phone !== '—' ? a.phone : a.customerName).toLowerCase()));
     walks.forEach(w => clients.add(String(w.customerName).toLowerCase()));
-    const ai = (s.aiConsultations || []).filter(c => this.inRange(c.date, r)).length;
     const web = appts.filter(a => a.source === 'WEB').length;
 
     const byDay = {};
@@ -92,7 +91,6 @@ const Analytics = {
       noShowRate: appts.length ? noShow.length / appts.length : null,
       walkins: walks.length,
       clients: clients.size,
-      ai,
       web, crm: appts.length - web,
       webShare: appts.length ? web / appts.length : null,
       byDay, byService, byHour, byBarber,
@@ -125,7 +123,7 @@ const Analytics = {
       completionRate: resolved ? completed / resolved : null,
       cancelRate: appts ? cancelled / appts : null,
       noShowRate: appts ? noShow / appts : null,
-      walkins: sum('walkins'), clients: clients.size, ai: sum('ai'),
+      walkins: sum('walkins'), clients: clients.size,
       web, crm: appts - web, webShare: appts ? web / appts : null,
       byDay: merge('byDay', ['revenue', 'appts']),
       byService: merge('byService', ['count', 'revenue']),

@@ -25,7 +25,6 @@ Es una **demo que funciona 100 % en el navegador**: HTML, CSS y JavaScript sin f
 
 **CRM de la barbería** (`crm.html`)
 - Panel principal, citas, cola walk-in, barberos y portafolio, servicios (agregar, editar, eliminar), ventas, clientes, reportes, usuarios, historial y configuración.
-- Asesoría de imagen con IA (simulada) para el barbero.
 
 **Roles y permisos**
 - **Superadministrador:** acceso total; crea barberías y usuarios.
@@ -112,7 +111,6 @@ La demo trae 90 días de historial de ejemplo. Se borra desde **Reservalope → 
 - **Los datos viven en el navegador.** No se comparten entre computadoras ni celulares, y se pierden si se borra el historial del navegador.
 - **El login no es una barrera de seguridad real**: quien tenga acceso al equipo puede modificar los datos con las herramientas del navegador.
 - El espacio del navegador es limitado (~5 MB); muchas fotos grandes pueden llenarlo.
-- La asesoría con IA es una simulación.
 
 **Para producción** se reemplazan `js/data/db.js` y `js/core/auth.js` por un backend real (por ejemplo, Supabase o una API propia) con base de datos y autenticación en el servidor. La interfaz, los roles y las reglas ya están separados para que ese cambio sea acotado.
 

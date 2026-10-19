@@ -34,9 +34,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     Guard.install();
     AdminUI.init();
     WhatsAppBot.init();
-    if (Auth.can('ai.use') && typeof AIAdvisor !== 'undefined' && document.getElementById('crm-pane-ai-advisor')) {
-      AIAdvisor.init();
-    }
     // Si otra persona o la web cambia algo, se repinta con los datos nuevos
     DB.onReload = () => {
       TenantBrand.applyCrm(DB.tenant);

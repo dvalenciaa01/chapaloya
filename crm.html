@@ -48,7 +48,6 @@
         </div>
         <span class="crm-date" id="crm-current-date-label"></span>
         <a class="staff-link" id="crm-public-link" href="index.html" target="_blank" rel="noopener"><i data-icon="external"></i><span>Ver sitio público</span></a>
-        <button type="button" class="btn-golden btn-xs header-ai-btn" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i><span>Asesoría IA</span></button>
 
         <div class="user-menu">
           <button type="button" class="user-chip" id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown" onclick="AdminUI.toggleUserMenu()">
@@ -84,10 +83,6 @@
             <span class="crm-nav-group">General</span>
             <button type="button" class="crm-nav-btn active" data-crm="dashboard" onclick="CRM.switchTab('dashboard')">
               <span class="crm-nav-label"><i data-icon="dashboard"></i>Panel principal</span>
-            </button>
-            <button type="button" class="crm-nav-btn ai-special-btn" data-crm="ai-advisor" onclick="CRM.switchTab('ai-advisor')">
-              <span class="crm-nav-label"><i data-icon="sparkles"></i>Asesoría imagen + IA</span>
-              <span class="crm-nav-new">Nuevo</span>
             </button>
 
             <span class="crm-nav-group">Operación</span>
@@ -142,247 +137,6 @@
 
       <main class="crm-main" id="crm-main" tabindex="-1">
 
-        <!-- ================= ASESORÍA IA ================= -->
-        <div id="crm-pane-ai-advisor" class="crm-pane">
-          <div class="crm-topbar">
-            <div>
-              <span class="eyebrow-golden">Estación del barbero · Visagismo</span>
-              <h1 class="crm-title">Asesoría de imagen + IA</h1>
-              <p class="crm-lead">Haz el cuestionario al cliente, sube las fotos de su rostro y genera 4 propuestas de corte + barba adaptadas a sus facciones.</p>
-            </div>
-            <div class="crm-topbar-actions">
-              <button type="button" class="btn-dark" onclick="AIAdvisor.loadSampleSession()"><i data-icon="zap"></i>Cargar cliente de prueba</button>
-              <button type="button" class="btn-golden" onclick="AIAdvisor.generate4Proposals()"><i data-icon="sparkles"></i>Generar 4 propuestas</button>
-            </div>
-          </div>
-
-          <ol class="ai-stepper-bar">
-            <li class="ai-step-pill active">
-              <div class="ai-step-num">1</div>
-              <div>
-                <div class="ai-step-title">Cuestionario al cliente</div>
-                <span class="ai-step-sub">Estilo, largo deseado, cabello y barba</span>
-              </div>
-            </li>
-            <li class="ai-step-pill active">
-              <div class="ai-step-num">2</div>
-              <div>
-                <div class="ai-step-title">Fotos multiángulo</div>
-                <span class="ai-step-sub">Subida ilimitada + malla de facciones</span>
-              </div>
-            </li>
-            <li class="ai-step-pill active">
-              <div class="ai-step-num">3</div>
-              <div>
-                <div class="ai-step-title">4 propuestas IA</div>
-                <span class="ai-step-sub">Corte + barba con receta técnica</span>
-              </div>
-            </li>
-          </ol>
-
-          <div class="crm-section-card is-accent">
-            <div class="ai-client-grid">
-              <div>
-                <label class="field-lbl" for="ai-active-barber">Barbero que atiende <span class="req">*</span></label>
-                <select id="ai-active-barber" class="input-dark"></select>
-              </div>
-              <div>
-                <label class="field-lbl" for="ai-select-existing-client">Cliente de citas / cola</label>
-                <select id="ai-select-existing-client" class="input-dark" onchange="AIAdvisor.onSelectExistingClient(this.value)"></select>
-              </div>
-              <div>
-                <label class="field-lbl" for="ai-client-name">Cliente en sillón <span class="req">*</span></label>
-                <input type="text" id="ai-client-name" class="input-dark" value="Sebastián Alvarado" placeholder="Nombre del cliente" />
-              </div>
-              <div>
-                <label class="field-lbl" for="ai-client-phone">WhatsApp del cliente</label>
-                <input type="tel" id="ai-client-phone" class="input-dark" value="987654321" maxlength="9" inputmode="numeric" />
-              </div>
-            </div>
-          </div>
-
-          <div class="crm-split-2">
-            <div class="crm-section-card">
-              <div class="card-head">
-                <div>
-                  <span class="card-kicker">Paso 01 · Diagnóstico previo</span>
-                  <h3>Cuestionario de estilo</h3>
-                </div>
-                <span class="st-badge st-EN_SILLON">10 preguntas</span>
-              </div>
-
-              <div class="q-grid">
-                <div>
-                  <label class="field-lbl" for="q-style-vibe">1. Imagen que desea proyectar</label>
-                  <select id="q-style-vibe" class="input-dark">
-                    <option value="URBANO_MODERNO">Urbano / Moderno y en tendencia</option>
-                    <option value="EJECUTIVO">Ejecutivo / Corporativo y formal</option>
-                    <option value="CLASICO_SARTORIAL">Clásico sartorial / Elegante</option>
-                    <option value="VANGUARDISTA">Vanguardista / Atrevido (textura fuerte)</option>
-                    <option value="DEPORTIVO">Deportivo / Práctico y fresco</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-top-length">2. Largo deseado arriba</label>
-                  <select id="q-top-length" class="input-dark">
-                    <option value="MEDIO_PEINABLE">Medio peinable (4 a 6 cm, con movimiento)</option>
-                    <option value="CORTO_TEXTURIZADO">Corto texturizado (2 a 3 cm, crop / César)</option>
-                    <option value="MANTENER_LARGO">Mantener largo actual (solo limpiar puntas)</option>
-                    <option value="MUY_CORTO_BUZZ">Muy corto / Buzz cut (0.5 a 1.5 cm)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-side-fade">3. Degradado en laterales y nuca</label>
-                  <select id="q-side-fade" class="input-dark">
-                    <option value="MID_FADE">Mid fade (altura media equilibrada)</option>
-                    <option value="SKIN_FADE">Skin fade / Navaja (al ras 0.0)</option>
-                    <option value="LOW_FADE">Low fade (bajo, sutil y oscuro)</option>
-                    <option value="TAPER_FADE">Taper fade (solo patillas y nuca)</option>
-                    <option value="TIJERA_CLASICO">Clásico a tijera (sin máquina al ras)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-face-shape">4. Forma del rostro</label>
-                  <select id="q-face-shape" class="input-dark">
-                    <option value="OVALADO">Ovalado (equilibrado)</option>
-                    <option value="REDONDO">Redondo (requiere alargar verticalmente)</option>
-                    <option value="CUADRADO">Cuadrado (mandíbula angulosa fuerte)</option>
-                    <option value="DIAMANTE">Diamante (pómulos marcados)</option>
-                    <option value="ALARGADO">Alargado / Rectangular</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-hair-type">5. Tipo y textura de cabello</label>
-                  <select id="q-hair-type" class="input-dark">
-                    <option value="ONDULADO">Ondulado con volumen medio</option>
-                    <option value="LISO_GRUESO">Liso grueso (tiende a pararse en los lados)</option>
-                    <option value="LISO_FINO">Liso fino (necesita volumen y densidad)</option>
-                    <option value="RIZADO">Rizado / Crespo con textura</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-hair-issues">6. Zonas a disimular</label>
-                  <select id="q-hair-issues" class="input-dark">
-                    <option value="NINGUNA">Ninguna en especial</option>
-                    <option value="ENTRADAS">Entradas pronunciadas (cubrir con flequillo/textura)</option>
-                    <option value="FRENTE_AMPLIA">Frente amplia</option>
-                    <option value="REMOLINO">Remolino fuerte en la coronilla</option>
-                    <option value="POCA_DENSIDAD">Poca densidad en la zona superior</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-beard-style">7. Diseño y tamaño de barba</label>
-                  <select id="q-beard-style" class="input-dark">
-                    <option value="BARBA_MEDIA_CONECTADA">Barba media corporativa conectada al fade</option>
-                    <option value="BARBA_3_DIAS">Barba corta / Sombra de 3 días perfilada</option>
-                    <option value="BARBA_LARGA_ESCULPIDA">Barba larga / Esculpida en V</option>
-                    <option value="CANDADO_BIGOTE">Candado / Bigote + perilla marcada</option>
-                    <option value="SIN_BARBA">Sin barba / Afeitado completo al ras</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-beard-density">8. Densidad del vello facial</label>
-                  <select id="q-beard-density" class="input-dark">
-                    <option value="COMPLETA">Tupida y uniforme en mejillas y mentón</option>
-                    <option value="MEDIA_CLAROS">Media (ligeros claros en mejillas)</option>
-                    <option value="SOLO_MENTON">Concentrada en bigote y mentón</option>
-                    <option value="NULA">Sin barba</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-maintenance">9. Tiempo diario para peinarse</label>
-                  <select id="q-maintenance" class="input-dark">
-                    <option value="MEDIO_3_MIN">3 a 5 minutos (cera o polvo texturizador)</option>
-                    <option value="BAJO_1_MIN">Menos de 1 minuto (peinar con los dedos)</option>
-                    <option value="ALTO_SECADORA">5 a 10 minutos (secadora, cepillo y fijador)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="field-lbl" for="q-finish">10. Acabado visual preferido</label>
-                  <select id="q-finish" class="input-dark">
-                    <option value="MATE_NATURAL">Mate natural (sin brillo, efecto seco)</option>
-                    <option value="SEMIMATE">Semimate (definición limpia, brillo sutil)</option>
-                    <option value="BRILLO_CLASICO">Brillo clásico (efecto pomada / húmedo)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style="margin-top:16px;">
-                <label class="field-lbl" for="q-custom-notes">Observaciones del cliente <span class="text-grey" style="font-weight:400;">(opcional)</span></label>
-                <input type="text" id="q-custom-notes" class="input-dark" placeholder="Ej. Tiene un evento el sábado, quiere que la barba afine la mandíbula" />
-              </div>
-            </div>
-
-            <div class="crm-section-card">
-              <div class="card-head">
-                <div>
-                  <span class="card-kicker">Paso 02 · Captura biométrica</span>
-                  <h3>Fotos del cliente (<span id="ai-photo-counter">0</span>)</h3>
-                </div>
-                <button type="button" class="btn-dark btn-xs" onclick="AIAdvisor.clearPhotos()"><i data-icon="trash"></i>Limpiar</button>
-              </div>
-
-              <p class="card-text">Sube todas las fotos necesarias: <strong>frontal, perfil derecho, perfil izquierdo y coronilla</strong>. Puedes elegir varias imágenes a la vez desde el celular o la computadora.</p>
-
-              <div class="ai-upload-row">
-                <div>
-                  <label class="field-lbl" for="ai-upload-angle-tag">Ángulo de la foto</label>
-                  <select id="ai-upload-angle-tag" class="input-dark">
-                    <option value="Rostro Frontal + Barba">1. Rostro frontal + barba</option>
-                    <option value="Perfil Lateral Derecho">2. Perfil lateral derecho</option>
-                    <option value="Perfil Lateral Izquierdo">3. Perfil lateral izquierdo</option>
-                    <option value="Zona Superior / Remolino">4. Zona superior / coronilla</option>
-                    <option value="Ángulo Adicional">5. Ángulo adicional</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="upload-dropzone" role="button" tabindex="0" onclick="document.getElementById('ai-client-files-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
-                    <i data-icon="camera" class="text-golden"></i>
-                    <span class="upload-txt">Subir foto(s): cámara o archivo</span>
-                    <input type="file" id="ai-client-files-input" accept="image/*" multiple style="display:none;" onchange="AIAdvisor.handleUploadFiles(event)" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="ai-photos-upload-grid" id="ai-client-photos-grid"></div>
-
-              <div class="card-foot">
-                <button type="button" class="btn-golden btn-lg btn-block" onclick="AIAdvisor.generate4Proposals()">
-                  <i data-icon="sparkles"></i>Analizar facciones y generar 4 cortes
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="crm-section-card is-accent" id="ai-results-container">
-            <div class="card-head" style="flex-wrap:wrap;">
-              <div>
-                <span class="card-kicker">Paso 03 · Motor de visagismo Golden IA</span>
-                <h2 class="ai-results-title" id="ai-results-headline">4 propuestas de corte y barba según sus facciones</h2>
-              </div>
-              <span class="st-badge st-CONFIRMADA_WSP" id="ai-analysis-summary-badge">Listo para revisar con el cliente</span>
-            </div>
-
-            <div id="ai-biometric-diagnosis-banner" class="ai-diagnosis-banner"></div>
-
-            <div class="ai-proposals-4-grid" id="ai-4-proposals-grid"></div>
-          </div>
-
-          <div class="crm-section-card">
-            <div class="card-head"><h3>Historial de asesorías realizadas</h3></div>
-            <div id="ai-saved-history-list"></div>
-          </div>
-        </div>
-
         <!-- ================= PANEL PRINCIPAL ================= -->
         <div id="crm-pane-dashboard" class="crm-pane active-pane">
           <div class="crm-topbar">
@@ -393,7 +147,6 @@
             <div class="crm-topbar-actions">
               <button type="button" class="btn-dark" onclick="CRM.openWalkInModal()"><i data-icon="plus"></i>Walk-in</button>
               <button type="button" class="btn-dark" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Cita</button>
-              <button type="button" class="btn-golden" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i>Nueva asesoría IA</button>
             </div>
           </div>
 
@@ -406,7 +159,6 @@
               <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
             </div>
             <div class="quick-actions">
-              <button type="button" class="quick-action" onclick="CRM.switchTab('ai-advisor')"><i data-icon="sparkles"></i><span>Abrir asesoría IA</span></button>
               <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span>Barberos y portafolio</span></button>
               <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span>Agregar cita</span></button>
               <button type="button" class="quick-action" onclick="CRM.openWalkInModal()"><i data-icon="hourglass"></i><span>Agregar walk-in</span></button>
@@ -464,7 +216,7 @@
             <div>
               <span class="eyebrow-golden">Agenda</span>
               <h1 class="crm-title">Citas</h1>
-              <p class="crm-lead">Gestiona la agenda e inicia la asesoría IA directamente desde cada cita.</p>
+              <p class="crm-lead">Gestiona la agenda: crea, confirma, reprograma o cancela citas.</p>
             </div>
             <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Agregar cita</button>
           </div>
@@ -563,7 +315,7 @@
           <div class="search-bar">
             <i data-icon="search"></i>
             <label for="cust-search-q" class="sr-only">Buscar cliente</label>
-            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre, teléfono o diagnóstico IA…" oninput="CRM.renderCustomers()" />
+            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre o teléfono…" oninput="CRM.renderCustomers()" />
           </div>
           <div class="cards-grid-3" id="crm-customers-grid"></div>
         </div>
@@ -624,7 +376,7 @@
             </div>
             <div class="crm-section-card">
               <div class="card-head"><h3>Respaldo</h3></div>
-              <p class="card-text">Descarga una copia de los datos de esta barbería (barberos, servicios, citas, clientes y asesorías).</p>
+              <p class="card-text">Descarga una copia de los datos de esta barbería (barberos, servicios, citas y clientes).</p>
               <div class="btn-row">
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
@@ -697,7 +449,7 @@
           <div class="role-legend" data-role="SUPERADMIN,ADMIN">
             <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-super">Superadministrador</span><p>Acceso total: todas las barberías, usuarios y permisos.</p></div>
             <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-admin">Administrador</span><p>Su barbería: citas, walk-in, servicios, barberos, personal y los módulos que le otorgues.</p></div>
-            <div class="role-legend-item"><span class="role-badge role-staff">Personal</span><p>Panel, citas y walk-in (ver, crear y avanzar) y Asesoría IA. Si está vinculado a un barbero, solo ve sus citas.</p></div>
+            <div class="role-legend-item"><span class="role-badge role-staff">Personal</span><p>Panel, citas y walk-in (ver, crear y avanzar). Si está vinculado a un barbero, solo ve sus citas.</p></div>
           </div>
 
           <div class="crm-section-card">
@@ -762,7 +514,7 @@
         <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
         <div>
           <strong>Golden Barbería</strong>
-          <span>Confirmaciones y reportes de asesoría IA</span>
+          <span>Confirmaciones y recordatorios de citas</span>
         </div>
       </div>
       <button type="button" class="wsp-close-btn" onclick="WhatsAppBot.toggle()" aria-label="Cerrar chat"><i data-icon="x"></i></button>
@@ -787,7 +539,6 @@
   <script src="js/core/reports.js"></script>
   <script src="js/core/report-export.js"></script>
   <script src="js/components/report-builder.js"></script>
-  <script src="js/pages/ai-advisor.js"></script>
   <script src="js/pages/crm.js"></script>
   <script src="js/pages/admin.js"></script>
   <script src="js/core/guard.js"></script>

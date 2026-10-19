@@ -1,5 +1,5 @@
 /* ==========================================================================
-   CRM + Estación IA del barbero
+   CRM
    ========================================================================== */
 body[data-page="crm"] { background: var(--ink-900); }
 
@@ -132,11 +132,6 @@ aside.crm-sidebar {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.crm-nav-btn.ai-special-btn { border-color: var(--yellow-line); color: var(--white); }
-.crm-nav-btn.ai-special-btn .ic { color: var(--yellow); opacity: 1; }
-.crm-nav-btn.ai-special-btn.active { border-color: var(--yellow); }
-.crm-nav-btn.ai-special-btn.active .ic { color: var(--black); }
-.crm-nav-btn.ai-special-btn.active .crm-nav-new { background: var(--black); color: var(--yellow); }
 
 .crm-sidebar-footer {
   border-top: 1px solid var(--line-dark);
@@ -338,155 +333,6 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
 
 .appt-filters-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr auto; gap: var(--space-3); align-items: end; }
 
-/* --- Asesoría IA ------------------------------------------------------------ */
-.ai-stepper-bar { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-5); counter-reset: none; }
-.ai-step-pill {
-  background-color: var(--ink-850);
-  border: 1px solid var(--line-dark);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-.ai-step-pill.active { border-color: var(--yellow-line); }
-.ai-step-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: var(--yellow);
-  color: var(--black);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.ai-step-title { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.1; }
-.ai-step-sub { font-size: var(--fs-xs); color: var(--on-dark-lo); }
-
-.ai-client-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); align-items: end; }
-.q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-.ai-upload-row { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--space-3); align-items: end; margin-bottom: var(--space-3); }
-.ai-upload-row .upload-dropzone { min-height: 48px; padding: 0 var(--space-3); }
-.upload-txt { font-weight: 600; font-size: var(--fs-sm); color: var(--white); }
-
-.ai-photos-upload-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
-.ai-client-photo-slot { background-color: var(--black); border: 1px solid var(--yellow-line); border-radius: var(--radius); position: relative; aspect-ratio: 4 / 5; height: auto; overflow: hidden; }
-.ai-client-photo-slot img { width: 100%; height: 100%; object-fit: cover; }
-.biometric-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(to bottom, transparent 32%, rgba(215, 152, 72, 0.4) 33%, transparent 34%, transparent 65%, rgba(215, 152, 72, 0.4) 66%, transparent 67%),
-    linear-gradient(to right, transparent 49.5%, rgba(215, 152, 72, 0.4) 50%, transparent 50.5%);
-  border: 1px dashed rgba(215, 152, 72, 0.7);
-  border-radius: 44% 44% 40% 40%;
-  margin: 16px;
-}
-.ai-photo-angle-tag {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.85);
-  color: var(--white);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 6px 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 6px;
-}
-.ai-photo-angle-tag .ic { color: var(--yellow); width: 13px; height: 13px; }
-
-.ai-results-title { font-size: clamp(1.5rem, 2.4vw, 2rem); }
-.ai-diagnosis-banner {
-  background: var(--black);
-  border: 1px solid var(--line-dark);
-  border-left: 3px solid var(--yellow);
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  font-size: var(--fs-sm);
-  line-height: 1.7;
-  color: var(--on-dark-md);
-}
-.ai-diagnosis-banner:empty { display: none; }
-
-.ai-proposals-4-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-5); }
-.ai-proposal-card {
-  background-color: var(--ink-800);
-  border: 1px solid var(--line-dark-strong);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-  transition: transform var(--dur) var(--ease-out), border-color var(--dur) ease, box-shadow var(--dur) ease;
-}
-.ai-proposal-card:hover { transform: translateY(-3px); border-color: var(--yellow-line); box-shadow: var(--shadow-md); }
-.ai-proposal-card.selected-winner { border: 2px solid var(--yellow); box-shadow: 0 0 0 4px rgba(215, 152, 72, 0.15); }
-.ai-proposal-visual-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 220px;
-  background-color: var(--black);
-  border-bottom: 1px solid var(--line-dark);
-  position: relative;
-}
-.ai-visual-pane { position: relative; overflow: hidden; border-right: 1px solid var(--line-dark); }
-.ai-visual-pane img { width: 100%; height: 100%; object-fit: cover; }
-.ai-visual-tag {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(0, 0, 0, 0.82);
-  border-radius: var(--radius-pill);
-  color: var(--white);
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  z-index: 2;
-}
-.ai-visual-tag .ic { width: 12px; height: 12px; color: var(--yellow); }
-.ai-match-badge {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background-color: var(--yellow);
-  color: var(--black);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  z-index: 3;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
-.ai-proposal-body { padding: var(--space-5); }
-.ai-proposal-body h3 { color: var(--white) !important; font-size: 1.35rem !important; }
-.ai-tech-box {
-  background-color: var(--black);
-  border-radius: var(--radius);
-  border-left: 3px solid var(--yellow);
-  padding: var(--space-3) var(--space-4);
-  margin: var(--space-3) 0;
-  font-size: var(--fs-sm);
-  line-height: 1.6;
-  color: var(--on-dark-md);
-}
-.ai-tech-box strong { color: var(--white); display: inline-flex; align-items: center; gap: 6px; }
-.ai-tech-box .ic { color: var(--yellow); width: 15px; height: 15px; }
-
 /* --- Responsive ------------------------------------------------------------ */
 @media (max-width: 1180px) {
   .crm-kpi-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -494,7 +340,7 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
   .quick-actions { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 1080px) {
-  .crm-split-2, .ai-proposals-4-grid { grid-template-columns: minmax(0, 1fr); }
+  .crm-split-2 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 980px) {
   .crm-shell { grid-template-columns: minmax(0, 1fr); }
@@ -512,15 +358,13 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
   .crm-nav-list::-webkit-scrollbar { display: none; }
   .crm-nav-btn { width: auto; white-space: nowrap; flex-shrink: 0; }
   .crm-main { padding: var(--space-5) var(--space-4) var(--space-9); }
-  .ai-stepper-bar { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .crm-kpi-grid-4, .crm-kpi-grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .crm-kpi-val { font-size: 1.9rem; }
-  .q-grid, .ai-upload-row, .form-grid-2, .appt-filters-grid { grid-template-columns: minmax(0, 1fr); }
+  .form-grid-2, .appt-filters-grid { grid-template-columns: minmax(0, 1fr); }
   .crm-topbar-actions { width: 100%; }
   .crm-topbar-actions .btn-golden, .crm-topbar-actions .btn-dark { flex: 1 1 auto; }
-  .ai-proposal-visual-header { height: 180px; }
   .crm-section-card { padding: var(--space-4); }
 }
 
@@ -600,12 +444,6 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
   .quick-action { min-height: 84px; }
   .barber-live-grid { grid-template-columns: 1fr; }
   .danger-zone .btn-danger, .btn-row > * { width: 100%; }
-  .ai-diagnosis-banner > div { flex-direction: column; }
-  .ai-diagnosis-banner > div > div[style*="text-align:right"] { text-align: left !important; }
-  .ai-photos-upload-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ai-proposal-body { padding: var(--space-4); }
-  .ai-proposal-card > div[style*="padding: 0 20px 20px"] { padding: 0 var(--space-4) var(--space-4) !important; }
-  .ai-photo-angle-tag { font-size: 0.66rem; }
   .crm-kpi-card { padding: var(--space-4); }
   .crm-kpi-card::before { left: var(--space-4); }
 }
@@ -710,7 +548,6 @@ body[data-page="crm"]:not(.auth-ok) .crm-header .header-actions { visibility: hi
   .user-meta, .user-chevron { display: none; }
   .user-chip { padding: 4px; }
   .tenant-switch select.input-dark { max-width: 130px; }
-  .header-ai-btn { display: none; }
 }
 @media (max-width: 420px) {
   .tenant-switch select.input-dark { max-width: 96px; padding-left: 10px; }
