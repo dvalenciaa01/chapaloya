@@ -287,7 +287,7 @@
             </section>
             <section class="crm-section-card">
               <div class="card-head"><h3>Respaldo completo</h3></div>
-              <p class="card-text">Descarga todas las barberías, usuarios (sin contraseñas legibles), datos e historial en un archivo JSON.</p>
+              <p class="card-text">Descarga todas las barberías, usuarios (sin contraseñas), datos e historial en un archivo JSON.</p>
               <button type="button" class="btn-golden" onclick="Reservalope.exportBackup()"><i data-icon="download"></i>Exportar respaldo</button>
             </section>
             <section class="crm-section-card">
@@ -296,10 +296,7 @@
               <div class="btn-row">
                 <button type="button" class="btn-dark" id="rl-demo-clear" onclick="Reservalope.clearDemo()"><i data-icon="trash"></i>Borrar datos de demostración</button>
               </div>
-              <div class="danger-zone">
-                <div><strong>Restablecer todo</strong><span>Borra barberías, usuarios, datos e historial de este navegador.</span></div>
-                <button type="button" class="btn-danger" onclick="Reservalope.factoryReset()"><i data-icon="trash"></i>Restablecer</button>
-              </div>
+
             </section>
           </div>
         </div>
@@ -314,8 +311,9 @@
 
   <script src="js/utils/icons.js"></script>
   <script src="js/utils/image-compressor.js"></script>
+  <script src="js/vendor/supabase.min.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
-  <script src="js/data/demo-seed.js"></script>
   <script src="js/core/auth.js"></script>
   <script src="js/core/ui.js"></script>
   <script src="js/core/tenant-brand.js"></script>

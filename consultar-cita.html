@@ -50,7 +50,7 @@
         <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Mi cita</span></nav>
         <span class="eyebrow-golden">Consulta rápida</span>
         <h1>Consulta tu cita</h1>
-        <p>Verifica la fecha, hora y estado de tu reserva con tu número de celular o tu nombre.</p>
+        <p>Verifica la fecha, hora y estado de tu reserva con tu celular y tu código de reserva.</p>
       </div>
     </section>
 
@@ -58,11 +58,15 @@
         <div class="container lookup-container">
           <div class="lookup-card surface-light">
             <h2 class="lookup-title">Buscar mi reserva</h2>
-            <p>Usa el mismo celular o nombre con el que reservaste.</p>
+            <p>Usa el celular con el que reservaste y el código que te mostramos al confirmar la reserva.</p>
             <form class="lookup-form" onsubmit="PublicBooking.lookup(event)" role="search">
               <div class="field">
-                <label class="field-lbl" for="pub-query-input">Celular o nombre</label>
-                <input type="search" id="pub-query-input" class="input-dark" placeholder="Ej. 987654321 o Sebastián" autocomplete="off" />
+                <label class="field-lbl" for="pub-query-phone">Celular</label>
+                <input type="tel" id="pub-query-phone" class="input-dark" placeholder="Ej. 987654321" maxlength="9" inputmode="numeric" autocomplete="tel-national" />
+              </div>
+              <div class="field">
+                <label class="field-lbl" for="pub-query-code">Código de reserva</label>
+                <input type="text" id="pub-query-code" class="input-dark" placeholder="Ej. K7Q2MP" maxlength="8" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;" />
               </div>
               <button type="submit" class="btn-black"><i data-icon="search"></i>Buscar</button>
             </form>
@@ -142,8 +146,9 @@
   </div>
 
   <script src="js/utils/icons.js"></script>
+  <script src="js/vendor/supabase.min.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
-  <script src="js/data/demo-seed.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>

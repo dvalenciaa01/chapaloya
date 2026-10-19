@@ -13,14 +13,22 @@ const Reservalope = {
   to: null,
   detailId: null,
 
-  init() {
-    const user = Auth.requireSession();
-    if (!user) return;
-    if (user.role !== 'SUPERADMIN') { window.location.replace('crm.html'); return; }
-    Auth.seedIfNeeded();
-    DB.load();
-    DB.tenant = null;
-    DB.state = null;
+  async init() {
+    let user;
+    try {
+      user = await Auth.requireSession();
+      if (!user) return;
+      if (user.role !== 'SUPERADMIN') { window.location.replace('crm.html'); return; }
+      await DB.initConsole();
+    } catch (e) {
+      console.error(e);
+      const main = document.getElementById('rl-main') || document.body;
+      main.innerHTML = '<div class="empty-state" style="margin:40px auto;max-width:520px;"><strong>No pudimos cargar la información</strong>' +
+        UI.esc(DB.errorText(e)) + '<p><button type="button" class="btn-golden" onclick="location.reload()">Reintentar</button></p></div>';
+      document.body.classList.add('auth-ok');
+      return;
+    }
+    DB.onReload = () => { AdminUI.renderHeader(); this.refresh(); };
     TenantBrand.applyPalette(this.PALETTE);
 
     AdminUI.init();
@@ -489,6 +497,13 @@ const Reservalope = {
 
   /* ---------------- Plataforma ---------------- */
   renderPlatform() {
+    if (!DB.usage) {
+      DB.client().rpc('plataforma_uso').then(({ data, error }) => {
+        if (error) return UI.toast(DB.errorText(error), 'error');
+        DB.usage = data;
+        if (this.pane === 'platform') this.renderPlatform();
+      });
+    }
     const st = Analytics.storage();
     const root = DB.load();
     const pct = Math.min(100, st.pct * 100);
@@ -497,7 +512,7 @@ const Reservalope = {
     document.getElementById('rl-storage').innerHTML =
       '<div class="rl-storage-top"><strong>' + pct.toFixed(1) + '%</strong><span>' + Math.round(st.used / 1024).toLocaleString('es-PE') + ' KB de ~' + Math.round(st.limit / 1024).toLocaleString('es-PE') + ' KB</span></div>' +
       '<div class="meter is-lg ' + lvl + '" role="img" aria-label="Almacenamiento usado ' + pct.toFixed(0) + '%"><span style="width:' + pct + '%;"></span></div>' +
-      '<p class="card-text" style="margin-top:12px;">Las fotos subidas (logos, barberos, portafolio) son lo que más espacio ocupa.</p>' +
+      '<p class="card-text" style="margin-top:12px;">Base de datos de Supabase (plan gratis: 500 MB). Las fotos se guardan aparte, en Storage. Abajo, el volumen de datos de cada barbería.</p>' +
       Charts.hbars(sizes.map(x => ({ label: x.t.name, value: x.size, display: Math.round(x.size / 1024) + ' KB' })));
 
     document.getElementById('rl-policy').innerHTML = [
@@ -524,6 +539,7 @@ const Reservalope = {
   },
 
   clearDemo() {
+    if (typeof DemoSeed === 'undefined') return UI.toast('En producción no hay datos de demostración que borrar.');
     UI.confirm({
       title: 'Borrar datos de demostración',
       message: 'Se eliminarán las citas, walk-in, asesorías y clientes de ejemplo, y la barbería de ejemplo con sus usuarios. Tus datos reales se conservan.',
@@ -549,16 +565,9 @@ const Reservalope = {
     DB.log('Exportó un respaldo completo', root.tenants.length + ' barberías · ' + root.users.length + ' usuarios', { tenantId: null });
   },
 
+  // En producción no existe "borrar todo": los datos viven en Supabase y tienen respaldo.
   factoryReset() {
-    UI.confirm({
-      title: 'Restablecer todo el sistema',
-      message: 'Se borrarán TODAS las barberías, usuarios, citas e historial de este navegador y se volverá a la configuración inicial. No se puede deshacer.',
-      confirmText: 'Borrar todo', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      try { localStorage.removeItem(DB.KEY); localStorage.removeItem(DB.LEGACY_KEY); localStorage.removeItem(Auth.SESSION_KEY); } catch (e) {}
-      window.location.replace('login.html?msg=' + encodeURIComponent('Sistema restablecido. Ingresa con las cuentas iniciales.'));
-    });
+    UI.toast('No disponible en producción. Para empezar de cero se usa un proyecto nuevo de Supabase.', 'error');
   },
 
   /* ---------------- CSV comparativo ---------------- */

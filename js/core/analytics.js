@@ -159,10 +159,11 @@ const Analytics = {
     };
   },
 
+  // Uso de la base de datos de Supabase (lo trae Reservalope con plataforma_uso)
   storage() {
-    let used = 0;
-    try { used = (localStorage.getItem(DB.KEY) || '').length; } catch (e) { used = 0; }
-    const limit = 5000000; // ~5 millones de caracteres en la mayoría de navegadores
+    const u = DB.usage || {};
+    const used = Number(u.db_bytes) || 0;
+    const limit = Number(u.limit_bytes) || 500 * 1024 * 1024;
     return { used, limit, pct: used / limit };
   },
 

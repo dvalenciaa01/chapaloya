@@ -50,7 +50,7 @@
         <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
         <span class="eyebrow-golden">Reserva online</span>
         <h1>Reserva tu cita</h1>
-        <p>Completa tus datos, elige servicio, barbero y horario. La confirmación te llega por WhatsApp.</p>
+        <p>Completa tus datos, elige servicio, barbero y horario. Si lo aceptas, la confirmación te llega por WhatsApp.</p>
       </div>
     </section>
 
@@ -109,8 +109,13 @@
                 </div>
               </fieldset>
 
+              <label class="check-line" style="display:flex; gap:10px; align-items:flex-start; margin:4px 0 16px;">
+                <input type="checkbox" id="pb-wa" style="margin-top:3px; width:18px; height:18px;" />
+                <span>Acepto recibir la confirmación y los recordatorios de mi cita por WhatsApp.</span>
+              </label>
+              <div id="pb-captcha" style="margin-bottom:14px;"></div>
               <button type="submit" class="btn-black booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
-              <p class="form-legal">Al confirmar, recibirás un mensaje de WhatsApp para validar tu asistencia.</p>
+              <p class="form-legal">Al confirmar te mostraremos tu código de reserva. Guárdalo para consultar tu cita.</p>
             </form>
 
             <aside class="booking-summary-card" aria-label="Resumen de tu cita">
@@ -126,7 +131,7 @@
                 </div>
               </div>
               <ul class="booking-perks">
-                <li><i data-icon="message"></i>Confirmación inmediata por WhatsApp</li>
+                <li><i data-icon="message"></i>Confirmación por WhatsApp, si la aceptas</li>
                 <li><i data-icon="clock"></i>Solo te mostramos horarios realmente libres</li>
               </ul>
             </aside>
@@ -199,8 +204,9 @@
   </div>
 
   <script src="js/utils/icons.js"></script>
+  <script src="js/vendor/supabase.min.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
-  <script src="js/data/demo-seed.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>

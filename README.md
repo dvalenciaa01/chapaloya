@@ -73,17 +73,11 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 | Web de Navaja Norte (demo) | `index.html?b=navaja-norte` |
 | Ingreso al CRM / Reservalope | `login.html` |
 
-### Cuentas de demostración
+### Cuentas
 
-| Rol | Correo | Contraseña inicial |
-|---|---|---|
-| Superadministrador | superadmin@demo.pe | Super2026 |
-| Administrador · Golden | admin@golden.pe | Admin2026 |
-| Personal · Golden | carlos@golden.pe | Staff2026 |
-| Administrador · Navaja Norte | admin@navajanorte.pe | Admin2026 |
-| Personal · Navaja Norte | luis@navajanorte.pe | Staff2026 |
+Las contraseñas de las cuentas de demostración ya no se publican en este repositorio. Pídelas al responsable del proyecto.
 
-Cada cuenta pide cambiar la contraseña en el primer ingreso. Las cuentas se crean **en el navegador de cada visitante**, así que nadie puede ver ni cambiar los datos de otra persona.
+En producción las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel de Supabase y él crea a los administradores y al personal (ver [supabase/README.md](supabase/README.md)).
 
 La demo trae 90 días de historial de ejemplo. Se borra desde **Reservalope → Plataforma → Borrar datos demo**.
 

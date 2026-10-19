@@ -1,20 +1,14 @@
 # Accesos, roles y barberías (versión demo)
 
 ## Cuentas iniciales
-Se crean la primera vez que se abre `login.html`. Cada cuenta **debe cambiar su contraseña** en el primer ingreso.
+En la demo se crean la primera vez que se abre `login.html`: un superadministrador, un administrador y un barbero por barbería. Cada cuenta **debe cambiar su contraseña** en el primer ingreso. Las contraseñas iniciales ya no se publican aquí; pídelas al responsable del proyecto.
 
-| Rol | Correo | Contraseña inicial |
-|---|---|---|
-| Superadministrador | superadmin@demo.pe | Super2026 |
-| Administrador (Golden) | admin@golden.pe | Admin2026 |
-| Personal (Golden, barbero Carlos) | carlos@golden.pe | Staff2026 |
-| Administrador (Navaja Norte, demo) | admin@navajanorte.pe | Admin2026 |
-| Personal (Navaja Norte, barbero Luis, demo) | luis@navajanorte.pe | Staff2026 |
+En producción las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.md)).
 
 - El **superadministrador** entra a **Reservalope** (`reservalope.html`), su consola propia. Desde ahí puede abrir el CRM de cualquier barbería y volver con el botón "Reservalope".
 - Administradores y personal entran directo al CRM de su barbería (`crm.html`).
 
-> Cambia estas contraseñas antes de mostrar el sistema a terceros.
+> Cambia las contraseñas iniciales antes de mostrar el sistema a terceros.
 
 ## Qué puede hacer cada rol
 

@@ -727,40 +727,13 @@ const CRM = {
     a.click();
   },
 
-  /* Solo superadmin: reemplaza los datos de la barbería ACTIVA por los de demostración */
+  /* En producción no existen "cargar datos demo" ni "borrar todo": los datos viven en Supabase. */
   reloadDemoData() {
-    UI.confirm({
-      title: 'Cargar datos de demostración',
-      message: 'Se reemplazarán los barberos, servicios, citas, walk-in, clientes y asesorías de ' + DB.tenant.name + ' por datos de ejemplo. Los usuarios del personal quedarán sin barbero vinculado.',
-      confirmText: 'Reemplazar datos', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      const root = DB.load();
-      root.data[DB.tenant.id] = DB.getDemoData();
-      root.users.forEach(u => { if (u.tenantId === DB.tenant.id) u.barberId = null; });
-      DB.useTenant(DB.tenant.id);
-      DB.save();
-      DB.log('Cargó datos de demostración', DB.tenant.name);
-      this.renderAll();
-      UI.toast('Datos de demostración cargados.');
-    });
+    UI.toast('No disponible en producción.', 'error');
   },
 
-  /* Solo superadmin: borra TODO el sistema (barberías, usuarios, datos e historial) */
   factoryReset() {
-    UI.confirm({
-      title: 'Restablecer todo el sistema',
-      message: 'Se borrarán TODAS las barberías, usuarios, citas e historial guardados en este navegador y se volverá a la configuración inicial de la demo. No se puede deshacer.',
-      confirmText: 'Borrar todo', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      try {
-        localStorage.removeItem(DB.KEY);
-        localStorage.removeItem(DB.LEGACY_KEY);
-        localStorage.removeItem(Auth.SESSION_KEY);
-      } catch (e) {}
-      window.location.replace('login.html?msg=' + encodeURIComponent('Sistema restablecido. Ingresa con las cuentas iniciales.'));
-    });
+    UI.toast('No disponible en producción.', 'error');
   },
 
   closeModal() { ModalComponent.close(); },
@@ -786,6 +759,8 @@ const CRM = {
           '<div><label class="field-lbl" for="m-ap-date">Fecha</label><input type="date" id="m-ap-date" class="input-dark" min="' + DB.todayISO() + '" value="' + firstDate + '" onchange="CRM.refreshApptSlots()" required /></div>' +
           '<div><label class="field-lbl" for="m-ap-time">Hora</label><select id="m-ap-time" class="input-dark" required></select></div>' +
         '</div>' +
+        '<label class="check-line" style="display:flex; gap:8px; align-items:flex-start; margin-top:12px;"><input type="checkbox" id="m-ap-wa" style="margin-top:3px;" />' +
+          '<span>El cliente acepta recibir la confirmación y los recordatorios por WhatsApp</span></label>' +
         '<p class="field-hint" id="m-ap-note" style="margin-top:10px;"></p>' +
         '<div class="form-error" id="m-ap-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + 'Guardar cita</button></div>' +
@@ -834,13 +809,18 @@ const CRM = {
     const date = document.getElementById('m-ap-date').value;
     const time = document.getElementById('m-ap-time').value;
     if (!name) { err.textContent = 'Escribe el nombre del cliente.'; return; }
+    const phone = document.getElementById('m-ap-phone').value.replace(/\D/g, '');
+    if (phone && !/^9\d{8}$/.test(phone)) { err.textContent = 'El celular debe tener 9 dígitos y empezar con 9.'; return; }
+    const waOptIn = !!(document.getElementById('m-ap-wa') || {}).checked;
+    if (waOptIn && !phone) { err.textContent = 'Para enviar WhatsApp escribe el celular del cliente.'; return; }
     const slotError = DB.validateBooking(date, time, barber);
     if (slotError) { err.textContent = slotError; this.refreshApptSlots(); return; }
     const srvObj = DB.state.services.find(s => s.name === srvName);
     const payload = {
       id: 'a-' + Date.now(),
       customerName: name,
-      phone: document.getElementById('m-ap-phone').value.trim(),
+      phone,
+      waOptIn,
       service: srvName,
       barber, date, time,
       price: srvObj ? srvObj.price : 0,
