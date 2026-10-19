@@ -68,6 +68,7 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 
 | Página | Enlace (sobre la URL publicada) |
 |---|---|
+| Página principal de Reservalope (landing) | `landing/` |
 | Web de Golden Barbería | `index.html?b=golden` |
 | Web de Navaja Norte (demo) | `index.html?b=navaja-norte` |
 | Ingreso al CRM / Reservalope | `login.html` |

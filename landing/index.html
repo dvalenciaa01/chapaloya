@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Reservalope · Agenda fácil. Negocios que crecen.</title>
+<meta name="description" content="Plataforma de reservas para barberías, peluquerías, consultorios médicos y negocios con citas: web de reservas con tu marca, panel para tu equipo y confirmaciones y recordatorios por WhatsApp." />
+<meta property="og:title" content="Reservalope · Agenda fácil. Negocios que crecen." />
+<meta property="og:description" content="Web de reservas con tu marca, panel para tu equipo y avisos por WhatsApp." />
+<meta property="og:image" content="../assets/icons/reservalope-isotipo.webp" />
+<meta name="theme-color" content="#0F172A" />
+<link rel="icon" type="image/webp" href="../assets/icons/reservalope-isotipo.webp" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+/* Layout: relato en franjas (problema → solución → demos interactivas → precios → cierre). Contenedor 1200px, paneles redondeados grandes sobre fondo lavanda muy claro; una franja oscura de marca para WhatsApp. */
+:root{
+  --brand:#4F46E5; --brand-strong:#4338CA; --brand-sky:#2F7BFF; --brand-soft:#EEEEFF; --brand-tint:#E0E0FD;
+  --navy:#0F172A; --ink:#111827; --muted:#4B5563; --faint:#6B7280; --line:#E5E7EB;
+  --bg:#FAFAFF; --surface:#F2F2FB; --card:#FFFFFF;
+  --wa:#1C9E52; --wa-soft:#DCF5E6; --bubble:#FFFFFF; --bubble-out:#D9FDD3; --chat-bg:#EFEAE2;
+  --danger:#DC2626; --danger-soft:#FDECEC; --warn:#B45309; --warn-soft:#FDF3E2;
+  --band:#0F172A; --band-2:#162036; --band-ink:#F1F3FA; --band-muted:#A8B0C6; --band-line:#26324F;
+  --shadow:0 1px 2px rgba(15,23,42,.05),0 18px 40px -18px rgba(30,27,90,.25);
+  --font:"Poppins",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --brand:#7C76F4; --brand-strong:#AAA6FB; --brand-soft:#1A1D45; --brand-tint:#272B63;
+  --ink:#E9EBF3; --muted:#A3ABC0; --faint:#8790A6; --line:#232D47;
+  --bg:#0A0F1E; --surface:#0E1528; --card:#121A30;
+  --wa:#3DD07E; --wa-soft:#103524; --bubble:#1C2638; --bubble-out:#164A33; --chat-bg:#0F1726;
+  --danger:#F87171; --danger-soft:#3A1418; --warn:#FBBF24; --warn-soft:#3A2A0C;
+  --band:#050915; --band-2:#0C1426; --band-line:#1C2742;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 20px 44px -20px rgba(0,0,0,.8); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --brand:#7C76F4; --brand-strong:#AAA6FB; --brand-soft:#1A1D45; --brand-tint:#272B63;
+  --ink:#E9EBF3; --muted:#A3ABC0; --faint:#8790A6; --line:#232D47;
+  --bg:#0A0F1E; --surface:#0E1528; --card:#121A30;
+  --wa:#3DD07E; --wa-soft:#103524; --bubble:#1C2638; --bubble-out:#164A33; --chat-bg:#0F1726;
+  --danger:#F87171; --danger-soft:#3A1418; --warn:#FBBF24; --warn-soft:#3A2A0C;
+  --band:#050915; --band-2:#0C1426; --band-line:#1C2742;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 20px 44px -20px rgba(0,0,0,.8); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+h1,h2,h3,h4{line-height:1.12;letter-spacing:-.025em;text-wrap:balance;margin:0}
+p{margin:0}
+a{color:inherit}
+button{font-family:var(--font)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+section{padding-block:clamp(72px,10vw,128px)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-strong)}
+.eyebrow::before{content:"";width:18px;height:2px;border-radius:2px;background:currentColor}
+.h2{font-size:clamp(2rem,4.2vw,3.25rem);font-weight:700}
+.h2 .soft{color:var(--faint)}
+.lead{color:var(--muted);font-size:1.1rem;max-width:58ch}
+.head{display:grid;gap:16px;margin-bottom:clamp(40px,5vw,64px);max-width:780px}
+.head.center{margin-inline:auto;text-align:center;justify-items:center}
+:focus-visible{outline:3px solid var(--brand);outline-offset:3px;border-radius:8px}
+svg.i{width:20px;height:20px;flex:none}
+
+/* Botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 26px;border-radius:999px;font:600 1rem var(--font);white-space:nowrap;text-decoration:none;cursor:pointer;border:1.5px solid transparent;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease}
+.btn-primary{background:#4F46E5;color:#fff;box-shadow:0 10px 24px -10px rgba(79,70,229,.75)}
+.btn-primary:hover{background:#4338CA;transform:translateY(-1px)}
+.btn-ghost{background:var(--card);color:var(--ink);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand-strong)}
+.btn-sm{min-height:44px;padding:0 18px;font-size:.92rem}
+.tlink{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--brand-strong);text-decoration:none}
+.tlink:hover{text-decoration:underline;text-underline-offset:4px}
+.tlink svg{width:18px;height:18px;transition:transform .18s}
+.tlink:hover svg{transform:translateX(3px)}
+
+/* Marca */
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
+.iso{width:40px;height:40px;border-radius:11px;background:linear-gradient(160deg,#040B2C,#020718);overflow:hidden;flex:none;display:block}
+.iso img{width:100%;height:100%;display:block}
+.word{font-weight:700;font-size:1.32rem;letter-spacing:-.03em;color:var(--ink)}
+.word span{color:var(--brand)}
+
+/* Nav */
+header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:74px}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0;padding:0}
+.nav ul a{display:block;padding:8px 14px;border-radius:999px;text-decoration:none;font-weight:500;font-size:.95rem;color:var(--muted);transition:color .15s,background-color .15s}
+.nav ul a:hover{color:var(--ink);background:var(--surface)}
+.nav .actions{display:flex;gap:8px;align-items:center}
+@media (max-width:980px){.nav ul{display:none}}
+@media (max-width:520px){.nav .btn-ghost{display:none}.nav .wrap{gap:12px}}
+@media (max-width:400px){.nav .word{font-size:1.12rem}.nav .iso{width:34px;height:34px}.nav .btn-sm{padding:0 14px;font-size:.86rem}}
+
+/* Hero */
+.hero{padding-block:clamp(40px,6vw,80px) clamp(64px,8vw,104px);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;width:900px;height:900px;right:-240px;top:-300px;background:radial-gradient(closest-side,color-mix(in srgb,var(--brand) 16%,transparent),transparent 72%);pointer-events:none}
+.hero .wrap{display:grid;grid-template-columns:1.08fr .92fr;gap:clamp(32px,5vw,72px);align-items:center;position:relative}
+.hero-copy{display:grid;gap:26px;min-width:0}
+.tag{display:inline-flex;align-items:center;gap:10px;width:fit-content;max-width:100%;padding:6px 16px 6px 6px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.86rem;font-weight:500;color:var(--muted)}
+.tag b{display:inline-flex;align-items:center;gap:6px;background:var(--wa-soft);color:var(--wa);border-radius:999px;padding:3px 10px;font-weight:600;font-size:.78rem}
+.tag b svg{width:14px;height:14px}
+.hero h1{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;letter-spacing:-.04em;line-height:1.02}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--brand-sky),var(--brand) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{font-size:1.16rem}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px}
+.assure{display:flex;flex-wrap:wrap;gap:10px 24px;color:var(--muted);font-size:.92rem;list-style:none;padding:0;margin:0}
+.assure li{display:inline-flex;align-items:center;gap:8px}
+.assure svg{color:var(--wa);width:18px;height:18px}
+
+/* Teléfono + chat */
+.phone-stage{display:grid;justify-items:center;gap:18px;min-width:0}
+.phone{width:min(360px,100%);background:#0B1020;border-radius:44px;padding:10px;box-shadow:0 40px 80px -30px rgba(30,27,90,.55),0 0 0 1px rgba(255,255,255,.06) inset;position:relative}
+.screen{border-radius:36px;overflow:hidden;background:var(--chat-bg);display:grid;grid-template-rows:auto 1fr auto;height:790px}
+.chat-head{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;background:#0F5E3B;color:#fff}
+.chat-head .av{width:36px;height:36px;border-radius:50%;background:#0F172A;display:grid;place-items:center;font-weight:700;font-size:.8rem}
+.chat-head b{display:block;font-size:.92rem;font-weight:600;line-height:1.2}
+.chat-head small{font-size:.72rem;opacity:.8}
+.chat-body{padding:14px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden;font-size:.86rem;line-height:1.45}
+.day-pill{align-self:center;background:var(--bubble);color:var(--faint);font-size:.7rem;padding:3px 10px;border-radius:8px;margin-bottom:4px}
+.b{max-width:84%;padding:8px 11px 6px;border-radius:12px;background:var(--bubble);color:var(--ink);box-shadow:0 1px 1px rgba(0,0,0,.08);transition:opacity .3s ease,transform .3s ease}
+.b.out{align-self:flex-end;background:var(--bubble-out);border-top-right-radius:4px}
+.b.in{align-self:flex-start;border-top-left-radius:4px}
+.b time{display:block;text-align:right;font-size:.66rem;color:var(--faint);margin-top:2px}
+.b .slots-in{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.b .slots-in span{border:1.5px solid var(--wa);color:var(--wa);border-radius:999px;padding:2px 10px;font-weight:600;font-size:.8rem;font-variant-numeric:tabular-nums}
+.b .slots-in span.on{background:var(--wa);color:#fff}
+.confirm{display:grid;gap:4px;border-left:3px solid var(--wa);padding-left:9px;margin:4px 0 6px}
+.confirm strong{display:flex;align-items:center;gap:6px;color:var(--wa);font-size:.86rem}
+.confirm strong svg{width:16px;height:16px}
+.typing{align-self:flex-start;background:var(--bubble);border-radius:12px;padding:10px 12px;display:none;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--faint);animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+.chat-foot{display:flex;align-items:center;gap:8px;padding:10px 12px 14px}
+.chat-foot span{flex:1;background:var(--bubble);border-radius:999px;padding:9px 14px;font-size:.8rem;color:var(--faint)}
+.chat-foot i{width:38px;height:38px;border-radius:50%;background:#0F5E3B;display:grid;place-items:center;color:#fff}
+.chat-foot i svg{width:18px;height:18px}
+.hidden-step{opacity:0;transform:translateY(8px)}
+.chip-ctl{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-weight:500;font-size:.88rem;cursor:pointer}
+.chip-ctl:hover{border-color:var(--brand)}
+.chip-ctl svg{width:16px;height:16px;color:var(--brand-strong)}
+.channels{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:.8rem;color:var(--muted)}
+.channels span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--surface)}
+.channels svg{width:14px;height:14px}
+@media (max-width:980px){.hero .wrap{grid-template-columns:1fr}}
+
+/* Rubros */
+.rubros{padding-block:clamp(56px,7vw,88px);border-top:1px solid var(--line)}
+.rub-head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:32px}
+.rub-head h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;max-width:22ch}
+.rub-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.rub{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;display:grid;gap:14px;grid-template-rows:auto auto 1fr auto;transition:border-color .2s,transform .2s}
+.rub:hover{border-color:var(--brand);transform:translateY(-2px)}
+.rub .ri{width:46px;height:46px;border-radius:14px;background:var(--brand-soft);color:var(--brand-strong);display:grid;place-items:center}
+.rub .ri svg{width:24px;height:24px}
+.rub h3{font-size:1.05rem;font-weight:600}
+.rub p{font-size:.88rem;color:var(--muted)}
+.ticket{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;padding:8px 10px;border-radius:10px;background:var(--surface);color:var(--muted);font-variant-numeric:tabular-nums}
+.ticket b{color:var(--ink);font-weight:600}
+.rub-note{margin-top:20px;color:var(--muted);font-size:.92rem}
+@media (max-width:980px){.rub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.rub-grid{grid-template-columns:1fr}}
+
+/* Problema */
+#problema{background:var(--surface)}
+.prob{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,5vw,72px);align-items:center}
+.sat{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:24px;box-shadow:var(--shadow);display:grid;gap:14px;min-width:0}
+.sat-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sat-top b{font-size:1.05rem}
+.sat-top small{color:var(--faint);font-size:.8rem}
+.sat-list{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.sat-list li{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;font-size:.88rem;background:var(--surface);border:1.5px solid transparent}
+.sat-list li>span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sat-list time{font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted);font-size:.82rem}
+.sat-list .st{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.sat-list .ok{background:var(--brand-soft);color:var(--brand-strong)}
+.sat-list .gap{background:transparent;border:1.5px dashed var(--line)}
+.sat-list .gap span{color:var(--faint)}
+.sat-list .gap .st{background:var(--warn-soft);color:var(--warn)}
+.sat-list .cx>span:nth-child(2){text-decoration:line-through;color:var(--faint)}
+.sat-list .cx .st{background:var(--danger-soft);color:var(--danger)}
+.notif{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--navy);color:#E9EBF3;font-size:.85rem}
+.notif .n{min-width:30px;height:30px;border-radius:999px;background:#DC2626;color:#fff;display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.notif small{display:block;color:#A8B0C6;font-size:.76rem}
+.pains{display:grid;gap:22px;list-style:none;margin:32px 0 0;padding:0}
+.pains li{display:grid;grid-template-columns:44px 1fr;gap:16px}
+.pains .pi{width:44px;height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--danger)}
+.pains .pi svg{width:22px;height:22px}
+.pains h3{font-size:1.1rem;font-weight:600;margin-bottom:4px}
+.pains p{color:var(--muted);font-size:.95rem}
+@media (max-width:900px){.prob{grid-template-columns:1fr}}
+
+/* Plataforma */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.prod{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:28px;display:grid;gap:16px;grid-template-rows:auto auto 1fr auto;min-width:0}
+.prod .tagline{font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.prod h3{font-size:1.35rem;font-weight:700}
+.prod p{color:var(--muted);font-size:.95rem}
+.prod .vis{border-radius:18px;background:var(--surface);padding:16px;display:grid;gap:8px;align-content:start;min-height:170px}
+.urlbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.78rem;color:var(--muted);min-width:0}
+.urlbar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.urlbar svg{width:14px;height:14px;color:var(--wa);flex:none}
+.svc-row{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;background:var(--card);border-radius:10px;padding:8px 10px}
+.svc-row b{font-weight:600}
+.svc-row span{color:var(--faint);font-variant-numeric:tabular-nums}
+.staff{display:flex}
+.staff i{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);display:grid;place-items:center;font-style:normal;font-size:.66rem;font-weight:700;color:#fff;margin-right:-8px}
+.mini-cal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.mini-cal div{display:grid;gap:5px}
+.mini-cal em{font-style:normal;font-size:.7rem;color:var(--faint);text-align:center}
+.mini-cal i{display:block;height:16px;border-radius:5px;background:var(--line)}
+.mini-cal i.a{background:#4F46E5}.mini-cal i.b{background:color-mix(in srgb,#4F46E5 45%,var(--card))}
+.wa-mini{display:grid;gap:6px;font-size:.78rem;line-height:1.4}
+.wa-mini div{background:var(--card);border-radius:10px;padding:7px 10px;max-width:92%}
+.wa-mini div.o{justify-self:end;background:var(--bubble-out)}
+@media (max-width:960px){.trio{grid-template-columns:1fr}.prod{grid-template-rows:auto}}
+
+/* Demo interactiva reserva → agenda */
+#reservas{background:var(--surface)}
+.rv{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:28px;align-items:start}
+.booker{background:var(--card);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:22px;display:grid;gap:18px}
+.bk-top{display:flex;gap:12px;align-items:center}
+.bk-top .av{width:44px;height:44px;border-radius:12px;background:var(--navy);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.bk-top h3{font-size:1rem;font-weight:600;letter-spacing:-.01em}
+.bk-top p{font-size:.8rem;color:var(--muted)}
+.lbl{font-size:.74rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.grp{display:grid;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 14px;font:500 .85rem var(--font);cursor:pointer;min-height:40px;transition:all .15s}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-strong)}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;min-height:42px;font:500 .86rem var(--font);font-variant-numeric:tabular-nums;cursor:pointer;transition:all .15s}
+.slot:hover{border-color:var(--brand)}
+.slot[aria-pressed="true"]{border-color:#4F46E5;background:#4F46E5;color:#fff;font-weight:600}
+.empty{grid-column:1/-1;color:var(--muted);font-size:.85rem;padding:10px;border:1.5px dashed var(--line);border-radius:10px;text-align:center}
+.bk-sum{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:16px;border-top:1px dashed var(--line);font-size:.86rem;color:var(--muted)}
+.bk-sum strong{color:var(--ink);display:block;font-weight:600}
+.bk-sum .btn{min-height:46px;padding:0 20px}
+.bk-sum .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.cal{background:var(--card);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.cal-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cal-top b{font-size:1rem}
+.cal-top small{color:var(--faint);font-size:.8rem;display:block}
+.live{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;color:var(--wa)}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 20%,transparent)}
+.cal-scroll{overflow-x:auto}
+.cal-grid{display:grid;grid-template-columns:52px repeat(3,minmax(140px,1fr));min-width:480px}
+.cal-col-h{padding:10px 12px;font-size:.82rem;font-weight:600;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.cal-col-h i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.62rem;color:#fff}
+.hours{position:relative}
+.hours span{position:absolute;right:8px;font-size:.7rem;color:var(--faint);font-variant-numeric:tabular-nums;transform:translateY(-50%)}
+.col{position:relative;border-left:1px solid var(--line);background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% var(--hr)}
+.appt{position:absolute;left:6px;right:6px;border-radius:10px;padding:4px 9px;font-size:.72rem;line-height:1.3;overflow:hidden;background:var(--brand-soft);color:var(--ink);border-left:3px solid #4F46E5}
+.appt b{display:block;font-weight:600;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appt span{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.appt.short{display:flex;gap:6px;align-items:baseline;padding-block:3px}
+.appt.short b{flex:none}
+.appt.short span{overflow:hidden;text-overflow:ellipsis}
+.appt.lunch{background:repeating-linear-gradient(135deg,var(--surface) 0 6px,transparent 6px 12px);border-left-color:var(--line);color:var(--faint)}
+.appt.new{background:#4F46E5;color:#fff;border-left-color:#2F7BFF;animation:pop .5s cubic-bezier(.2,.8,.2,1.2)}
+.appt.new span{color:#DCDBFF}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.rv-points{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;list-style:none;margin:40px 0 0;padding:0}
+.rv-points li{display:grid;gap:6px;align-content:start}
+.rv-points h3{font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:10px}
+.rv-points h3 svg{color:var(--brand-strong)}
+.rv-points p{color:var(--muted);font-size:.93rem}
+@media (max-width:960px){.rv{grid-template-columns:1fr}.rv-points{grid-template-columns:1fr}}
+
+/* WhatsApp (franja oscura) */
+.band{background:var(--band);color:var(--band-ink)}
+.band .eyebrow{color:#A5A1FA}
+.band .lead{color:var(--band-muted)}
+.band .h2 .soft{color:#8A93AD}
+.wa-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(32px,5vw,64px);align-items:center}
+.rules{display:grid;gap:14px;list-style:none;margin:32px 0 0;padding:0}
+.rules li{display:grid;grid-template-columns:40px 1fr;gap:14px;padding:16px;border-radius:18px;border:1px solid var(--band-line);background:rgba(255,255,255,.02)}
+.rules .ri{width:40px;height:40px;border-radius:12px;background:#1E2547;color:#A5A1FA;display:grid;place-items:center}
+.rules h3{font-size:1rem;font-weight:600;margin-bottom:2px}
+.rules p{color:var(--band-muted);font-size:.9rem}
+.inbox{background:var(--band-2);border:1px solid var(--band-line);border-radius:28px;overflow:hidden;min-width:0}
+.inbox-top{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--band-line);gap:12px;flex-wrap:wrap}
+.inbox-top b{font-size:.95rem}
+.inbox-tabs{display:flex;gap:6px;font-size:.76rem}
+.inbox-tabs span{padding:4px 10px;border-radius:999px;color:var(--band-muted)}
+.inbox-tabs span.on{background:#252E52;color:#fff}
+.conv{list-style:none;margin:0;padding:0}
+.conv li{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--band-line)}
+.conv li:last-child{border-bottom:0}
+.conv .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.8rem;color:#fff}
+.conv b{display:block;font-size:.9rem;font-weight:600}
+.conv p{font-size:.82rem;color:var(--band-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .meta{display:grid;justify-items:end;gap:4px;font-size:.72rem;color:#8A93AD}
+.st2{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.st-ok{background:#123B29;color:#5EE29A}.st-re{background:#2B2A5E;color:#B9B5FF}.st-rem{background:#3A2E10;color:#FBD38D}.st-you{background:#3A1A22;color:#FDA4AF}
+@media (max-width:960px){.wa-grid{grid-template-columns:1fr}}
+
+/* Garantías + pasos */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:clamp(24px,3.5vw,40px);display:grid;gap:22px;align-content:start}
+.panel h3{font-size:1.5rem;font-weight:700}
+.glist{display:grid;gap:16px;list-style:none;margin:0;padding:0}
+.glist li{display:grid;grid-template-columns:24px 1fr;gap:14px;font-size:.95rem;color:var(--muted)}
+.glist svg{width:22px;height:22px;color:var(--wa);margin-top:1px}
+.glist b{color:var(--ink);font-weight:600}
+.seq{list-style:none;margin:0;padding:0;display:grid;counter-reset:s}
+.seq li{display:grid;grid-template-columns:44px 1fr;gap:16px;position:relative;padding-bottom:24px}
+.seq li:last-child{padding-bottom:0}
+.seq li::before{counter-increment:s;content:counter(s);width:44px;height:44px;border-radius:50%;background:var(--brand-soft);color:var(--brand-strong);display:grid;place-items:center;font-weight:700}
+.seq li:not(:last-child)::after{content:"";position:absolute;left:21px;top:48px;bottom:4px;width:2px;background:var(--line)}
+.seq h4{font-size:1.02rem;font-weight:600;margin:9px 0 4px}
+.seq p{color:var(--muted);font-size:.92rem}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+
+/* Precios */
+#precios{background:var(--surface)}
+.bill{display:inline-flex;padding:4px;border-radius:999px;background:var(--card);border:1px solid var(--line);gap:4px}
+.bill button{border:0;background:transparent;color:var(--muted);font:600 .9rem var(--font);padding:0 18px;min-height:42px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.bill button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.bill small{font-size:.7rem;font-weight:600;background:var(--wa-soft);color:var(--wa);padding:2px 8px;border-radius:999px}
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:30px;display:grid;gap:20px;grid-template-rows:auto auto auto 1fr auto;position:relative}
+.plan.rec{border:2px solid #4F46E5;box-shadow:0 30px 60px -30px rgba(79,70,229,.5)}
+.plan .badge{position:absolute;top:-13px;left:30px;background:#4F46E5;color:#fff;font-size:.74rem;font-weight:600;padding:4px 12px;border-radius:999px}
+.plan h3{font-size:1.2rem;font-weight:700}
+.plan .for{color:var(--muted);font-size:.9rem;margin-top:4px}
+.price{display:flex;align-items:baseline;gap:6px}
+.price b{font-size:2.8rem;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1}
+.price span{color:var(--muted);font-size:.9rem}
+.plan .note{font-size:.78rem;color:var(--faint);min-height:1.2em;margin-top:-12px}
+.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;align-content:start;font-size:.92rem}
+.plan li{display:grid;grid-template-columns:20px 1fr;gap:10px;color:var(--muted)}
+.plan li svg{width:20px;height:20px;color:var(--brand-strong)}
+.plan .btn{width:100%}
+.price-foot{margin-top:24px;text-align:center;color:var(--faint);font-size:.85rem}
+@media (max-width:960px){.plans{grid-template-columns:1fr;max-width:480px;margin-inline:auto}}
+
+/* FAQ */
+.faq-grid{display:grid;grid-template-columns:.75fr 1.25fr;gap:56px;align-items:start}
+.faq{display:grid;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:22px 0;font-weight:600;font-size:1.04rem;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg{width:22px;height:22px;flex:none;transition:transform .2s;color:var(--brand-strong)}
+.faq details[open] summary svg{transform:rotate(45deg)}
+.faq details p{color:var(--muted);padding:0 0 22px;max-width:62ch}
+@media (max-width:860px){.faq-grid{grid-template-columns:1fr;gap:32px}}
+
+/* Cierre + formulario */
+#demo{padding-top:0}
+.closer{background:#0F172A;color:#F1F3FA;border-radius:36px;display:grid;grid-template-columns:.95fr 1.05fr;overflow:hidden;position:relative}
+.closer::before{content:"";position:absolute;width:640px;height:640px;left:-200px;bottom:-320px;background:radial-gradient(closest-side,rgba(79,70,229,.45),transparent 70%);pointer-events:none}
+.closer-copy{padding:clamp(28px,5vw,56px);display:grid;gap:22px;align-content:start;position:relative}
+.closer-copy .iso{width:56px;height:56px;border-radius:16px}
+.closer-copy h2{font-size:clamp(2rem,4vw,3rem);font-weight:700;color:#fff}
+.closer-copy p{color:#A8B0C6;font-size:1.05rem}
+.closer-copy ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.closer-copy li{display:flex;gap:12px;align-items:flex-start;font-size:.95rem}
+.closer-copy li svg{color:#8B85F7;width:22px;height:22px;flex:none}
+form{background:var(--card);color:var(--ink);margin:12px;border-radius:28px;padding:clamp(24px,3.5vw,40px);display:grid;gap:16px;grid-template-columns:1fr 1fr;align-content:start;position:relative}
+.field{display:grid;gap:6px;min-width:0;align-content:start}
+.field.full{grid-column:1/-1}
+label,.flbl{font-weight:500;font-size:.88rem}
+input,select{font:400 1rem var(--font);color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;min-height:50px;padding:0 14px;width:100%;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent)}
+input[aria-invalid="true"]{border-color:var(--danger)}
+.err{color:var(--danger);font-size:.8rem;min-height:1.1em}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;display:grid;gap:2px;transition:all .15s}
+.seg label small{color:var(--muted);font-weight:400;font-size:.8rem}
+.seg input:checked+label{border-color:var(--brand);background:var(--brand-soft)}
+.seg input:focus-visible+label{outline:3px solid var(--brand);outline-offset:2px}
+form .btn{width:100%}
+.fine{color:var(--faint);font-size:.8rem;text-align:center;margin-top:8px}
+.done{grid-column:1/-1;display:grid;gap:12px;justify-items:center;text-align:center;padding:48px 0}
+.done .ok{width:60px;height:60px;border-radius:50%;background:var(--wa-soft);color:var(--wa);display:grid;place-items:center}
+.done .ok svg{width:30px;height:30px}
+.done h3{font-size:1.4rem}
+.done p{color:var(--muted);max-width:40ch}
+@media (max-width:900px){.closer{grid-template-columns:1fr}}
+@media (max-width:520px){form{grid-template-columns:1fr;margin:8px}.seg{grid-template-columns:1fr}}
+
+/* Footer */
+footer{padding-block:56px 40px}
+.foot{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:32px}
+.foot p{color:var(--muted);font-size:.9rem;max-width:34ch;margin-top:14px}
+.foot h4{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:14px;font-weight:600}
+.foot ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.foot a{text-decoration:none;color:var(--muted);font-size:.92rem}
+.foot a:hover{color:var(--ink)}
+.legal{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:40px;padding-top:24px;border-top:1px solid var(--line);color:var(--faint);font-size:.82rem}
+@media (max-width:820px){.foot{grid-template-columns:1fr 1fr}.foot>div:first-child{grid-column:1/-1}}
+
+
+/* v3: panel, planes compactos, problema en dos columnas */
+#problema .pains{margin:0}
+.prob{align-items:start}
+.conv .av svg{width:18px;height:18px}
+.mods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.mod{display:grid;grid-template-columns:44px 1fr;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px}
+.mod>svg{width:44px;height:44px;padding:11px;border-radius:12px;background:var(--brand-soft);color:var(--brand-strong)}
+.mod h3{font-size:1.02rem;font-weight:600;margin-bottom:4px}
+.mod p{color:var(--muted);font-size:.9rem}
+@media (max-width:960px){.mods{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.mods{grid-template-columns:1fr}}
+#empezar{background:var(--surface)}
+#empezar .panel{align-content:start}
+#planes .plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;max-width:none}
+#planes .plan{padding:18px 16px;border-radius:18px;gap:8px;grid-template-rows:auto;background:var(--surface)}
+#planes .plan.rec{background:var(--brand-soft);box-shadow:none}
+#planes .plan h4{font-size:.95rem;font-weight:600;color:var(--muted)}
+#planes .price{flex-direction:column;align-items:flex-start;gap:2px}
+#planes .price b{font-size:clamp(1.5rem,2.6vw,2rem)}
+#planes .btn{width:100%}
+@media (max-width:420px){#planes .plans{grid-template-columns:1fr}}
+
+.one{grid-template-columns:1fr;max-width:720px;margin-inline:auto}
+.cita{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:8px 0;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--wa) 8%,transparent);font-size:.8rem}
+.cita dt{color:var(--faint)}
+.cita dd{margin:0;font-weight:600}
+.foot>div{min-width:0}
+.foot a{overflow-wrap:anywhere}
+.mailbox{display:grid;gap:6px;justify-items:start;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,.12);font-size:.9rem;color:#A8B0C6;position:relative}
+.mailbox b{color:#fff;font-weight:600;word-break:break-all;user-select:all}
+.mailbox .chip-ctl{background:transparent;color:#fff;border-color:rgba(255,255,255,.25)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+    <symbol id="i-insta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-hole" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m10 14 4 4M14 14l-4 4"/></symbol>
+    <symbol id="i-userx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></symbol>
+    <symbol id="i-comb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="5" rx="1.5"/><path d="M5.5 10v8M9 10v8M12.5 10v8M16 10v8M19.5 10v5"/></symbol>
+    <symbol id="i-steth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></symbol>
+    <symbol id="i-tooth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c-2.5 0-4 2-4 4.5 0 3 1.5 4.5 2 7S6 21 8 21c1.8 0 1.8-4.5 4-4.5s2.2 4.5 4 4.5c2 0 2.5-4 3-6.5s2-4 2-7C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3Z"/></symbol>
+    <symbol id="i-lotus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-3.5-2-5-5-5-8.5S9.5 5 12 3c2.5 2 5 5 5 8.5S15.5 18 12 20Z"/><path d="M12 20c-4 0-8-2.5-9-7 2.2-.4 4.2.1 5.6 1.2M12 20c4 0 8-2.5 9-7-2.2-.4-4.2.1-5.6 1.2"/></symbol>
+    <symbol id="i-paw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.05Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol>
+    <symbol id="i-nail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22V12a4 4 0 0 1 8 0v10"/><path d="M10 12a2 2 0 0 1 4 0v3h-4Z"/><path d="M12 2v4M8.5 3.5l1 2M15.5 3.5l-1 2"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5 17.5 17.5"/><path d="m21 21-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/></symbol>
+  </defs>
+</svg>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></symbol>
+    <symbol id="i-hour" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14M5 2h14"/><path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2M15 12h2M6 16c.6-1.4 1.8-2 3-2s2.4.6 3 2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+    <symbol id="i-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7" r="1"/><circle cx="16.5" cy="10.5" r="1"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+  </defs>
+</svg>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#inicio" aria-label="Reservalope, inicio">
+      <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="40" height="40"></span>
+      <span class="word">reserva<span>lope</span></span>
+    </a>
+    <nav aria-label="Principal">
+      <ul>
+        <li><a href="#plataforma">Producto</a></li>
+        <li><a href="#reservas">Cómo se reserva</a></li>
+        <li><a href="#whatsapp">WhatsApp</a></li>
+                <li><a href="#preguntas">Preguntas</a></li>
+      </ul>
+    </nav>
+    <div class="actions">
+      <a class="btn btn-ghost btn-sm" href="#demo" data-mode="prueba">Solicitar prueba</a>
+      <a class="btn btn-primary btn-sm" href="#demo" data-mode="demo">Solicitar demo</a>
+    </div>
+  </div>
+</header>
+
+<main id="inicio">
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="tag"><b><svg aria-hidden="true"><use href="#i-msg"/></svg>WhatsApp</b>Confirmaciones y recordatorios automáticos</span>
+        <h1>Agenda fácil. <em>Negocios que crecen.</em></h1>
+        <p class="lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#demo" data-mode="demo">Solicitar una demo <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost" href="#reservas">Ver cómo funciona</a>
+        </div>
+        <ul class="assure">
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Web de reservas con tu logo y colores</li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Sin citas cruzadas</li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Reportes en PDF y Excel</li>
+        </ul>
+      </div>
+
+      <div class="phone-stage">
+        <div class="phone" role="img" aria-label="Ejemplo de los mensajes de WhatsApp que recibe un cliente: registro de su cita, confirmación de asistencia y recordatorio del día anterior">
+          <div class="screen">
+            <div class="chat-head">
+              <span class="av">NN</span>
+              <div><b>Navaja Norte</b><small>Barbería de demostración</small></div>
+            </div>
+            <div class="chat-body" id="chat">
+              <span class="day-pill">Domingo 18 de octubre</span>
+              <div class="b in" data-step>Hola Sebastián, tu cita en <b>Navaja Norte</b> quedó registrada.
+                <dl class="cita"><dt>Servicio</dt><dd>Corte de Cabello + Barba</dd><dt>Barbero</dt><dd>Luis</dd><dt>Fecha</dt><dd>Martes 20 de octubre, 11:00</dd><dt>Código</dt><dd>K7Q2MP</dd></dl>
+                Por favor, confirma tu asistencia respondiendo <b>CONFIRMAR</b>.<time>18:40</time></div>
+              <div class="b out" data-step>Confirmar<time>18:42</time></div>
+              <div class="b in" data-step><div class="confirm"><strong><svg aria-hidden="true"><use href="#i-check"/></svg>Asistencia confirmada</strong></div>Gracias, Sebastián. Te esperamos el martes 20 a las 11:00.<time>18:42</time></div>
+              <span class="day-pill" data-step>Lunes 19 de octubre</span>
+              <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Los Olivos. ¡Te esperamos!<time>11:00</time></div>
+              <div class="typing" id="typing" aria-hidden="true"><i></i><i></i><i></i></div>
+            </div>
+            <div class="chat-foot" aria-hidden="true"><span>Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
+          </div>
+        </div>
+        <button class="chip-ctl" type="button" id="replay"><svg aria-hidden="true"><use href="#i-play"/></svg>Ver los mensajes en orden</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="rubros" id="rubros">
+    <div class="wrap">
+      <div class="rub-head">
+        <h2>Ideal para negocios que trabajan con citas</h2>
+        <a class="tlink" href="#demo" data-mode="demo">Ver una demo para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+      <div class="rub-grid">
+        <article class="rub"><span class="ri"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span><h3>Barberías</h3><p>Reservas por barbero, portafolio de cortes y cola para los clientes que llegan sin cita.</p></article>
+        <article class="rub"><span class="ri"><svg aria-hidden="true"><use href="#i-comb"/></svg></span><h3>Peluquerías</h3><p>Cada servicio con su duración y precio, y la agenda de cada estilista por separado.</p></article>
+        <article class="rub"><span class="ri"><svg aria-hidden="true"><use href="#i-steth"/></svg></span><h3>Consultorios médicos</h3><p>Citas por profesional, con confirmación y recordatorio por WhatsApp.</p></article>
+        <article class="rub"><span class="ri"><svg aria-hidden="true"><use href="#i-dots"/></svg></span><h3>Y muchos más</h3><p>Cualquier negocio que atienda con horarios y citas puede usar Reservalope.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="problema">
+    <div class="wrap prob">
+      <div class="head" style="margin-bottom:0">
+        <span class="eyebrow">El problema</span>
+        <h2 class="h2">Tu recepción es tu celular. <span class="soft">Y tienes las manos ocupadas.</span></h2>
+        <p class="lead">Tu tiempo también importa. Reservalope ordena la agenda para que tú te dediques a atender.</p>
+      </div>
+      <ul class="pains">
+        <li><span class="pi"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h3>Los mensajes llegan en plena atención</h3><p>Con una web de reservas, el cliente elige servicio, profesional y hora sin esperar tu respuesta.</p></div></li>
+        <li><span class="pi"><svg aria-hidden="true"><use href="#i-hole"/></svg></span><div><h3>Las citas se cruzan</h3><p>Solo se ofrecen horarios libres. No se puede reservar un horario ocupado ni uno que ya pasó.</p></div></li>
+        <li><span class="pi"><svg aria-hidden="true"><use href="#i-userx"/></svg></span><div><h3>Los clientes se olvidan</h3><p>El recordatorio por WhatsApp les llega antes de la cita y pueden confirmar su asistencia desde el mismo chat.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="plataforma">
+    <div class="wrap">
+      <div class="head center">
+        <span class="eyebrow">La plataforma</span>
+        <h2 class="h2">Tres piezas. <span class="soft">Una sola agenda.</span></h2>
+        <p class="lead">La web de reservas, el panel del equipo y los mensajes de WhatsApp trabajan con la misma información. Una cita creada en cualquiera de ellos aparece en todos.</p>
+      </div>
+      <div class="trio">
+        <article class="prod">
+          <span class="tagline">Para tus clientes</span>
+          <h3>Web de reservas con tu marca</h3>
+          <div class="vis" aria-hidden="true">
+            <div class="urlbar"><svg><use href="#i-link"/></svg><span>index.html?b=navaja-norte</span></div>
+            <div class="svc-row"><b>Corte Clásico / Fade</b><span>30 min · S/ 32</span></div>
+            <div class="svc-row"><b>Corte de Cabello + Barba</b><span>45 min · S/ 45</span></div>
+            <div class="svc-row"><b>Perfilado de Barba</b><span>20 min · S/ 20</span></div>
+          </div>
+          <p>Inicio, servicios, profesionales con portafolio, reserva y consulta de cita. Usa tu nombre, tu logo, tus 3 colores y tus datos de contacto.</p>
+        </article>
+        <article class="prod">
+          <span class="tagline">Para ti y tu equipo</span>
+          <h3>Panel del negocio</h3>
+          <div class="vis" aria-hidden="true">
+            <div class="svc-row"><b>Citas</b><span>Hoy</span></div>
+            <div class="svc-row"><b>Cola walk-in</b><span>Sin cita</span></div>
+            <div class="svc-row"><b>Ventas y clientes</b><span>Historial</span></div>
+            <div class="svc-row"><b>Reportes</b><span>PDF · Excel</span></div>
+          </div>
+          <p>Citas, cola de clientes sin cita, profesionales, servicios, ventas, clientes y reportes, con permisos según el rol de cada persona.</p>
+        </article>
+        <article class="prod">
+          <span class="tagline">En automático</span>
+          <h3>WhatsApp que confirma y recuerda</h3>
+          <div class="vis" aria-hidden="true">
+            <div class="wa-mini">
+              <div>Hola Sebastián, por favor confirma tu asistencia a tu cita del martes 20 a las 11:00 con Luis.</div>
+              <div class="o">Confirmar</div>
+              <div>Asistencia confirmada. ¡Te esperamos!</div>
+            </div>
+          </div>
+          <p>Confirmación de asistencia al reservar, recordatorios antes de la cita y aviso a tu equipo cuando una cita se crea, se cancela o se reprograma.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="reservas">
+    <div class="wrap">
+      <div class="head">
+        <span class="eyebrow">Pruébalo aquí</span>
+        <h2 class="h2">Reservado en tres pasos. <span class="soft">En tu agenda al instante.</span></h2>
+        <p class="lead">Elige un servicio, un barbero y una hora libre, y pulsa Reservar. La cita aparece en la agenda del negocio en ese momento. Usamos los servicios y el equipo de Navaja Norte, la barbería de demostración del sistema.</p>
+      </div>
+      <div class="rv">
+        <div class="booker">
+          <div class="bk-top"><div class="av" aria-hidden="true">NN</div><div><h3>Navaja Norte</h3><p>Citas de 9:00 a 20:00 · Los Olivos, Lima</p></div></div>
+          <div class="grp"><span class="lbl" id="l-svc">Servicio</span>
+            <div class="chips" id="svc" role="group" aria-labelledby="l-svc">
+              <button class="chip" type="button" aria-pressed="false" data-min="30" data-price="32" data-name="Corte Clásico / Fade">Corte Clásico / Fade</button>
+              <button class="chip" type="button" aria-pressed="true" data-min="45" data-price="45" data-name="Corte de Cabello + Barba">Corte + Barba</button>
+              <button class="chip" type="button" aria-pressed="false" data-min="20" data-price="20" data-name="Perfilado de Barba">Perfilado de Barba</button>
+            </div></div>
+          <div class="grp"><span class="lbl" id="l-pro">Barbero</span>
+            <div class="chips" id="pro" role="group" aria-labelledby="l-pro">
+              <button class="chip" type="button" aria-pressed="true" data-pro="0">Luis</button>
+              <button class="chip" type="button" aria-pressed="false" data-pro="1">Andrés</button>
+              <button class="chip" type="button" aria-pressed="false" data-pro="2">Kevin</button>
+            </div></div>
+          <div class="grp"><span class="lbl" id="l-slot">Horas disponibles</span>
+            <div class="slots" id="slots" role="group" aria-labelledby="l-slot"></div></div>
+          <div class="bk-sum">
+            <div><strong id="sum1"></strong><span id="sum2">Elige una hora</span></div>
+            <button class="btn btn-primary" type="button" id="book" disabled>Reservar</button>
+          </div>
+        </div>
+        <div class="cal">
+          <div class="cal-top"><div><b>Agenda del día</b><small>Martes 20 de octubre · Navaja Norte</small></div><span class="live" id="live" aria-live="polite">En vivo</span></div>
+          <div class="cal-scroll"><div class="cal-grid" id="cal"></div></div>
+        </div>
+      </div>
+      <ul class="rv-points">
+        <li><h3><svg class="i" aria-hidden="true"><use href="#i-hand"/></svg>Sin cuenta ni contraseña</h3><p>El cliente deja su nombre y su celular, y listo.</p></li>
+        <li><h3><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Solo horarios reales</h3><p>No se puede reservar un horario ocupado, un día que ya pasó ni fuera del horario de atención.</p></li>
+        <li><h3><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Consulta con código</h3><p>Cada reserva tiene un código para que el cliente vea su cita en “Mi cita”.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="whatsapp">
+    <div class="wrap wa-grid">
+      <div>
+        <div class="head" style="margin-bottom:0">
+          <span class="eyebrow">WhatsApp</span>
+          <h2 class="h2">Cada cita se confirma y se recuerda <span class="soft">sin que tengas que escribir.</span></h2>
+          <p class="lead">Cuando se crea, cancela o reprograma una cita, Reservalope prepara los mensajes que tocan y los envía a su hora.</p>
+        </div>
+        <ul class="rules">
+          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-qr"/></svg></span><div><h3>Desde el número de tu negocio</h3><p>Se vincula con un código QR, igual que WhatsApp Web.</p></div></li>
+          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><h3>Recordatorios a tu medida</h3><p>Vienen dos listos, un día antes y dos horas antes. Puedes cambiar los textos y agregar los que necesites.</p></div></li>
+          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></span><div><h3>Respeta las horas de descanso</h3><p>No se envía nada en horas de silencio, por defecto de 21:00 a 8:00.</p></div></li>
+          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg></span><div><h3>Tu equipo se entera</h3><p>Avisos de cita nueva, cancelada o reprogramada a los números o al grupo que elijas.</p></div></li>
+        </ul>
+      </div>
+      <div class="inbox" aria-label="Ejemplo: mensajes que genera una cita">
+        <div class="inbox-top"><b>Mensajes de la cita K7Q2MP</b><span class="st2 st-ok">Confirmada</span></div>
+        <ul class="conv">
+          <li><span class="av" style="background:#4F46E5"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><p>A la barbería · Sebastián · Corte de Cabello + Barba con Luis</p></div><div class="meta">Dom 18:40<span class="st2 st-ok">Enviado</span></div></li>
+          <li><span class="av" style="background:#0F5E3B"><svg class="i" aria-hidden="true"><use href="#i-msg"/></svg></span><div><b>Confirmación</b><p>Al cliente · “Tu cita en Navaja Norte quedó registrada…”</p></div><div class="meta">Dom 18:40<span class="st2 st-ok">Enviado</span></div></li>
+          <li><span class="av" style="background:#334155"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><div><b>El cliente confirmó su asistencia</b><p>La cita pasó a confirmada</p></div><div class="meta">Dom 18:42<span class="st2 st-re">Confirmó</span></div></li>
+          <li><span class="av" style="background:#B45309"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg></span><div><b>Recordatorio un día antes</b><p>Al cliente · “Te recordamos tu cita mañana a las 11:00…”</p></div><div class="meta">Lun 11:00<span class="st2 st-rem">Programado</span></div></li>
+          <li><span class="av" style="background:#B45309"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg></span><div><b>Recordatorio dos horas antes</b><p>Al cliente · “Tu cita es hoy a las 11:00 con Luis…”</p></div><div class="meta">Mar 9:00<span class="st2 st-rem">Programado</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel">
+    <div class="wrap">
+      <div class="head center">
+        <span class="eyebrow">El panel</span>
+        <h2 class="h2">Todo tu negocio <span class="soft">en un solo lugar.</span></h2>
+      </div>
+      <div class="mods">
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><h3>Citas</h3><p>Crea, confirma, reprograma y cancela citas desde el celular o la computadora.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-hour"/></svg><div><h3>Cola walk-in</h3><p>Ordena a los clientes que llegan sin cita.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-card"/></svg><div><h3>Profesionales y portafolio</h3><p>Cada uno con sus especialidades, sus trabajos y su horario.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg><div><h3>Servicios</h3><p>Precio, duración y categoría de cada servicio.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-cash"/></svg><div><h3>Ventas y clientes</h3><p>Lo que se vendió y el historial de cada cliente.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><div><h3>Reportes</h3><p>Filtra por periodo, profesional, servicio, estado o canal, y descarga en PDF con tu marca o en Excel.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><div><h3>Usuarios y roles</h3><p>El administrador crea al personal. Quien está vinculado a un profesional ve solo sus citas.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-hist"/></svg><div><h3>Historial de actividad</h3><p>Queda registrado quién hizo cada cambio.</p></div></div>
+        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><div><h3>Acceso seguro</h3><p>Bloqueo tras 5 intentos fallidos y cambio obligatorio de la contraseña temporal.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="empezar">
+    <div class="wrap">
+      <div class="two one">
+        <div class="panel">
+          <span class="eyebrow">Cómo empezar</span>
+          <h3>Así activas Reservalope</h3>
+          <ol class="seq">
+            <li><div><h4>Solicita tu demo o prueba</h4><p>Déjanos tus datos y te contactamos.</p></div></li>
+            <li><div><h4>Creamos tu negocio</h4><p>Con tu nombre, tu logo y tus 3 colores.</p></div></li>
+            <li><div><h4>Cargas tu información</h4><p>Servicios, profesionales, horarios y días especiales.</p></div></li>
+            <li><div><h4>Compartes tu enlace</h4><p>Tus clientes reservan desde tu propia web de reservas.</p></div></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="preguntas">
+    <div class="wrap faq-grid">
+      <div class="head" style="margin:0">
+        <span class="eyebrow">Preguntas frecuentes</span>
+        <h2 class="h2">Preguntas, <span class="soft">respuestas claras.</span></h2>
+        <p class="lead">¿Te queda otra duda? Escríbenos desde el formulario de abajo.</p>
+      </div>
+      <div class="faq">
+        <details open><summary>¿Mis clientes tienen que crear una cuenta?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>No. Reservan desde la web de tu negocio con su nombre y su celular, y reciben un código para consultar su cita en “Mi cita”.</p></details>
+        <details><summary>¿Desde qué número salen los mensajes de WhatsApp?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Desde el número de tu negocio. Se vincula escaneando un código QR, como WhatsApp Web.</p></details>
+        <details><summary>¿Puedo cambiar los mensajes y los recordatorios?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. Editas los textos con datos de la cita (cliente, servicio, profesional, fecha, hora, dirección y código), eliges con cuánta anticipación sale cada recordatorio y defines las horas de silencio.</p></details>
+        <details><summary>¿Sirve si tengo varios profesionales?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. Cada profesional tiene su agenda, su horario y su portafolio, y el cliente elige con quién atenderse.</p></details>
+        <details><summary>¿Puedo atender a clientes que llegan sin cita?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. La cola walk-in del panel ordena a quienes llegan sin reserva.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap">
+      <div class="closer">
+        <div class="closer-copy">
+          <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="56" height="56"></span>
+          <h2>Agenda fácil. Negocios que crecen.</h2>
+          <p>Déjanos tus datos y te mostramos Reservalope funcionando.</p>
+          <ul>
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>La web de reservas con la marca de tu negocio</li>
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>El panel para tu equipo y los reportes</li>
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>Las confirmaciones y recordatorios por WhatsApp</li>
+          </ul>
+          <div class="mailbox"><span>También puedes escribirnos a</span><b id="contacto-mail">vexastudio.contacto@gmail.com</b><button type="button" class="chip-ctl" id="copy-mail">Copiar correo</button></div>
+        </div>
+        <form id="lead" novalidate>
+          <div class="field full">
+            <span class="flbl" id="mode-lbl">¿Qué prefieres?</span>
+            <div class="seg" role="radiogroup" aria-labelledby="mode-lbl">
+              <input type="radio" name="modo" id="m-demo" value="demo" checked><label for="m-demo">Solicitar demo<small>Te lo mostramos</small></label>
+              <input type="radio" name="modo" id="m-prueba" value="prueba"><label for="m-prueba">Solicitar prueba<small>Lo usas tú mismo</small></label>
+            </div>
+          </div>
+          <div class="field"><label for="f-nombre">Tu nombre</label><input id="f-nombre" name="nombre" autocomplete="name" required><span class="err" id="e-nombre"></span></div>
+          <div class="field"><label for="f-negocio">Nombre del negocio</label><input id="f-negocio" name="negocio" autocomplete="organization" required><span class="err" id="e-negocio"></span></div>
+          <div class="field"><label for="f-rubro">Rubro</label>
+            <select id="f-rubro" name="rubro"><option>Barbería</option><option>Peluquería</option><option>Consultorio médico</option><option>Otro</option></select></div>
+          <div class="field"><label for="f-wa">Celular (WhatsApp)</label><input id="f-wa" name="whatsapp" type="tel" inputmode="numeric" maxlength="9" autocomplete="tel-national" placeholder="987 654 321" required><span class="err" id="e-wa"></span></div>
+          <div class="field full"><label for="f-mail">Correo electrónico</label><input id="f-mail" name="email" type="email" autocomplete="email" required><span class="err" id="e-mail"></span></div>
+          <input type="text" id="f-honey" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar demo</button><p class="err" id="f-error" role="alert"></p></div>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="#inicio" aria-label="Reservalope, inicio"><span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="40" height="40"></span><span class="word">reserva<span>lope</span></span></a>
+        <p>Agenda fácil. Negocios que crecen.</p>
+      </div>
+      <div><h4>Producto</h4><ul><li><a href="#plataforma">Plataforma</a></li><li><a href="#reservas">Reservas</a></li><li><a href="#whatsapp">WhatsApp</a></li><li><a href="#panel">Panel</a></li></ul></div>
+      <div><h4>Ideal para</h4><ul><li><a href="#rubros">Barberías</a></li><li><a href="#rubros">Peluquerías</a></li><li><a href="#rubros">Consultorios médicos</a></li></ul></div>
+      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar demo</a></li><li><a href="#contacto-mail">vexastudio.contacto@gmail.com</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
+    </div>
+    <div class="legal"><span>© 2026 Reservalope</span><span>Los ejemplos usan Navaja Norte, la barbería de demostración del sistema.</span></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const single=(wrap,btn)=>{wrap.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));btn.setAttribute('aria-pressed','true')};
+
+  /* Chat del hero: completo en reposo; el botón lo reproduce en orden */
+  const steps=[...document.querySelectorAll('#chat [data-step]')], typing=document.getElementById('typing');
+  let timers=[];
+  document.getElementById('replay').addEventListener('click',()=>{
+    timers.forEach(clearTimeout); timers=[]; typing.style.display='none';
+    if(reduce){steps.forEach(s=>s.classList.remove('hidden-step'));return}
+    steps.forEach(s=>s.classList.add('hidden-step'));
+    let t=300;
+    steps.forEach(s=>{
+      const incoming=s.classList.contains('in');
+      if(incoming){timers.push(setTimeout(()=>{s.before(typing);typing.style.display='flex'},t)); t+=1000}
+      timers.push(setTimeout(()=>{typing.style.display='none';s.classList.remove('hidden-step')},t));
+      t+=incoming?1000:700;
+    });
+  });
+
+  /* Demo reserva → agenda (servicios y barberos de Navaja Norte, citas de 9:00 a 20:00) */
+  const START=9*60, END=20*60, PX=0.9;
+  const staff=[{n:'Luis',c:'#4F46E5',i:'LU'},{n:'Andrés',c:'#0F766E',i:'AN'},{n:'Kevin',c:'#B45309',i:'KE'}];
+  const m=(h,mm)=>h*60+mm, fmt=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
+  const appts=[
+    [{s:m(9,0),d:45,v:'Corte de Cabello + Barba'},{s:m(11,0),d:45,v:'Corte de Cabello + Barba'},{s:m(15,0),d:30,v:'Corte Clásico / Fade'},{s:m(18,0),d:60,v:'Paquete Grooming Premium'}],
+    [{s:m(10,0),d:20,v:'Perfilado de Barba'},{s:m(12,0),d:45,v:'Corte de Cabello + Barba'},{s:m(17,0),d:30,v:'Corte Clásico / Fade'}],
+    [{s:m(9,30),d:30,v:'Corte Clásico / Fade'},{s:m(14,0),d:45,v:'Corte de Cabello + Barba'},{s:m(19,0),d:30,v:'Corte Clásico / Fade'}]
+  ];
+  let svc={min:45,price:45,name:'Corte de Cabello + Barba'}, pro=0, pick=null, lastNew=null;
+  const cal=document.getElementById('cal'), slotsEl=document.getElementById('slots'), sum1=document.getElementById('sum1'), sum2=document.getElementById('sum2'), book=document.getElementById('book'), live=document.getElementById('live');
+  cal.style.setProperty('--hr',(60*PX)+'px');
+
+  function renderCal(){
+    const H=(END-START)*PX;
+    let h='<div class="cal-col-h" aria-hidden="true"></div>'+staff.map(s=>`<div class="cal-col-h"><i style="background:${s.c}">${s.i}</i>${s.n}</div>`).join('');
+    h+='<div class="hours" style="height:'+H+'px" aria-hidden="true">';
+    for(let t=START+60;t<END;t+=60) h+=`<span style="top:${(t-START)*PX}px">${fmt(t)}</span>`;
+    h+='</div>';
+    staff.forEach((s,i)=>{
+      h+=`<div class="col" style="height:${H}px" role="list" aria-label="Agenda de ${s.n}">`;
+      appts[i].slice().sort((a,b)=>a.s-b.s).forEach(a=>{
+        const isNew=a===lastNew;
+        h+=`<div class="appt${isNew?' new':''}${a.d<=30?' short':''}" role="listitem" style="top:${(a.s-START)*PX+1}px;height:${a.d*PX-3}px;${isNew?'':'border-left-color:'+s.c}"><b>${isNew?'Tu reserva':fmt(a.s)}</b><span>${isNew?fmt(a.s)+' · ':''}${a.v}</span></div>`;
+      });
+      h+='</div>';
+    });
+    cal.innerHTML=h;
+  }
+  function free(i,dur){
+    const busy=appts[i], out=[];
+    for(let t=START;t+dur<=END;t+=15){
+      if(busy.every(b=>t+dur<=b.s||t>=b.s+b.d)) out.push(t);
+    }
+    const spaced=[];
+    out.forEach(t=>{if(!spaced.length||t-spaced[spaced.length-1]>=Math.max(dur,45)) spaced.push(t)});
+    return spaced.slice(0,8);
+  }
+  function renderSlots(){
+    const list=free(pro,svc.min);
+    if(pick!==null&&!list.includes(pick)) pick=null;
+    slotsEl.innerHTML=list.length?list.map(t=>`<button class="slot" type="button" aria-pressed="${t===pick}" data-t="${t}">${fmt(t)}</button>`).join(''):'<p class="empty">No quedan horas libres hoy con '+staff[pro].n+'.</p>';
+    sum1.textContent=svc.name+' · S/ '+svc.price;
+    sum2.textContent=pick===null?'Elige una hora':'Martes 20 · '+fmt(pick)+' con '+staff[pro].n;
+    book.disabled=pick===null;
+  }
+  document.getElementById('svc').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;single(e.currentTarget,b);svc={min:+b.dataset.min,price:+b.dataset.price,name:b.dataset.name};renderSlots()});
+  document.getElementById('pro').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;single(e.currentTarget,b);pro=+b.dataset.pro;pick=null;renderSlots()});
+  slotsEl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick=+b.dataset.t;renderSlots()});
+  book.addEventListener('click',()=>{
+    if(pick===null) return;
+    lastNew={s:pick,d:svc.min,v:svc.name};
+    appts[pro].push(lastNew);
+    live.textContent='Nueva reserva: '+fmt(pick)+' con '+staff[pro].n;
+    pick=null; renderCal(); renderSlots();
+    book.textContent='¡Reservado!'; setTimeout(()=>{book.textContent='Reservar'},1600);
+  });
+  pick=free(0,45).find(t=>t>=m(12,0))??null;
+  renderCal(); renderSlots();
+
+  /* Copiar correo de contacto */
+  const cm=document.getElementById('copy-mail');
+  cm.addEventListener('click',()=>{
+    const sel=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('contacto-mail'));const s=getSelection();s.removeAllRanges();s.addRange(r)};
+    try{navigator.clipboard.writeText('vexastudio.contacto@gmail.com').then(()=>{cm.textContent='Copiado'},sel)}catch(e){sel()}
+  });
+
+  /* CTAs preseleccionan demo o prueba */
+  const submit=document.getElementById('f-submit');
+  const setMode=md=>{document.getElementById(md==='prueba'?'m-prueba':'m-demo').checked=true;submit.textContent=md==='prueba'?'Solicitar prueba':'Solicitar demo'};
+  document.querySelectorAll('a[data-mode]').forEach(a=>a.addEventListener('click',()=>setMode(a.dataset.mode)));
+  document.querySelectorAll('input[name="modo"]').forEach(r=>r.addEventListener('change',()=>setMode(r.value)));
+
+  /* Formulario (celular peruano de 9 dígitos que empieza con 9, igual que en el sistema) */
+  const form=document.getElementById('lead');
+  const rules=[
+    ['f-nombre','e-nombre',v=>v.trim().length>1,'Escribe tu nombre.'],
+    ['f-negocio','e-negocio',v=>v.trim().length>1,'Escribe el nombre de tu negocio.'],
+    ['f-wa','e-wa',v=>/^9\d{8}$/.test(v.replace(/\s/g,'')),'Escribe un celular de 9 dígitos que empiece con 9.'],
+    ['f-mail','e-mail',v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),'Escribe un correo válido, por ejemplo nombre@negocio.com.']
+  ];
+  const check=([id,eid,fn,msg])=>{const el=document.getElementById(id),ok=fn(el.value);el.setAttribute('aria-invalid',ok?'false':'true');el.setAttribute('aria-describedby',eid);document.getElementById(eid).textContent=ok?'':msg;return ok};
+  rules.forEach(r=>document.getElementById(r[0]).addEventListener('blur',()=>{if(document.getElementById(r[0]).value)check(r)}));
+  // Las solicitudes llegan a vexastudio.contacto@gmail.com mediante FormSubmit (sin servidor propio)
+  const FORM_ENDPOINT='https://formsubmit.co/ajax/vexastudio.contacto@gmail.com';
+  const formErr=document.getElementById('f-error');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    formErr.textContent='';
+    const bad=rules.filter(r=>!check(r));
+    if(bad.length){document.getElementById(bad[0][0]).focus();return}
+    if(document.getElementById('f-honey').value) return; // bot
+    const v=id=>document.getElementById(id).value.trim();
+    const prueba=document.getElementById('m-prueba').checked;
+    const nombre=v('f-nombre').split(' ')[0].replace(/[<>&"]/g,'');
+    submit.disabled=true; const label=submit.textContent; submit.textContent='Enviando…';
+    try{
+      const res=await fetch(FORM_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({
+        _subject:'Reservalope · Nueva solicitud de '+(prueba?'prueba':'demo')+' · '+v('f-negocio'),
+        _template:'table', _captcha:'false',
+        Solicitud: prueba?'Prueba':'Demo', Nombre:v('f-nombre'), Negocio:v('f-negocio'), Rubro:v('f-rubro'),
+        Celular:v('f-wa').replace(/\s/g,''), Correo:v('f-mail'), _replyto:v('f-mail')
+      })});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||String(data.success)==='false') throw new Error(data.message||'Error');
+      form.innerHTML='<div class="done" role="status"><span class="ok"><svg aria-hidden="true"><use href="#i-check"/></svg></span><h3>¡Listo, '+nombre+'!</h3><p>'+(prueba?'Recibimos tu solicitud de prueba. Te responderemos desde vexastudio.contacto@gmail.com.':'Recibimos tu solicitud de demo. Te responderemos desde vexastudio.contacto@gmail.com para coordinar el día y la hora.')+'</p></div>';
+    }catch(err){
+      submit.disabled=false; submit.textContent=label;
+      formErr.textContent='No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a vexastudio.contacto@gmail.com.';
+    }
+  });
+})();
+</script>
+</body>
+</html>
