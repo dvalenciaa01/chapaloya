@@ -79,7 +79,7 @@ const Auth = {
 
   defaultGrants() {
     const g = {};
-    this.GRANTABLE.forEach(m => { g[m.key] = true; });
+    this.GRANTABLE.forEach(m => { g[m.key] = m.key !== 'audit'; }); // Historial: oculto hasta que el superadmin lo habilite
     return g;
   },
 
