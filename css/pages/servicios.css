@@ -79,7 +79,7 @@
 .service-cta:hover .ic { transform: translateX(3px); }
 .service-cta:focus-visible { outline-color: var(--black); }
 
-/* Servicio destacado (Asesoría IA) */
+/* Servicio destacado */
 .service-card.is-featured {
   grid-column: span 2;
   background: var(--black);

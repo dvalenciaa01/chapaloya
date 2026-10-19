@@ -15,7 +15,6 @@ const Guard = {
     ['[onclick*="CRM.deleteAppt"]', 'appointments.delete'],
     ['[onclick*="CRM.openWalkInModal"]', 'walkins.create'],
     ['[onclick*="CRM.setWalkInStatus"]', 'walkins.status'],
-    ['[onclick*="AIAdvisor.openForClient"]', 'ai.use'],
     ['[onclick*="CRM.openBarberProfileModal"], [onclick*="CRM.openAddHaircutPhotoModal"], [onclick*="CRM.deleteHaircutPhoto"], [onclick*="CRM.deleteBarberProfile"]', 'barbers.manage'],
     ['[onclick*="CRM.openServiceModal"], [onclick*="CRM.deleteService"]', 'services.manage'],
     ['[onclick*="CRM.openCustomerModal"]', 'customers.manage'],
@@ -175,15 +174,6 @@ const Guard = {
         if (typeof o === 'function') CRM[fn] = function (...a) { return Auth.can(perm) ? o.apply(CRM, a) : undefined; };
       });
 
-    /* ---- Asesoría IA ---- */
-    if (typeof AIAdvisor !== 'undefined') {
-      G.wrap(AIAdvisor, 'openForClient', 'ai.use');
-      G.wrap(AIAdvisor, 'selectWinningProposal', 'ai.use', (idx) => {
-        const p = AIAdvisor.currentProposals[idx];
-        return { action: 'Guardó una asesoría IA', detail: G.val('ai-client-name') + ' · ' + (p ? p.name : '') + ' · Barbero: ' + G.val('ai-active-barber') };
-      });
-    }
-
     /* ---- Paneles sin permiso: se quitan del DOM ---- */
     document.querySelectorAll('.crm-pane').forEach(p => {
       const tab = p.id.replace('crm-pane-', '');
@@ -200,7 +190,7 @@ const Guard = {
   },
 
   firstAllowedTab() {
-    const order = ['dashboard', 'appointments', 'walkins', 'ai-advisor', 'barbers', 'services', 'users', 'tenants'];
+    const order = ['dashboard', 'appointments', 'walkins', 'barbers', 'services', 'users', 'tenants'];
     return order.find(t => Auth.canTab(t) && document.getElementById('crm-pane-' + t)) || 'dashboard';
   },
 

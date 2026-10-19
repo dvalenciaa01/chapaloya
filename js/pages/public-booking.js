@@ -20,11 +20,6 @@ const PublicBooking = {
     document.head.appendChild(sc);
   },
 
-  aiOn() {
-    const f = (window.RESERVALOPE_CONFIG && window.RESERVALOPE_CONFIG.features) || {};
-    return !!f.aiAdvisor;
-  },
-
   esc(str) {
     return String(str == null ? '' : str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -100,7 +95,6 @@ const PublicBooking = {
             (specs ? '<div class="barber-specs"><span class="barber-specs-label">Especialidades</span><div class="specialty-tags-wrap">' + specs + '</div></div>' : '') +
             '<div class="barber-cta-group">' +
               '<button type="button" class="btn-golden" onclick="PublicBooking.bookWithBarber(\'' + this.jsArg(bp.name) + '\')">' + ic('calendar') + 'Reservar con ' + this.esc(bp.name) + '</button>' +
-              (this.aiOn() ? '<button type="button" class="btn-dark" onclick="PublicBooking.bookAIWithBarber(\'' + this.jsArg(bp.name) + '\')">' + ic('sparkles') + 'Asesoría de imagen + IA</button>' : '') +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -141,10 +135,6 @@ const PublicBooking = {
     }
   },
 
-  bookAIWithBarber(barberName) {
-    AppRouter.goPublic('reservar', { barber: barberName, service: 's-ia' });
-  },
-
   openWork(barberId, workId) {
     const bp = DB.state.barberProfiles.find(b => b.id === barberId);
     const w = bp && bp.works.find(x => x.id === workId);
@@ -168,11 +158,11 @@ const PublicBooking = {
 
   /* ---------------- Servicios ---------------- */
   serviceCard(s, cur) {
-    const featured = s.id === 's-ia';
+    const featured = s.featured;
     return '<article class="service-card' + (featured ? ' is-featured' : '') + ' reveal">' +
       '<div class="service-card-top">' +
-        '<span class="service-icon">' + ic(featured ? 'sparkles' : 'scissors') + '</span>' +
-        '<span class="service-cat">' + this.esc(featured ? 'Nuevo · ' + (s.category || '') : (s.category || 'Servicio')) + '</span>' +
+        '<span class="service-icon">' + ic('scissors') + '</span>' +
+        '<span class="service-cat">' + this.esc(s.category || 'Servicio') + '</span>' +
       '</div>' +
       '<h3 class="service-name">' + this.esc(s.name) + '</h3>' +
       '<p class="service-desc">' + this.esc(s.desc || '') + '</p>' +
@@ -190,7 +180,7 @@ const PublicBooking = {
 
   renderPublicViews() {
     const cur = DB.state.settings.currency;
-    const ordered = DB.state.services.slice().sort((a, b) => (a.id === 's-ia' ? -1 : b.id === 's-ia' ? 1 : 0));
+    const ordered = DB.state.services.slice().sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     const srvHTML = ordered.map(s => this.serviceCard(s, cur)).join('');
 
     // En Inicio: destacado (2 columnas) + 4 servicios = 2 filas completas

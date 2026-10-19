@@ -239,7 +239,7 @@ const Reservalope = {
       this.kpi({ label: 'Cancelaciones', value: Charts.pct(cur.cancelRate), delta: rateD(cur.cancelRate, prev.cancelRate), pp: true, goodUp: false, sub: cur.cancelled + ' citas' }),
       this.kpi({ label: 'No asistió', value: Charts.pct(cur.noShowRate), delta: rateD(cur.noShowRate, prev.noShowRate), pp: true, goodUp: false, sub: cur.noShow + ' citas' }),
       this.kpi({ label: 'Walk-in atendidos', value: cur.walkins.toLocaleString('es-PE'), delta: D(cur.walkins, prev.walkins) }),
-      this.kpi({ label: 'Asesorías IA', value: cur.ai.toLocaleString('es-PE'), delta: D(cur.ai, prev.ai) })
+      this.kpi({ label: 'Reservas web', value: Charts.pct(cur.webShare), delta: rateD(cur.webShare, prev.webShare), pp: true, sub: cur.web + ' citas' })
     ].join('');
   },
 
@@ -525,7 +525,7 @@ const Reservalope = {
     ].map(([k, v]) => '<li><span>' + k + '</span><strong>' + v + '</strong></li>').join('');
 
     let demo = 0;
-    Object.values(root.data).forEach(s => ['appointments', 'walkIns', 'aiConsultations', 'customers'].forEach(k => { demo += (s[k] || []).filter(x => x.demo).length; }));
+    Object.values(root.data).forEach(s => ['appointments', 'walkIns', 'customers'].forEach(k => { demo += (s[k] || []).filter(x => x.demo).length; }));
     const demoTenants = root.tenants.filter(t => t.demo);
     const txt = document.getElementById('rl-demo-text');
     const btn = document.getElementById('rl-demo-clear');
@@ -542,7 +542,7 @@ const Reservalope = {
     if (typeof DemoSeed === 'undefined') return UI.toast('En producción no hay datos de demostración que borrar.');
     UI.confirm({
       title: 'Borrar datos de demostración',
-      message: 'Se eliminarán las citas, walk-in, asesorías y clientes de ejemplo, y la barbería de ejemplo con sus usuarios. Tus datos reales se conservan.',
+      message: 'Se eliminarán las citas, walk-in y clientes de ejemplo, y la barbería de ejemplo con sus usuarios. Tus datos reales se conservan.',
       confirmText: 'Borrar datos demo', danger: true
     }).then(ok => {
       if (!ok) return;
@@ -573,13 +573,13 @@ const Reservalope = {
   /* ---------------- CSV comparativo ---------------- */
   exportCSV() {
     const r = this.range(), p = Analytics.previous(r);
-    const head = ['Barbería', 'Enlace', 'Estado', 'Plan', 'Monto mensual', 'Vence', 'Moneda', 'Ingresos', 'Ingresos período anterior', 'Variación %', 'Citas', 'Completadas', 'Canceladas', 'No asistió', '% Cancelación', 'Walk-in', 'Ticket promedio', 'Clientes únicos', 'Asesorías IA', '% Reservas web', 'Última actividad'];
+    const head = ['Barbería', 'Enlace', 'Estado', 'Plan', 'Monto mensual', 'Vence', 'Moneda', 'Ingresos', 'Ingresos período anterior', 'Variación %', 'Citas', 'Completadas', 'Canceladas', 'No asistió', '% Cancelación', 'Walk-in', 'Ticket promedio', 'Clientes únicos', '% Reservas web', 'Última actividad'];
     const rows = DB.load().tenants.map(t => {
       const m = Analytics.tenantMetrics(t, r), pm = Analytics.tenantMetrics(t, p);
       const d = Analytics.delta(m.revenue, pm.revenue);
       return [t.name, t.slug, t.status === 'ACTIVE' ? 'Activa' : 'Suspendida', (DB.PLANS[t.plan] || {}).label, t.planFee, t.subscriptionEnd, t.currency,
         Math.round(m.revenue), Math.round(pm.revenue), d == null ? '' : (d * 100).toFixed(1), m.appts, m.completed, m.cancelled, m.noShow,
-        m.appts ? ((m.cancelled / m.appts) * 100).toFixed(1) : '', m.walkins, Math.round(m.avgTicket), m.clients, m.ai,
+        m.appts ? ((m.cancelled / m.appts) * 100).toFixed(1) : '', m.walkins, Math.round(m.avgTicket), m.clients,
         m.webShare == null ? '' : (m.webShare * 100).toFixed(1), Analytics.lastActivity(t) || ''];
     });
     const csv = [['Período', r.from + ' a ' + r.to, 'Comparado con', p.from + ' a ' + p.to], head].concat(rows)

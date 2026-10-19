@@ -452,7 +452,7 @@ const AdminUI = {
           '</div>' +
           '<div class="palette-preview" id="m-tn-preview" aria-label="Vista previa de la paleta">' +
             '<div class="pp-header"><span class="pp-logo">' + (t ? UI.esc(t.name) : 'Tu barbería') + '</span><span class="pp-cta">Reservar</span></div>' +
-            '<div class="pp-hero"><span class="pp-eyebrow">Servicios</span><strong>Estilo impecable</strong><small>Cortes, barba y asesoría de imagen.</small><span class="pp-btn">Reservar cita</span></div>' +
+            '<div class="pp-hero"><span class="pp-eyebrow">Servicios</span><strong>Estilo impecable</strong><small>Cortes, barba y grooming.</small><span class="pp-btn">Reservar cita</span></div>' +
             '<div class="pp-light"><strong>Corte clásico</strong><small>S/ 32 · 30 min</small></div>' +
           '</div>' +
         '</div>' +

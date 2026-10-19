@@ -17,11 +17,11 @@ En producción las cuentas se crean en Supabase Auth (ver [supabase/README.md](s
 | Panel principal | ✔ | ✔ (ingresos solo si tiene Ventas) | ✔ sin ingresos |
 | Citas | ✔ | Ver, crear, cambiar estado, eliminar | Ver, crear, cambiar estado (no eliminar) |
 | Walk-in | ✔ | ✔ | Ver, crear, pasar a sillón y finalizar |
-| Asesoría IA | ✔ | Si se le otorga | ✔ (solo como su propio barbero) |
 | Servicios | ✔ | ✔ | — |
 | Barberos y portafolio | ✔ | ✔ | — |
 | Usuarios | Todos | Solo personal de su barbería | — |
-| Ventas · Clientes · Configuración · Historial | ✔ | Si se le otorga | — |
+| Ventas · Clientes · Configuración | ✔ | Si se le otorga | — |
+| Historial | ✔ | Oculto hasta que el superadmin se lo habilite | — |
 | Reportes (PDF / Excel) | ✔ todas las barberías | Si se le otorga (solo su barbería; montos solo si también tiene Ventas) | — |
 | Barberías y permisos | ✔ | — | — |
 

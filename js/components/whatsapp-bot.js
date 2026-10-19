@@ -13,7 +13,6 @@ const WhatsAppBot = {
   },
   toggle() {},
   sendConfirmation() {},
-  sendAIConsultationReport() {},
   reply() {},
   render() {}
 };

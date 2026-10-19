@@ -20,10 +20,7 @@ const AppRouter = {
     window.location.href = targetFile + (query ? '?' + query : '');
   },
 
-  openCRM(defaultTab = 'dashboard', clientContext = null) {
-    if (clientContext) {
-      sessionStorage.setItem('GOLDEN_AI_CLIENT_CTX', JSON.stringify(clientContext));
-    }
+  openCRM(defaultTab = 'dashboard') {
     if (defaultTab) {
       sessionStorage.setItem('GOLDEN_CRM_TARGET_TAB', defaultTab);
     }
@@ -31,23 +28,12 @@ const AppRouter = {
     const currentPage = document.body.getAttribute('data-page');
     if (currentPage === 'crm' && typeof CRM !== 'undefined') {
       if (defaultTab) CRM.switchTab(defaultTab);
-      if (clientContext && typeof AIAdvisor !== 'undefined') {
-        AIAdvisor.applyClientContext(clientContext);
-      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     const query = defaultTab ? '?tab=' + encodeURIComponent(defaultTab) : '';
     window.location.href = 'crm.html' + query;
-  },
-
-  openAIAdvisorForClient(clientName, phone, barberName) {
-    this.openCRM('ai-advisor', {
-      clientName: clientName || 'Cliente en Sillón',
-      phone: phone || '987654321',
-      barberName: barberName || 'Carlos'
-    });
   },
 
   consumeNavParams() {
@@ -70,13 +56,6 @@ const AppRouter = {
   }
 };
 
-if (typeof window.AIAdvisor === 'undefined') {
-  window.AIAdvisor = {
-    openForClient(clientName, phone, barberName) {
-      AppRouter.openAIAdvisorForClient(clientName, phone, barberName);
-    }
-  };
-}
 /* --- Interacciones globales de la interfaz --------------------------------- */
 const SiteUI = {
   init() {
