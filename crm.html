@@ -433,6 +433,57 @@
             <p class="form-error" id="set-exc-error" role="alert"></p>
             <div id="set-exc-list"></div>
           </div>
+
+          <div class="crm-section-card sch-card" id="wa-card">
+            <div class="card-head"><h3>WhatsApp</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
+            <p class="card-text">Con el WhatsApp de la barbería se envían la confirmación y los recordatorios a los clientes que lo aceptan, y un aviso al equipo por cada reserva. El cliente confirma su asistencia respondiendo CONFIRMAR.</p>
+            <div class="wa-link">
+              <div class="wa-qr" id="wa-qr" hidden></div>
+              <div class="wa-link-text">
+                <p id="wa-link-msg" class="card-text"></p>
+                <div class="btn-row">
+                  <button type="button" class="btn-golden" id="wa-btn-link" onclick="CRM.waRequest('LINK')"><i data-icon="refresh"></i>Vincular WhatsApp</button>
+                  <button type="button" class="btn-dark" id="wa-btn-logout" onclick="CRM.waRequest('LOGOUT')" hidden>Desvincular</button>
+                </div>
+              </div>
+            </div>
+
+            <label class="check-line wa-enable"><input type="checkbox" id="wa-enabled" oninput="CRM.waDirty = true" />
+              <span>Enviar mensajes automáticos por WhatsApp</span></label>
+
+            <div class="form-grid-2">
+              <div>
+                <label class="field-lbl" for="wa-notify">Celulares que reciben el aviso de cada reserva</label>
+                <input type="text" id="wa-notify" class="input-dark" placeholder="Ej. 999 111 222, 988 777 666" oninput="CRM.waDirty = true" />
+                <p class="field-hint">Separa los números con comas. Déjalo vacío si no quieres avisos.</p>
+              </div>
+              <div>
+                <label class="field-lbl" for="wa-quiet-from">No enviar recordatorios entre</label>
+                <div class="sch-inline"><input type="time" step="300" id="wa-quiet-from" class="input-dark sch-time" oninput="CRM.waDirty = true" /><span>y</span><input type="time" step="300" id="wa-quiet-to" class="input-dark sch-time" oninput="CRM.waDirty = true" /></div>
+                <p class="field-hint">Un recordatorio que caiga en ese horario sale antes, el día anterior.</p>
+              </div>
+            </div>
+
+            <div class="wa-msg">
+              <label class="field-lbl" for="wa-tpl-confirm">Mensaje al reservar</label>
+              <textarea id="wa-tpl-confirm" class="input-dark" rows="10" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+            </div>
+            <div class="field-lbl wa-sub">Recordatorios</div>
+            <div id="wa-reminders"></div>
+            <button type="button" class="btn-dark" onclick="CRM.waAddReminder()"><i data-icon="plus"></i>Agregar recordatorio</button>
+            <p class="field-hint wa-vars">Datos que puedes usar en los textos: {cliente} {servicio} {barbero} {fecha} {hora} {cuando} {barberia} {direccion} {precio} {codigo}. {cuando} dice "hoy", "mañana" o la fecha.</p>
+
+            <p class="form-error" id="wa-error" role="alert"></p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWhatsApp()"><i data-icon="check"></i>Guardar WhatsApp</button></div>
+
+            <div class="wa-test">
+              <label class="field-lbl" for="wa-test-num">Enviar un mensaje de prueba a</label>
+              <div class="sch-inline"><input type="tel" id="wa-test-num" class="input-dark" placeholder="999 111 222" inputmode="numeric" /><button type="button" class="btn-dark" onclick="CRM.waTest()">Enviar prueba</button></div>
+            </div>
+
+            <div class="field-lbl wa-sub">Últimos envíos</div>
+            <div id="wa-history" class="sch-exc-list"></div>
+          </div>
         </div>
 
         <!-- ================= USUARIOS Y ACCESOS ================= -->
