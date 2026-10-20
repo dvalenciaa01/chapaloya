@@ -16,8 +16,8 @@ Qué hace:
 
 Tiene que estar encendido todo el día. Sirve:
 
-- **Una VM gratuita** (recomendado): Oracle Cloud "Always Free", Ubuntu 22.04 o 24.04, la más pequeña alcanza.
-- **Una computadora de la barbería** que nunca se apague.
+- **Una computadora de la barbería** con Windows que no se apague: lo más simple, ver [En una computadora con Windows](#en-una-computadora-con-windows-sin-servidor).
+- **Una VM** con Ubuntu: gratis en Oracle Cloud "Always Free", o un VPS pequeño de pago (unos 5 dólares al mes).
 
 No sirven los hostings que "duermen" cuando no hay visitas (Render gratis, Vercel, etc.): se cae la sesión de WhatsApp.
 
@@ -101,9 +101,25 @@ sudo systemctl restart reservalope-bot
 
 Las sesiones vinculadas se conservan (carpeta `bot/sessions/`, cifrada con `BOT_SESSION_KEY`).
 
-## En una computadora con Windows
+## En una computadora con Windows (sin servidor)
 
-Instala Node.js 22 desde nodejs.org, descarga el repositorio, abre una terminal en la carpeta `bot`, crea el `.env` como en el paso 3 y ejecuta `npm ci --omit=dev` y luego `npm start`. La ventana debe quedar abierta; si la computadora se reinicia, vuelve a ejecutar `npm start`.
+Sirve cualquier PC de la barbería con Windows 10 u 11 e internet. Mientras la PC esté encendida, los mensajes salen. Si se apaga, quedan en cola y salen al volver a encenderla, salvo los recordatorios cuya cita ya pasó.
+
+1. **Que no se suspenda:** Configuración → Sistema → Inicio/apagado y batería (o *Energía*) → "Suspender" en **Nunca** cuando está enchufada.
+2. **Node.js:** descarga la versión **22 LTS** de https://nodejs.org e instálala con las opciones por defecto.
+3. **El bot:** en https://github.com/dvalenciaa01/chapaloya pulsa **Code → Download ZIP**, descomprímelo en `C:\reservalope` y entra a la carpeta `bot`.
+4. **La clave de las sesiones:** abre **PowerShell** y ejecuta:
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   Copia el resultado (64 caracteres) y guárdalo en un lugar seguro.
+5. **El archivo `.env`:** en la carpeta `bot`, copia `.env.example`, renombra la copia como `.env` y ábrela con el Bloc de notas. Completa `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `BOT_SESSION_KEY` (la del paso 4) y guarda. Si Windows la guarda como `.env.txt`, no pasa nada: el bot la corrige solo.
+6. **Encenderlo:** doble clic en **`iniciar.bat`**. La primera vez instala lo que necesita. Cuando diga `Bot de Reservalope iniciado`, ya está. **No cierres esa ventana** (puedes minimizarla).
+7. **Que arranque solo al prender la PC:** pulsa `Windows + R`, escribe `shell:startup` y Enter. En la carpeta que se abre, haz clic derecho → Nuevo → Acceso directo → elige `C:\reservalope\chapaloya-main\bot\iniciar.bat`.
+
+Luego vincula el WhatsApp desde el CRM, como en el paso 6 de arriba.
+
+Para actualizar: descarga el ZIP de nuevo, reemplaza la carpeta **conservando tu `.env` y la carpeta `sessions`**, y vuelve a abrir `iniciar.bat`.
 
 ## Seguridad
 

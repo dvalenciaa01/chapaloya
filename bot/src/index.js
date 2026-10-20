@@ -100,6 +100,17 @@ async function release(id) {
   }).eq('id', id);
 }
 
+// Recordatorios y confirmaciones de citas que ya empezaron
+async function expiredReminders(rows) {
+  const ids = [...new Set(rows.filter((m) => (m.kind === 'REMINDER' || m.kind === 'CLIENT_CONFIRM') && m.appointment_id)
+    .map((m) => m.appointment_id))];
+  if (!ids.length) return new Set();
+  const { data, error } = await db.from('appointments').select('id, starts_at').in('id', ids);
+  if (error) { log.error({ err: error.message }, 'No se pudo revisar la hora de las citas'); return new Set(); }
+  const past = new Set((data || []).filter((a) => new Date(a.starts_at) <= new Date()).map((a) => a.id));
+  return new Set(rows.filter((m) => past.has(m.appointment_id) && (m.kind === 'REMINDER' || m.kind === 'CLIENT_CONFIRM')).map((m) => m.id));
+}
+
 async function runOutbox() {
   if (stopping) return;
   if (outboxBusy) { outboxAgain = true; return; }
@@ -111,7 +122,13 @@ async function runOutbox() {
       if (!ready.length) break;
       const { data: rows, error } = await db.rpc('bot_tomar_mensajes', { p_limit: 20, p_tenants: ready });
       if (error) { log.error({ err: error.message }, 'bot_tomar_mensajes falló'); break; }
+      const expired = await expiredReminders(rows || []);
       for (const m of rows || []) {
+        if (expired.has(m.id)) {
+          // El bot estuvo apagado y la cita ya pasó: el recordatorio ya no sirve
+          await db.from('wa_outbox').update({ status: 'CANCELLED', locked_at: null, last_error: 'La cita ya pasó' }).eq('id', m.id);
+          continue;
+        }
         if (stopping) { await release(m.id); continue; }
         const s = sessions.get(m.tenant_id);
         if (!s || !s.connected) { await release(m.id); continue; }

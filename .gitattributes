@@ -10,3 +10,4 @@
 
 # Librerías de terceros minificadas: sin diff y fuera de las estadísticas de lenguaje
 js/vendor/** -diff linguist-vendored
+*.bat text eol=crlf
