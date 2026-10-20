@@ -10,6 +10,17 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem El bot necesita Node 22 o superior. Si el que esta primero en el PATH es
+rem mas antiguo (por ejemplo, por nvm), usar el instalado en Program Files.
+node -e "process.exit(+process.versions.node.split('.')[0] < 22 ? 1 : 0)"
+if errorlevel 1 if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%ProgramFiles%\nodejs;%PATH%"
+node -e "process.exit(+process.versions.node.split('.')[0] < 22 ? 1 : 0)"
+if errorlevel 1 (
+  echo Este bot necesita Node.js 22 o superior. Instala la version LTS desde https://nodejs.org
+  pause
+  exit /b 1
+)
+
 rem El Bloc de notas a veces guarda el archivo como .env.txt
 if not exist ".env" if exist ".env.txt" ren ".env.txt" ".env"
 if not exist ".env" (
