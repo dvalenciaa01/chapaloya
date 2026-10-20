@@ -3,7 +3,7 @@ chcp 65001 >nul
 title Bot de WhatsApp - Reservalope
 cd /d "%~dp0"
 
-where node >/dev/null 2>nul
+where node >nul 2>nul
 if errorlevel 1 (
   echo Falta instalar Node.js 22. Descargalo de https://nodejs.org e instalalo con las opciones por defecto.
   pause
