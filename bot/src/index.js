@@ -34,7 +34,7 @@ const lock = acquireLock(join(botDir, 'bot.lock'));
 if (!lock.ok) {
   const pid = lock.holder && lock.holder.pid;
   console.error(`Ya hay un bot de Reservalope encendido en esta computadora${pid ? ` (proceso ${pid})` : ''}.`);
-  console.error('No se abre otro: dos bots a la vez desconectan el WhatsApp de las barberías.');
+  console.error('No se abre otro: dos bots a la vez desconectan el WhatsApp de los negocios.');
   process.exit(EXIT.OTRA_INSTANCIA);
 }
 process.on('exit', () => lock.release());
@@ -328,7 +328,7 @@ function startWorker(tenantId, items, maybeMore) {
   const w = { queue: items, current: null, cancelled: false, promise: null };
   workers.set(tenantId, w);
   w.promise = runWorker(tenantId, w)
-    .catch((e) => log.error({ barberia: tenantId, err: e.message }, 'Error en el envío de la barbería'))
+    .catch((e) => log.error({ barberia: tenantId, err: e.message }, 'Error en el envío del negocio'))
     .finally(() => {
       if (workers.get(tenantId) === w) workers.delete(tenantId);
       if (maybeMore && !w.cancelled) kickOutbox(500);       // puede quedar más en la cola

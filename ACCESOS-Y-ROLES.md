@@ -1,10 +1,10 @@
-# Accesos, roles y barberías
+# Accesos, roles y negocios
 
 ## Cuentas iniciales
 Las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.md)) o desde **Usuarios y accesos**. Cada cuenta **debe cambiar su contraseña temporal** en el primer ingreso: hasta hacerlo, la base de datos no le da acceso a ningún dato.
 
-- El **superadministrador** entra a **Reservalope** (`reservalope.html`), su consola propia. Desde ahí puede abrir el CRM de cualquier barbería y volver con el botón "Reservalope".
-- Administradores y personal entran directo al CRM de su barbería (`crm.html`).
+- El **superadministrador** entra a **Reservalope** (`reservalope.html`), su consola propia. Desde ahí puede abrir el CRM de cualquier negocio y volver con el botón "Reservalope".
+- Administradores y personal entran directo al CRM de su negocio (`crm.html`).
 
 > Cambia las contraseñas iniciales antes de mostrar el sistema a terceros.
 
@@ -14,47 +14,48 @@ Las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.
 |---|---|---|---|
 | Panel principal | ✔ | ✔ (ingresos solo si tiene Ventas) | ✔ sin ingresos |
 | Citas | ✔ | Ver, crear, cambiar estado, eliminar | Ver, crear, cambiar estado (no eliminar) |
-| Walk-in | ✔ | ✔ | Ver, crear, pasar a sillón y finalizar |
+| Walk-in | ✔ | ✔ | Ver, crear, pasar a atención y finalizar |
 | Servicios | ✔ | ✔ | — |
-| Barberos y portafolio | ✔ | ✔ | — |
-| Usuarios | Todos | Solo personal de su barbería | — |
+| Profesionales y portafolio | ✔ | ✔ | — |
+| Usuarios | Todos | Solo personal de su negocio | — |
 | Ventas · Clientes · Configuración | ✔ | Si se le otorga | — |
 | Historial | ✔ | Oculto hasta que el superadmin se lo habilite | — |
-| Reportes (PDF / Excel) | ✔ todas las barberías | Si se le otorga (solo su barbería; montos solo si también tiene Ventas) | — |
-| Barberías y permisos | ✔ | — | — |
+| Reportes (PDF / Excel) | ✔ todos los negocios | Si se le otorga (solo su negocio; montos solo si también tiene Ventas) | — |
+| Negocios y permisos | ✔ | — | — |
 
-- **Personal vinculado a un barbero:** solo ve y gestiona *sus* citas. Sin vínculo (por ejemplo, recepción) ve todas las citas de su barbería.
+- **Personal vinculado a un profesional:** solo ve y gestiona *sus* citas. Sin vínculo (por ejemplo, recepción) ve todas las citas de su negocio.
 - **La cola walk-in** es compartida: todo el personal la ve completa.
-- **Un administrador** nunca puede crear otros administradores, ver otra barbería ni cambiar sus propios permisos.
+- **Un administrador** nunca puede crear otros administradores, ver otro negocio ni cambiar sus propios permisos.
 
 ## Reservalope (consola del superadministrador)
 | Sección | Qué muestra |
 |---|---|
-| Dashboard global | Periodo (hoy, 7 días, 30 días, mes, 90 días o rango propio) comparado con el periodo anterior. Ingresos, citas, completadas, cancelación, no-show, walk-in, clientes, ticket promedio, canal web vs CRM, ranking de barberías, MRR y suscripciones. |
-| Barberías | Tabla comparativa de todas las barberías, con exportación a CSV. |
-| Ficha de barbería | Paleta, KPIs, tendencia, barberos (ocupación), servicios, estados, horas pico, próximas citas, checklist de configuración, usuarios y actividad. |
-| Reportes | Una barbería o todas (comparativo), con filtros y descarga en PDF o Excel. También desde el botón "Reportes" de cada ficha. |
+| Dashboard global | Periodo (hoy, 7 días, 30 días, mes, 90 días o rango propio) comparado con el periodo anterior. Ingresos, citas, completadas, cancelación, no-show, walk-in, clientes, ticket promedio, canal web vs CRM, ranking de negocios, MRR y suscripciones. |
+| Negocios | Tabla comparativa de todos los negocios, con exportación a CSV. |
+| Ficha del negocio | Paleta, KPIs, tendencia, profesionales (ocupación), servicios, estados, horas pico, próximas citas, checklist de configuración, usuarios y actividad. |
+| Reportes | Un negocio o todos (comparativo), con filtros y descarga en PDF o Excel. También desde el botón "Reportes" de cada ficha. |
 | Alertas | Suscripción por vencer o vencida, cancelación/no-show altos, sin actividad 7 días, configuración incompleta, cuentas bloqueadas, almacenamiento alto. |
-| Usuarios y accesos · Historial | Igual que antes, para todas las barberías. |
+| Usuarios y accesos · Historial | Igual que antes, para todos los negocios. |
 | Plataforma | Almacenamiento usado y respaldo (sin contraseñas). |
 
-- Si las barberías usan monedas distintas, el total global las suma y muestra un aviso.
+- Si los negocios usan monedas distintas, el total global las suma y muestra un aviso.
 - Una suscripción vencida muestra un aviso en el CRM y en la consola. Las reservas web siguen 7 días después del vencimiento y luego se pausan hasta renovar.
-- Precios de plan (Básico S/ 79, Pro S/ 149, Premium S/ 249) son valores de ejemplo editables por barbería.
+- Precios de plan (Básico S/ 79, Pro S/ 149, Premium S/ 249) son valores de ejemplo editables por negocio.
 
-## Barberías
-- Cada barbería tiene su web: `index.html?b=enlace` (ej. `index.html?b=golden`, `index.html?b=navaja-norte`). El enlace se mantiene al navegar.
-- El superadministrador crea barberías con: nombre, enlace, **paleta de 3 colores**, logo, dirección, teléfono, horario, moneda, plan, vencimiento y contacto del dueño.
+## Negocios
+- Cada negocio tiene su web: `index.html?b=enlace` (ej. `index.html?b=golden`, `index.html?b=navaja-norte`). El enlace se mantiene al navegar.
+- El superadministrador crea negocios con: nombre, enlace, **paleta de 3 colores**, logo, dirección, teléfono, horario, moneda, plan, vencimiento y contacto del dueño.
 - **Paleta:** primario (fondo), secundario (acento: botones y resaltados) y terciario (texto). Se guarda solo si el primario es más oscuro que el terciario, el texto tiene contraste ≥ 7:1 y el acento ≥ 4.5:1 sobre el fondo. La vista previa se actualiza al instante.
-- **Suspender** una barbería oculta su web ("no disponible") y bloquea el ingreso de su personal. Los datos se conservan.
-- Una barbería nueva empieza con el catálogo de servicios base y sin barberos. Su web muestra avisos amables hasta que se configure.
+- **Suspender** un negocio oculta su web ("no disponible") y bloquea el ingreso de su personal. Los datos se conservan.
+- Un negocio nuevo empieza con el catálogo de servicios base y sin profesionales. Su web muestra avisos amables hasta que se configure.
+- **Rubro:** cada negocio elige su rubro (barbería, salón de belleza, spa, uñas, consultorio médico, clínica dental, psicología, veterinaria, tatuajes, fitness u otro). El rubro decide las palabras que ven el público y el equipo: "barbero" o "doctor", "cliente" o "paciente", "servicio" o "consulta", etc. El administrador con el permiso Configuración (o el superadministrador) puede cambiar el rubro y personalizar esas palabras; la base de datos rechaza el cambio a cualquier otra cuenta.
 
 ## Reportes (PDF y Excel)
-- **Dónde:** CRM › Reportes (administrador con el permiso Reportes y superadministrador) y Reservalope › Reportes (por barbería o todas).
-- **Filtros:** periodo (hoy, 7 días, 30 días, este mes, 90 días o fechas propias), barbería (solo Reservalope), barbero, servicio, estado, canal (web, CRM, presencial), tipo (citas, walk-in o ambos) y cliente por nombre o teléfono.
-- **Contenido (se elige):** Resumen ejecutivo (indicadores vs. periodo anterior, por día y por servicio; en Reservalope además el comparativo por barbería) · Ventas e ingresos · Citas y walk-in · Barberos y clientes.
+- **Dónde:** CRM › Reportes (administrador con el permiso Reportes y superadministrador) y Reservalope › Reportes (por negocio o todos).
+- **Filtros:** periodo (hoy, 7 días, 30 días, este mes, 90 días o fechas propias), negocio (solo Reservalope), profesional, servicio, estado, canal (web, CRM, presencial), tipo (citas, walk-in o ambos) y cliente por nombre o teléfono.
+- **Contenido (se elige):** Resumen ejecutivo (indicadores vs. periodo anterior, por día y por servicio; en Reservalope además el comparativo por negocio) · Ventas e ingresos · Citas y walk-in · Profesionales y clientes.
 - **Vista previa** en pantalla con los mismos números del archivo (muestra 15 filas por tabla; las descargas incluyen todas).
-- **PDF:** horizontal A4, con logo, nombre y colores de la barbería, filtros aplicados, quién lo generó, gráfico de ingresos por día y número de página.
+- **PDF:** horizontal A4, con logo, nombre y colores del negocio, filtros aplicados, quién lo generó, gráfico de ingresos por día y número de página.
 - **Excel:** hoja Resumen + una hoja por tabla, con filtros de columna, encabezado fijo, fechas reales y formato de moneda.
 - Un administrador **sin** el permiso de Ventas genera reportes sin montos (sin ingresos, ticket ni gasto).
 - Cada descarga queda en el **Historial** ("Exportó un reporte": formato, contenido, periodo y filtros).
@@ -67,7 +68,7 @@ Las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.
 
 ## Reglas de agenda
 - No se puede reservar en días que ya pasaron ni en horarios de hoy que ya pasaron (web y CRM).
-- Los horarios ocupados para ese barbero aparecen bloqueados ("Ocupado"); los pasados, como "Ya pasó".
+- Los horarios ocupados para ese profesional aparecen bloqueados ("Ocupado"); los pasados, como "Ya pasó".
 - Si el día elegido ya no tiene horarios libres, la web salta al siguiente día disponible y lo avisa.
 - La validación se repite al guardar, así que manipular el formulario no permite saltarse la regla.
 
@@ -81,4 +82,4 @@ Las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.
 - Los permisos los aplica la base de datos (RLS), no solo la pantalla.
 
 ## Historial de actividad
-Registra inicios de sesión, intentos fallidos, bloqueos, citas, walk-in, barberos, fotos, servicios, clientes, usuarios, permisos, barberías, configuración y reservas web. Se puede filtrar y exportar a CSV.
+Registra inicios de sesión, intentos fallidos, bloqueos, citas, walk-in, profesionales, fotos, servicios, clientes, usuarios, permisos, negocios, configuración y reservas web. Se puede filtrar y exportar a CSV.

@@ -1,11 +1,11 @@
 # Bot de WhatsApp de Reservalope
 
-Programa que envía los mensajes de WhatsApp de todas las barberías y recibe sus respuestas. Usa el WhatsApp de cada barbería, vinculado como "dispositivo" (igual que WhatsApp Web).
+Programa que envía los mensajes de WhatsApp de todos los negocios y recibe sus respuestas. Usa el WhatsApp de cada negocio, vinculado como "dispositivo" (igual que WhatsApp Web).
 
 Qué hace:
 
-- **Envía la cola `wa_outbox`:** el aviso al equipo por cada reserva, cancelación o cambio; la confirmación al cliente; los recordatorios; y los mensajes de prueba. Cada barbería envía por su lado, esperando entre 8 y 20 segundos entre un mensaje y otro: si una barbería tiene mucha cola, no retrasa a las demás.
-- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "confirmar" y el código, si tiene varias citas), la cita queda **Confirmada** y se le responde una vez. Si escribe **BAJA**, deja de recibir recordatorios. Cualquier otro mensaje no se toca: lo contesta la barbería desde su celular. Si un mismo número escribe muchas veces seguidas (más de 5 en 10 minutos), el resto se ignora.
+- **Envía la cola `wa_outbox`:** el aviso al equipo por cada reserva, cancelación o cambio; la confirmación al cliente; los recordatorios; y los mensajes de prueba. Cada negocio envía por su lado, esperando entre 8 y 20 segundos entre un mensaje y otro: si un negocio tiene mucha cola, no retrasa a los demás.
+- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "confirmar" y el código, si tiene varias citas), la cita queda **Confirmada** y se le responde una vez. Si escribe **BAJA**, deja de recibir recordatorios. Cualquier otro mensaje no se toca: lo contesta el negocio desde su celular. Si un mismo número escribe muchas veces seguidas (más de 5 en 10 minutos), el resto se ignora.
 - **Vincula y desvincula** cuando el administrador lo pide en **CRM → Configuración → WhatsApp** (el QR aparece ahí mismo).
 
 > Importante: no es la API oficial de WhatsApp. Funciona como WhatsApp Web y es gratis, pero WhatsApp puede bloquear un número que envíe spam. Usa un número con antigüedad, escribe solo a clientes que aceptaron y no subas la cantidad de recordatorios.
@@ -16,12 +16,12 @@ Qué hace:
 
 Tiene que estar encendido todo el día. Sirve:
 
-- **Una VM** con Ubuntu: gratis en Oracle Cloud "Always Free", o un VPS pequeño de pago (unos 5 dólares al mes). **Es lo recomendado en producción con varias barberías**: el bot usa la *Secret key* de Supabase, que da acceso total a los datos de todas las barberías, y debe estar en un servidor que controle Reservalope, no en la PC de una barbería.
-- **Una computadora con Windows** que no se apague, instalada como servicio: ver [En una computadora con Windows](#en-una-computadora-con-windows-sin-servidor). Sirve para una sola barbería o para pruebas, en una PC de confianza.
+- **Una VM** con Ubuntu: gratis en Oracle Cloud "Always Free", o un VPS pequeño de pago (unos 5 dólares al mes). **Es lo recomendado en producción con varios negocios**: el bot usa la *Secret key* de Supabase, que da acceso total a los datos de todos los negocios, y debe estar en un servidor que controle Reservalope, no en la PC de un negocio.
+- **Una computadora con Windows** que no se apague, instalada como servicio: ver [En una computadora con Windows](#en-una-computadora-con-windows-sin-servidor). Sirve para un solo negocio o para pruebas, en una PC de confianza.
 
 No sirven los hostings que "duermen" cuando no hay visitas (Render gratis, Vercel, etc.): se cae la sesión de WhatsApp.
 
-Un solo bot atiende a todas las barberías. **No enciendas dos bots con las mismas barberías** (por ejemplo, en dos computadoras): WhatsApp cerraría la sesión. En una misma carpeta el bot ya lo impide solo: si hay uno encendido, el segundo se cierra sin conectarse (archivo `bot.lock`).
+Un solo bot atiende a todos los negocios. **No enciendas dos bots con los mismos negocios** (por ejemplo, en dos computadoras): WhatsApp cerraría la sesión. En una misma carpeta el bot ya lo impide solo: si hay uno encendido, el segundo se cierra sin conectarse (archivo `bot.lock`).
 
 ## 2. Instalar en la VM (Ubuntu)
 
@@ -84,11 +84,11 @@ tail -f ~/chapaloya/bot/logs/bot.log         # el mismo registro, en archivo (ro
 sudo systemctl restart reservalope-bot       # reiniciar
 ```
 
-## 6. Vincular el WhatsApp de una barbería
+## 6. Vincular el WhatsApp de un negocio
 
 1. Ejecuta la migración `supabase/migrations/20261019000009_whatsapp_confirmar.sql` (una sola vez).
-2. En el CRM de la barbería: **Configuración → WhatsApp → Vincular WhatsApp**.
-3. En el celular de la barbería: **WhatsApp → Dispositivos vinculados → Vincular un dispositivo** y escanea el QR.
+2. En el CRM del negocio: **Configuración → WhatsApp → Vincular WhatsApp**.
+3. En el celular del negocio: **WhatsApp → Dispositivos vinculados → Vincular un dispositivo** y escanea el QR.
 4. Cuando diga **Conectado**, marca **Enviar mensajes automáticos por WhatsApp**, escribe los celulares que deben recibir el aviso de cada reserva y pulsa **Guardar WhatsApp**.
 5. Usa **Enviar prueba** con tu celular para comprobarlo.
 
@@ -106,7 +106,7 @@ Las sesiones vinculadas se conservan (carpeta `bot/sessions/`, cifrada con `BOT_
 
 Sirve cualquier PC con Windows 10 u 11 e internet. Mientras la PC esté encendida, los mensajes salen. Si se apaga, quedan en cola y salen al volver a encenderla, salvo los recordatorios cuya cita ya pasó.
 
-> Antes de elegir esta opción lee [Seguridad](#seguridad): quien tenga acceso de administrador a esa PC puede leer la *Secret key*, que abre los datos de **todas** las barberías.
+> Antes de elegir esta opción lee [Seguridad](#seguridad): quien tenga acceso de administrador a esa PC puede leer la *Secret key*, que abre los datos de **todos** los negocios.
 
 1. **Que no se suspenda:** Configuración → Sistema → Inicio/apagado y batería (o *Energía*) → "Suspender" en **Nunca** cuando está enchufada.
 2. **Node.js:** descarga la versión **22 LTS** de https://nodejs.org e instálala con las opciones por defecto.
@@ -147,7 +147,7 @@ Luego vincula el WhatsApp desde el CRM, como en el paso 6 de arriba.
 
 ## Seguridad
 
-- La **Secret key** de Supabase da **acceso total a la base de todas las barberías** (salta todos los permisos). Solo va en el `.env` del bot. Para producción con varias barberías, **el bot debe correr en un servidor controlado por Reservalope** (sección 2), no en la PC de una barbería: quien sea administrador de esa PC, o se la lleve, puede leer la clave aunque el servicio proteja el archivo.
+- La **Secret key** de Supabase da **acceso total a la base de todos los negocios** (salta todos los permisos). Solo va en el `.env` del bot. Para producción con varios negocios, **el bot debe correr en un servidor controlado por Reservalope** (sección 2), no en la PC de un negocio: quien sea administrador de esa PC, o se la lleve, puede leer la clave aunque el servicio proteja el archivo.
 - Si alguna vez la clave estuvo en una PC que ya no controlas, **cámbiala** en Supabase (Project Settings → API Keys) y actualiza el `.env`.
-- La carpeta `sessions/` es el acceso al WhatsApp de cada barbería. Está cifrada con `BOT_SESSION_KEY`, pero no la compartas ni la copies junto con el `.env`.
+- La carpeta `sessions/` es el acceso al WhatsApp de cada negocio. Está cifrada con `BOT_SESSION_KEY`, pero no la compartas ni la copies junto con el `.env`.
 - El paquete de WhatsApp es el oficial `@whiskeysockets/baileys`, con la versión fijada en `package.json` (7.0.0-rc14: al 21/10/2026 todavía no hay una 7.x estable publicada). No instales forks con nombres parecidos.

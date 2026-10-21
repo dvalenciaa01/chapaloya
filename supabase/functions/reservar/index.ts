@@ -89,9 +89,9 @@ Deno.serve(async (req: Request) => {
 
   // Validación de forma (para que la base no responda con errores técnicos)
   const slug = String(b.slug || '').trim().toLowerCase();
-  if (!slug) return json(400, { error: 'No encontramos esta barbería.' });
+  if (!slug) return json(400, { error: 'No encontramos este negocio.' });
   if (!b.service_id || !UUID_RE.test(String(b.service_id))) return json(400, { error: 'Elige un servicio.' });
-  if (!b.barber_id || !UUID_RE.test(String(b.barber_id))) return json(400, { error: 'Elige un barbero.' });
+  if (!b.barber_id || !UUID_RE.test(String(b.barber_id))) return json(400, { error: 'Elige un profesional.' });
   if (!DATE_RE.test(String(b.date || '')) || !TIME_RE.test(String(b.time || ''))) {
     return json(400, { error: 'Elige la fecha y la hora de tu cita.' });
   }

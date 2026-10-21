@@ -1,16 +1,16 @@
-# Reservalope · Sistema para barberías
+# Reservalope · Citas en línea para cualquier negocio
 
-Plataforma web para administrar **varias barberías** desde un solo sistema: cada barbería tiene su propia web de reservas con su marca, un CRM para su equipo y, por encima de todas, **Reservalope**, la consola del superadministrador con dashboard global, alertas y reportes.
+Plataforma web para administrar **varios negocios** desde un solo sistema: cada negocio tiene su propia web de reservas con su marca, un CRM para su equipo y, por encima de todos, **Reservalope**, la consola del superadministrador con dashboard global, alertas y reportes.
 
 El frontend es HTML, CSS y JavaScript sin frameworks (se publica como sitio estático). Los datos, las cuentas, las fotos y las reglas de acceso viven en **Supabase** (Postgres con RLS, Auth, Storage y Realtime); el navegador solo guarda la sesión. Los mensajes de WhatsApp los envía un bot aparte (ver [bot/](bot/)).
 
 ![Dashboard global de Reservalope](docs/capturas/reservalope-dashboard.png)
 
-| Reportes con filtros (PDF / Excel) | CRM de la barbería |
+| Reportes con filtros (PDF / Excel) | CRM del negocio |
 |---|---|
 | ![Reportes](docs/capturas/reportes.png) | ![CRM · Servicios](docs/capturas/crm-servicios.png) |
 
-| Web de reservas con la marca de cada barbería | Diseño responsivo |
+| Web de reservas con la marca de cada negocio | Diseño responsivo |
 |---|---|
 | ![Reserva web de Navaja Norte](docs/capturas/reserva-web-navaja.png) | ![Dashboard en el celular](docs/capturas/movil-dashboard.png) |
 
@@ -18,28 +18,33 @@ El frontend es HTML, CSS y JavaScript sin frameworks (se publica como sitio est�
 
 ## Funciones
 
-**Web pública por barbería** (`index.html?b=enlace`)
-- Inicio, servicios, barberos con portafolio, reserva de citas y consulta de "Mi cita".
-- Usa el nombre, logo, paleta de 3 colores y datos de contacto de cada barbería.
+**Para cualquier negocio con citas**
+- Cada negocio elige su **rubro**: barbería, salón de belleza, spa y estética, uñas, consultorio médico, clínica dental, psicología y terapia, veterinaria, estudio de tatuajes, entrenador / estudio fitness u otro.
+- Las palabras que se ven cambian con el rubro ("barbero" / "doctor" / "terapeuta", "cliente" / "paciente", "servicio" / "consulta" / "sesión") y el negocio puede personalizarlas. La tabla completa está en [`js/core/vocab.js`](js/core/vocab.js).
+- Los nombres internos del código y de la base (`barbers`, `barber_id`, `web_barberia`, `barberos.html`) no cambian.
+
+**Web pública por negocio** (`index.html?b=enlace`)
+- Inicio, servicios, profesionales con portafolio, reserva de citas y consulta de "Mi cita".
+- Usa el nombre, logo, paleta de 3 colores y datos de contacto de cada negocio.
 - No permite reservar en días u horarios que ya pasaron, ni en horarios ocupados.
 
-**CRM de la barbería** (`crm.html`)
-- Panel principal, citas, cola walk-in, barberos y portafolio, servicios (agregar, editar, eliminar), ventas, clientes, reportes, usuarios, historial y configuración.
+**CRM del negocio** (`crm.html`)
+- Panel principal, citas, cola walk-in, profesionales y portafolio, servicios (agregar, editar, eliminar), ventas, clientes, reportes, usuarios, historial y configuración.
 
 **Roles y permisos**
-- **Superadministrador:** acceso total; crea barberías y usuarios.
-- **Administrador:** solo su barbería; crea personal; módulos extra según lo que le otorgue el superadministrador.
-- **Personal:** ve el panel, crea y gestiona citas y walk-in (solo sus propias citas si está vinculado a un barbero).
+- **Superadministrador:** acceso total; crea negocios y usuarios.
+- **Administrador:** solo su negocio; crea personal; módulos extra según lo que le otorgue el superadministrador.
+- **Personal:** ve el panel, crea y gestiona citas y walk-in (solo sus propias citas si está vinculado a un profesional).
 - Cuentas en Supabase Auth, cambio obligatorio de contraseña temporal, sesión con caducidad y cierre por inactividad, e historial de actividad.
 
 **Reservalope · consola del superadministrador** (`reservalope.html`)
-- Dashboard global con comparación contra el periodo anterior, ranking de barberías, ingresos por suscripciones.
-- Ficha individual de cada barbería, alertas de salud (suscripción, cancelaciones, inactividad, configuración), exportación CSV.
-- Creación de barberías con paleta de 3 colores validada por contraste, plan y vencimiento.
+- Dashboard global con comparación contra el periodo anterior, ranking de negocios, ingresos por suscripciones.
+- Ficha individual de cada negocio, alertas de salud (suscripción, cancelaciones, inactividad, configuración), exportación CSV.
+- Creación de negocios con paleta de 3 colores validada por contraste, plan y vencimiento.
 
 **Reportes**
-- Filtros por periodo, barbería, barbero, servicio, estado, canal, tipo y cliente.
-- Vista previa en pantalla y descarga en **PDF** (con la marca de la barbería) o **Excel** (varias hojas con formato).
+- Filtros por periodo, negocio, profesional, servicio, estado, canal, tipo y cliente.
+- Vista previa en pantalla y descarga en **PDF** (con la marca del negocio) o **Excel** (varias hojas con formato).
 
 El detalle de roles, reglas y cuentas está en [ACCESOS-Y-ROLES.md](ACCESOS-Y-ROLES.md) y el sistema de diseño en [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 
@@ -69,7 +74,7 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 | Página | Enlace (sobre la URL publicada) |
 |---|---|
 | Web de Golden Barbería | `index.html?b=golden` |
-| Web de cualquier otra barbería | `index.html?b=ENLACE-DE-LA-BARBERIA` |
+| Web de cualquier otro negocio | `index.html?b=ENLACE-DEL-NEGOCIO` |
 | Ingreso al CRM / Reservalope | `login.html` |
 
 ### Cuentas
@@ -82,9 +87,9 @@ Las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel
 
 ```
 ├── index.html, servicios.html, barberos.html,
-│   reservar.html, consultar-cita.html      Web pública (por barbería)
+│   reservar.html, consultar-cita.html      Web pública (por negocio)
 ├── login.html                               Ingreso
-├── crm.html                                 CRM de la barbería
+├── crm.html                                 CRM del negocio
 ├── reservalope.html                         Consola del superadministrador
 ├── assets/icons/                            Logos
 ├── css/
@@ -92,7 +97,7 @@ Las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel
 │   └── pages/                               Estilos por página (crm, reservalope, reports, analytics…)
 ├── js/
 │   ├── data/      db.js (conexión con Supabase, datos y reglas de agenda)
-│   ├── core/      auth, guard (permisos), tenant-brand (marca), analytics, charts, reports, report-export
+│   ├── core/      vocab (palabras por rubro), auth, guard (permisos), tenant-brand (marca), analytics, charts, reports, report-export
 │   ├── pages/     lógica de cada página
 │   ├── components/ modal, WhatsApp, constructor de reportes
 │   ├── utils/     iconos SVG, compresión de imágenes

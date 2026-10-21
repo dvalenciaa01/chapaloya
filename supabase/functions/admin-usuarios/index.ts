@@ -4,7 +4,7 @@
 // Crear cuentas, restablecer contraseñas y editar usuarios. Solo aquí se usa
 // la secret key, nunca en el navegador.
 //   - SUPERADMIN: cualquier usuario.
-//   - ADMIN: solo el personal (STAFF) de su propia barbería.
+//   - ADMIN: solo el personal (STAFF) de su propio negocio.
 // Acciones (POST JSON con el token del usuario en Authorization):
 //   { action: "create", name, email, role, tenant_id, barber_id }
 //   { action: "reset_password", user_id }
@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
     if (me.must_change_password) throw new HttpError(403, 'Primero cambia tu contraseña temporal.');
     if (me.role !== 'SUPERADMIN') {
       const { data: t } = await sb.from('tenants').select('status').eq('id', me.tenant_id).maybeSingle();
-      if (!t || t.status !== 'ACTIVE') throw new HttpError(403, 'Tu barbería está suspendida.');
+      if (!t || t.status !== 'ACTIVE') throw new HttpError(403, 'Tu negocio está suspendido.');
     }
     if (me.role === 'STAFF') throw new HttpError(403, 'No tienes permiso para administrar usuarios.');
     const isSuper = me.role === 'SUPERADMIN';
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || '');
 
-    // Un ADMIN solo administra al personal de su barbería
+    // Un ADMIN solo administra al personal de su negocio
     const canManage = (target: { role: string; tenant_id: string | null; id: string }) =>
       isSuper || (target.role === 'STAFF' && target.tenant_id === me.tenant_id && target.id !== me.id);
 
@@ -86,11 +86,11 @@ Deno.serve(async (req: Request) => {
     const checkTenantAndBarber = async (tenantId: string | null, barberId: string | null) => {
       if (tenantId) {
         const { data: t } = await sb.from('tenants').select('id').eq('id', tenantId).maybeSingle();
-        if (!t) throw new HttpError(400, 'Selecciona una barbería válida.');
+        if (!t) throw new HttpError(400, 'Selecciona un negocio válido.');
       }
       if (barberId) {
         const { data: b } = await sb.from('barbers').select('id').eq('id', barberId).eq('tenant_id', tenantId).maybeSingle();
-        if (!b) throw new HttpError(400, 'El barbero no pertenece a esa barbería.');
+        if (!b) throw new HttpError(400, 'El profesional no pertenece a ese negocio.');
       }
     };
 
@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
       if (!name) throw new HttpError(400, 'Escribe el nombre.');
       if (!EMAIL_RE.test(email)) throw new HttpError(400, 'Escribe un correo válido.');
       if (role === 'SUPERADMIN') tenantId = null;
-      else if (!tenantId) throw new HttpError(400, 'Selecciona una barbería.');
+      else if (!tenantId) throw new HttpError(400, 'Selecciona un negocio.');
       if (role !== 'STAFF') barberId = null;
       await checkTenantAndBarber(tenantId, barberId);
 
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
         }
         if (body.tenant_id !== undefined) tenantId = body.tenant_id || null;
         if (role === 'SUPERADMIN') tenantId = null;
-        else if (!tenantId) throw new HttpError(400, 'Selecciona una barbería.');
+        else if (!tenantId) throw new HttpError(400, 'Selecciona un negocio.');
         patch.role = role;
         patch.tenant_id = tenantId;
         if (body.grants !== undefined && role === 'ADMIN') {
