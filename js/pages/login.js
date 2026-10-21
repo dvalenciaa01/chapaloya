@@ -38,7 +38,7 @@ const Login = {
     document.getElementById('login-email').focus();
   },
 
-  /* Marca: si se llega desde la web de una barbería, se muestra su logo y color */
+  /* Marca: si se llega desde la web de un negocio, se muestra su logo, color y palabras del rubro */
   async applyBrand() {
     let slug = new URLSearchParams(window.location.search).get('b');
     if (!slug) { try { slug = sessionStorage.getItem(DB.PUBLIC_SLUG_KEY); } catch (e) { slug = null; } }
@@ -48,6 +48,8 @@ const Login = {
     if (!data || !data.tenant) return;
     const t = DB.fromTenant(data.tenant);
     TenantBrand.applyPalette(TenantBrand.paletteOf(t));
+    const pick = (k) => (data[k] !== undefined && data[k] !== null) ? data[k] : data.tenant[k];
+    TenantBrand.applyVocab({ businessType: t.businessType || pick('business_type'), labels: t.labels || pick('labels') });
     const box = document.getElementById('login-logo');
     if (t.logo) box.innerHTML = '<img class="login-logo-img" src="' + UIx.esc(t.logo) + '" alt="' + UIx.esc(t.name) + '" />';
     else box.innerHTML = '<span class="brand-wordmark is-lg">' + UIx.esc(t.name) + '</span>';
@@ -56,7 +58,7 @@ const Login = {
   },
 
   /* ?msg= solo acepta códigos conocidos con textos fijos (B13): un enlace con
-     texto libre ("Llama al 9xx…") no puede aparecer con la marca de la barbería.
+     texto libre ("Llama al 9xx…") no puede aparecer con la marca del negocio.
      Mientras js/core/auth.js siga enviando el texto completo, también se
      aceptan esos textos exactos; cualquier otro valor se ignora. */
   MESSAGES: {
@@ -64,7 +66,7 @@ const Login = {
     idle: 'Sesión cerrada por inactividad.',
     noaccess: 'Tu usuario ya no tiene acceso.',
     temp: 'Debes cambiar tu contraseña temporal.',
-    suspended: 'La barbería asociada a tu cuenta está suspendida.',
+    suspended: 'El negocio asociado a tu cuenta está suspendido.',
     error: 'No pudimos verificar tu sesión. Vuelve a ingresar.',
     logout: 'Cerraste sesión.'
   },

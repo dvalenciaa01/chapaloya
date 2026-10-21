@@ -6,7 +6,9 @@ const App = {
     const box = document.getElementById('main') || document.querySelector('.crm-main') || document.body;
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     box.innerHTML = '<section class="unavailable"><div class="container"><h1>No pudimos cargar la información</h1>' +
-      '<p>' + esc(msg) + '</p><p><button type="button" class="btn-golden" onclick="location.reload()">Reintentar</button></p></div></section>';
+      '<p>' + esc(msg) + '</p><p><button type="button" class="btn btn-accent" data-app-reload>Reintentar</button></p></div></section>';
+    const retry = box.querySelector('[data-app-reload]');
+    if (retry) retry.addEventListener('click', () => location.reload());
     document.body.classList.add('auth-ok');
     document.documentElement.classList.remove('brand-pending');
   }
@@ -53,7 +55,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  /* ---------------- Web pública: barbería según ?b=slug ---------------- */
+  /* ---------------- Web pública: negocio según ?b=slug ---------------- */
   let res;
   try {
     res = await DB.initPublic();
@@ -62,7 +64,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     return App.fatal(DB.errorText(e));
   }
   if (!res.ok) {
-    // Raíz del sitio sin barbería (ni ?b= ni defaultSlug): se muestra la landing de Reservalope
+    // Raíz del sitio sin negocio (ni ?b= ni defaultSlug): se muestra la landing de Reservalope
     if (!res.slug && activePage === 'inicio') { window.location.replace('landing/'); return; }
     TenantBrand.showUnavailable(res);
     return;
