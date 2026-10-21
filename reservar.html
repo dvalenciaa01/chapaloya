@@ -3,45 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reservar cita | Barbería</title>
-  <meta name="description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
+  <title>Reservar cita | Reservas en línea</title>
+  <meta name="description" content="Reserva tu cita en línea: elige servicio, profesional, fecha y hora." data-v-attr="content:Reserva tu {appointment} en línea: elige {service}, {staff}, fecha y hora." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Reserva tu cita" />
-  <meta property="og:description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
-  <meta name="theme-color" content="#000000" />
-  <link rel="icon" href="assets/icons/logo-blade.svg" type="image/svg+xml" />
+  <meta property="og:description" content="Reserva tu cita en línea: elige servicio, profesional, fecha y hora." />
+  <meta name="theme-color" content="#111418" />
+  <link rel="icon" href="assets/icons/favicon-cita.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/pages/publico.css" />
-  <link rel="stylesheet" href="css/pages/reservar.css" />
 </head>
 <body data-page="reservar">
 
   <a class="skip-link" href="#main">Saltar al contenido</a>
 
-  <header class="site-header">
-    <div class="header-inner">
+  <header class="site-header on-brand">
+    <div class="container header-inner">
       <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-        <span class="brand-wordmark" data-brand-slot="1">Barbería</span>
+        <span class="brand-wordmark" data-brand-slot="1">Reservas en línea</span>
       </a>
 
-
       <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
-      <a class="pub-nav-btn" data-pub="servicios" href="servicios.html">Servicios</a>
-      <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Barberos</a>
-      <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
+        <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
+        <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
         <div class="nav-mobile-extra">
-          <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-          <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')"><i data-icon="lock"></i>Acceso staff (CRM)</button>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
-        <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')" title="Panel CRM del barbero"><i data-icon="lock"></i><span>Staff</span></button>
-        <a class="btn-golden header-cta is-current" href="reservar.html" aria-current="page"><span class="cta-long">Reservar cita</span><span class="cta-short">Reservar</span></a>
+        <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Equipo</span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -49,91 +46,92 @@
 
   <main id="main" tabindex="-1">
     <section id="pub-reservar" class="page-view">
-    <section class="page-hero">
-      <div class="container">
-        <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
-        <span class="eyebrow-golden">Reserva online</span>
-        <h1>Reserva tu cita</h1>
-        <p>Completa tus datos, elige servicio, barbero y horario.<span data-wa-only> Si lo aceptas, la confirmación te llega por WhatsApp.</span></p>
-      </div>
-    </section>
+      <section class="page-hero on-brand">
+        <div class="container">
+          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
+          <span class="eyebrow">Reserva en línea</span>
+          <h1>Reserva tu cita</h1>
+          <p><span data-v-fmt="Completa tus datos y elige {service}, {staff} y horario.">Completa tus datos y elige servicio, profesional y horario.</span><span data-wa-only> Si lo aceptas, la confirmación te llega por WhatsApp.</span></p>
+        </div>
+      </section>
 
       <div class="booking-section">
         <div class="container">
           <div class="booking-layout-grid">
-            <form class="booking-form-card surface-light" novalidate>
+            <form class="booking-form-card" novalidate>
               <div id="pb-feedback" aria-live="polite"></div>
 
-              <fieldset class="form-step" style="border:0;">
+              <fieldset class="form-step">
                 <legend class="form-step-head"><span class="form-step-num">1</span><h2>Tus datos</h2></legend>
+                <p class="field-hint step-hint" data-v-fmt="Datos del {client} que asistirá a la {appointment}.">Datos del cliente que asistirá a la cita.</p>
                 <div class="form-row-2">
                   <div class="field">
-                    <label class="field-lbl" for="pb-name">Nombre completo<span class="req">*</span></label>
-                    <input type="text" id="pb-name" class="input-dark" placeholder="Ej. Sebastián Alvarado" autocomplete="name" maxlength="80" required />
+                    <label class="field-lbl" for="pb-name">Nombre completo<span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="pb-name" class="input" placeholder="Ej. Ana Torres" autocomplete="name" maxlength="80" required />
                   </div>
                   <div class="field">
-                    <label class="field-lbl" for="pb-phone">Celular<span class="req">*</span></label>
-                    <input type="tel" id="pb-phone" class="input-dark" placeholder="987654321" maxlength="20" inputmode="tel" autocomplete="tel-national" aria-describedby="pb-phone-hint pb-phone-error" required />
+                    <label class="field-lbl" for="pb-phone">Celular<span class="req" aria-hidden="true">*</span></label>
+                    <input type="tel" id="pb-phone" class="input" placeholder="987654321" maxlength="20" inputmode="tel" autocomplete="tel-national" aria-describedby="pb-phone-hint pb-phone-error" required />
                     <span class="field-hint" id="pb-phone-hint">9 dígitos, empieza con 9.<span data-wa-only> Aquí te llega la confirmación si la aceptas.</span></span>
                     <span class="field-error" id="pb-phone-error"><i data-icon="alert"></i>Ingresa 9 dígitos que empiecen con 9.</span>
                   </div>
                 </div>
               </fieldset>
 
-              <fieldset class="form-step" style="border:0;">
-                <legend class="form-step-head"><span class="form-step-num">2</span><h2>Servicio y barbero</h2></legend>
+              <fieldset class="form-step">
+                <legend class="form-step-head"><span class="form-step-num">2</span><h2 data-v-fmt="{Service} y {staff}">Servicio y profesional</h2></legend>
                 <div class="form-row-2">
                   <div class="field">
-                    <label class="field-lbl" for="pb-service">Servicio<span class="req">*</span></label>
-                    <select id="pb-service" class="input-dark" required></select>
+                    <label class="field-lbl" for="pb-service"><span data-v="Service">Servicio</span><span class="req" aria-hidden="true">*</span></label>
+                    <select id="pb-service" class="input" required></select>
                   </div>
                   <div class="field">
-                    <label class="field-lbl" for="pb-barber">Barbero<span class="req">*</span></label>
-                    <select id="pb-barber" class="input-dark" required></select>
+                    <label class="field-lbl" for="pb-barber"><span data-v="Staff">Profesional</span><span class="req" aria-hidden="true">*</span></label>
+                    <select id="pb-barber" class="input" required></select>
                   </div>
                 </div>
               </fieldset>
 
-              <fieldset class="form-step" style="border:0;">
+              <fieldset class="form-step">
                 <legend class="form-step-head"><span class="form-step-num">3</span><h2>Fecha y hora</h2></legend>
                 <div class="form-row-2">
                   <div class="field">
-                    <label class="field-lbl" for="pb-date">Fecha<span class="req">*</span></label>
-                    <input type="date" id="pb-date" class="input-dark" required />
+                    <label class="field-lbl" for="pb-date">Fecha<span class="req" aria-hidden="true">*</span></label>
+                    <input type="date" id="pb-date" class="input" required />
                   </div>
                   <div class="field">
-                    <label class="field-lbl" for="pb-time">Hora disponible<span class="req">*</span></label>
-                    <select id="pb-time" class="input-dark" required></select>
+                    <label class="field-lbl" for="pb-time">Hora disponible<span class="req" aria-hidden="true">*</span></label>
+                    <select id="pb-time" class="input" required></select>
                   </div>
                 </div>
-                <p class="field-hint date-note" id="pb-date-note" role="status" hidden></p>
-                <div class="field" style="margin-top:16px;">
-                  <label class="field-lbl" for="pb-notes">Notas o preferencias <span style="font-weight:400; color:var(--on-light-lo);">(opcional)</span></label>
-                  <input type="text" id="pb-notes" class="input-dark" placeholder="Ej. Quiero un fade bajo" maxlength="300" />
+                <p class="date-note" id="pb-date-note" role="status" hidden></p>
+                <div class="field notes-field">
+                  <label class="field-lbl" for="pb-notes">Notas o preferencias <span class="opt">(opcional)</span></label>
+                  <input type="text" id="pb-notes" class="input" placeholder="Ej. Alguna preferencia o indicación" maxlength="300" />
                 </div>
               </fieldset>
 
-              <label class="check-line" data-wa-only style="display:flex; gap:10px; align-items:flex-start; margin:4px 0 16px;">
-                <input type="checkbox" id="pb-wa" style="margin-top:3px; width:18px; height:18px;" />
+              <label class="check-line" data-wa-only>
+                <input type="checkbox" id="pb-wa" />
                 <span>Acepto recibir la confirmación y los recordatorios de mi cita por WhatsApp.</span>
               </label>
-              <div id="pb-captcha" style="margin-bottom:14px;"></div>
+              <div id="pb-captcha" class="captcha-box"></div>
               <p class="captcha-note" id="pb-captcha-note" role="alert" hidden></p>
-              <button type="submit" class="btn-black booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
+              <button type="submit" class="btn btn-solid btn-lg booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
               <p class="form-legal">Al confirmar te mostraremos tu código de reserva. Guárdalo para consultar tu cita.</p>
               <p class="form-legal">Usamos tu nombre y celular solo para gestionar tu cita. Lee nuestra <a href="privacidad.html">política de privacidad</a>.</p>
             </form>
 
-            <aside class="booking-summary-card" aria-label="Resumen de tu cita">
-              <div class="booking-summary-head"><span>Tu ticket</span><i data-icon="scissors"></i></div>
+            <aside class="booking-summary-card on-brand" aria-label="Resumen de tu cita">
+              <div class="booking-summary-head"><span>Resumen de tu cita</span><span class="summary-icon" data-v-icon><i data-icon="calendar"></i></span></div>
               <div class="booking-summary-body" aria-live="polite">
-                <div class="booking-summary-row"><span>Servicio</span><strong id="pb-sum-srv">—</strong></div>
-                <div class="booking-summary-row"><span>Barbero</span><strong id="pb-sum-bar">—</strong></div>
+                <div class="booking-summary-row"><span data-v="Service">Servicio</span><strong id="pb-sum-srv">—</strong></div>
+                <div class="booking-summary-row"><span data-v="Staff">Profesional</span><strong id="pb-sum-bar">—</strong></div>
                 <div class="booking-summary-row"><span>Fecha y hora</span><strong id="pb-sum-dt">—</strong></div>
                 <div class="booking-summary-row"><span>Duración</span><strong id="pb-sum-dur">—</strong></div>
                 <div class="booking-summary-total">
-                  <span class="title-font">Total</span>
-                  <span id="pb-sum-price" class="title-font booking-total-amount">S/ 0</span>
+                  <span>Total</span>
+                  <span id="pb-sum-price" class="booking-total-amount">S/ 0</span>
                 </div>
               </div>
               <ul class="booking-perks">
@@ -148,26 +146,26 @@
     </section>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer on-brand">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-            <span class="brand-wordmark is-lg" data-brand-slot="1">Barbería</span>
+            <span class="brand-wordmark is-lg" data-brand-slot="1">Reservas en línea</span>
           </a>
-          <p>Barbería profesional con maestros barberos. Estilo impecable, cita tras cita.</p>
+          <p data-v-fmt="Reserva tu {appointment} en línea cuando quieras: elige {service}, {staff} y horario.">Reserva tu cita en línea cuando quieras: elige servicio, profesional y horario.</p>
         </div>
-        <div>
-          <h2 class="footer-title">Navegación</h2>
+        <nav aria-label="Enlaces del sitio">
+          <h2 class="footer-title">Explorar</h2>
           <ul class="footer-list">
             <li><a href="index.html">Inicio</a></li>
-            <li><a href="servicios.html">Servicios</a></li>
-            <li><a href="barberos.html">Barberos y trabajos</a></li>
+            <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
+            <li><a href="barberos.html">Equipo</a></li>
             <li><a href="reservar.html">Reservar cita</a></li>
             <li><a href="consultar-cita.html">Consultar mi cita</a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
-        </div>
+        </nav>
         <div>
           <h2 class="footer-title">Contacto</h2>
           <ul class="footer-list">
@@ -177,25 +175,24 @@
           </ul>
         </div>
         <div>
-          <h2 class="footer-title">Equipo</h2>
+          <h2 class="footer-title">Para el equipo</h2>
           <ul class="footer-list">
-            <li><button type="button" onclick="AppRouter.openCRM('dashboard')">Panel CRM</button></li>
+            <li><a href="crm.html"><i data-icon="lock"></i>Acceso al panel</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© <span data-t="year">2026</span> <span data-t="name">Barbería</span>. Todos los derechos reservados.</span>
+        <span>© <span data-t="year">2026</span> <span data-t="name">Reservas en línea</span>. Todos los derechos reservados.</span>
         <span data-t-row><span data-t="city"></span></span>
       </div>
     </div>
   </footer>
 
-
-
   <script src="js/utils/icons.js"></script>
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
+  <script src="js/core/vocab.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>

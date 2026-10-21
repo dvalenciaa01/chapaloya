@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Marca por barbería: color, logo, datos de contacto y enlace ?b=slug
+   Marca por negocio: color, logo, datos de contacto, vocabulario del rubro
+   (js/core/vocab.js) y enlace ?b=slug
    ========================================================================== */
 const TenantBrand = {
   /* ---------------- Color ---------------- */
@@ -105,7 +106,7 @@ const TenantBrand = {
     if (t && t.logo) {
       return '<img class="' + (cls || 'brand-img') + '" src="' + UIx.esc(t.logo) + '" alt="' + UIx.esc(t.name) + '" />';
     }
-    return '<span class="brand-wordmark">' + UIx.esc(t ? t.name : 'Barbería') + '</span>';
+    return '<span class="brand-wordmark">' + UIx.esc(t ? t.name : 'Reservas en línea') + '</span>';
   },
 
   swapLogos(t) {
@@ -153,7 +154,7 @@ const TenantBrand = {
       el.textContent = val;
       if (key === 'phone' && el.tagName === 'A') el.setAttribute('href', this.telHref(val));
     });
-    // Títulos de pestaña: "Algo | Barbería" → "Algo | <nombre>"
+    // Títulos de pestaña: "Algo | Reservas en línea" → "Algo | <nombre>"
     const parts = document.title.split('|');
     document.title = parts.length > 1 ? parts[0].trim() + ' | ' + t.name : t.name;
     // Vista previa al compartir (para quien ejecute JS; el HTML base es neutro)
@@ -166,8 +167,8 @@ const TenantBrand = {
     }
   },
 
-  /* WhatsApp: lo que promete avisos por WhatsApp (data-wa-only) se oculta si la
-     barbería no lo tiene activo; data-wa-off es el texto alternativo. */
+  /* WhatsApp: lo que promete avisos por WhatsApp (data-wa-only) se oculta si el
+     negocio no lo tiene activo; data-wa-off es el texto alternativo. */
   applyWhatsApp(t) {
     const on = t.waEnabled !== false;
     document.querySelectorAll('[data-wa-only]').forEach(el => { el.hidden = !on; });
@@ -178,7 +179,7 @@ const TenantBrand = {
     }
   },
 
-  // Los textos de marca se ocultan hasta saber qué barbería es (sin mostrar otra marca mientras carga)
+  // Los textos de marca se ocultan hasta saber qué negocio es (sin mostrar otra marca mientras carga)
   brandReady() { document.documentElement.classList.remove('brand-pending'); },
 
   withSlug(href, slug) {
@@ -199,9 +200,19 @@ const TenantBrand = {
     });
   },
 
+  /* Palabras del rubro (barbero/doctor/especialista...): el HTML trae las
+     genéricas y aquí se cambian por las del negocio (data-v, data-v-fmt,
+     data-v-attr, data-v-icon). Sin vocab.js la página queda con las genéricas. */
+  applyVocab(t, root) {
+    if (typeof Vocab === 'undefined') return;
+    Vocab.set(t);
+    Vocab.apply(root || document);
+  },
+
   /* ---------------- Aplicación ---------------- */
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
+    this.applyVocab(t);
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);
@@ -231,16 +242,16 @@ const TenantBrand = {
       '<section class="unavailable">' +
         '<div class="container">' +
           '<span class="unavailable-icon">' + (typeof ic === 'function' ? ic(suspended ? 'lock' : 'search') : '') + '</span>' +
-          '<h1>' + (suspended ? 'Barbería no disponible' : 'No encontramos esta barbería') + '</h1>' +
+          '<h1>' + (suspended ? 'Reservas no disponibles' : 'No encontramos este negocio') + '</h1>' +
           '<p>' + (suspended
-            ? 'Esta barbería no está recibiendo reservas en línea por el momento.'
-            : 'Revisa el enlace que te compartieron. Debe tener la forma <strong>index.html?b=nombre-de-la-barberia</strong>.') + '</p>' +
+            ? 'Este negocio no está recibiendo reservas en línea por el momento.'
+            : 'Revisa el enlace que te compartieron. Debe tener la forma <strong>index.html?b=nombre-del-negocio</strong>.') + '</p>' +
         '</div>' +
       '</section>';
     if (main) main.innerHTML = html;
     document.querySelectorAll('.site-nav, .header-actions .header-cta, .wsp-float-btn, .site-footer .footer-grid > div:not(.footer-brand)').forEach(el => { el.hidden = true; });
-    document.querySelectorAll('img.brand-img').forEach(el => { el.outerHTML = '<span class="brand-wordmark" data-brand-slot="1">Barbería</span>'; });
-    document.title = suspended ? 'Barbería no disponible' : 'Barbería no encontrada';
+    document.querySelectorAll('img.brand-img').forEach(el => { el.outerHTML = '<span class="brand-wordmark" data-brand-slot="1">Reservas en línea</span>'; });
+    document.title = suspended ? 'Reservas no disponibles' : 'Negocio no encontrado';
     this.brandReady();
   }
 };

@@ -589,6 +589,9 @@ const DB = {
     t.leadMinutes = isNaN(lead) ? 0 : Math.min(1440, Math.max(0, lead));
     t.waEnabled = pick('wa_enabled') !== false;      // sin dato (base antigua) = como antes
     t.accepting = pick('accepting') !== false;
+    // Rubro del negocio (migración 11): palabras visibles de la web (js/core/vocab.js)
+    if (!t.businessType) t.businessType = pick('business_type') || 'barberia';
+    if (!t.labels) t.labels = pick('labels') || {};
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));

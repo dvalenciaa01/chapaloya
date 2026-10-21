@@ -1,7 +1,9 @@
 /* ==========================================================================
-   Web pública: servicios, barberos, formulario de reserva y "Mi cita"
+   Web pública: servicios, equipo, formulario de reserva y "Mi cita"
    --------------------------------------------------------------------------
-   Seguridad: ningún texto de la barbería (nombres de barberos, servicios,
+   Las palabras que dependen del rubro (barbero/doctor/especialista,
+   servicio/consulta/tratamiento...) salen de js/core/vocab.js: v(), V(), vf().
+   Seguridad: ningún texto del negocio (nombres del equipo, servicios,
    títulos de fotos) se pone dentro de un onclick. Los botones generados
    llevan data-pb-action + data-id (el UUID) y un único listener delegado
    decide qué hacer. Todo texto que va al HTML pasa por esc().
@@ -14,13 +16,28 @@ const PublicBooking = {
   captchaWidget: null,
   sending: false,
 
+  /* ---------------- Vocabulario del rubro ---------------- */
+  // Sin vocab.js (no debería pasar) se usan las palabras genéricas
+  V_DEFAULT: { business: 'negocio', businessArticle: 'el', staff: 'profesional', staffPlural: 'profesionales', staffArticle: 'el',
+    service: 'servicio', servicePlural: 'servicios', client: 'cliente', appointment: 'cita', inService: 'atendiendo ahora' },
+  v(key) { return typeof Vocab !== 'undefined' ? Vocab.t(key) : (this.V_DEFAULT[key] || key); },
+  V(key) { const w = this.v(key); return w.charAt(0).toUpperCase() + w.slice(1); },
+  vf(str) {
+    if (typeof Vocab !== 'undefined') return Vocab.fmt(str);
+    return String(str).replace(/\{([A-Za-z]+)\}/g, (m, k) => (/^[A-Z]/.test(k) ? this.V(k.charAt(0).toLowerCase() + k.slice(1)) : this.v(k)));
+  },
+  // "esta barbería" / "este consultorio" / "esta manicurista"
+  dem(key) { return (this.v(key + 'Article') === 'la' ? 'esta ' : 'este ') + this.v(key); },
+  Dem(key) { const w = this.dem(key); return w.charAt(0).toUpperCase() + w.slice(1); },
+  rubroIcon() { return typeof Vocab !== 'undefined' ? Vocab.icon() : ic('calendar'); },
+
   /* ---------------- Utilidades ---------------- */
   esc(str) {
     return String(str == null ? '' : str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   },
 
-  // Enlace interno conservando la barbería (?b=slug)
+  // Enlace interno conservando el negocio (?b=slug)
   href(page) {
     const slug = DB.tenant ? DB.tenant.slug : null;
     return (typeof TenantBrand !== 'undefined' && slug) ? TenantBrand.withSlug(page, slug) : page;
@@ -46,7 +63,9 @@ const PublicBooking = {
 
   photoHTML(bp, cls) {
     if (bp.photo) return '<img src="' + this.esc(bp.photo) + '" alt="Retrato de ' + this.esc(bp.name) + '" loading="lazy" />';
-    const ini = String(bp.name || '?').trim().charAt(0).toUpperCase() || '?';
+    // Iniciales sin tratamientos ("Dra. Ana Ríos" → "AR")
+    const words = String(bp.name || '').trim().split(/\s+/).filter(w => w && !/^(dr|dra|lic|mg|mtro|mtra|sr|sra|srta|prof)\.?$/i.test(w));
+    const ini = (words.slice(0, 2).map(w => w.charAt(0)).join('') || '?').toUpperCase();
     return '<span class="photo-fallback' + (cls ? ' ' + cls : '') + '" role="img" aria-label="' + this.esc(bp.name) + '">' + this.esc(ini) + '</span>';
   },
 
@@ -67,7 +86,12 @@ const PublicBooking = {
           break;
         case 'service': this.preselectService(id); break;
         case 'copy-code': this.copyCode(el); break;
+        case 'close': if (typeof ModalComponent !== 'undefined') ModalComponent.close(); break;
       }
+    });
+    // "Mi cita": formulario de consulta (sin onsubmit en el HTML)
+    document.addEventListener('submit', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('lookup-form')) this.lookup(e);
     });
   },
 
@@ -120,13 +144,13 @@ const PublicBooking = {
     btn.title = (!this.sending && this.captchaRequired && !this.captchaToken) ? 'Completa la verificación de seguridad' : '';
   },
 
-  /* ---------------- Barberos ---------------- */
+  /* ---------------- Equipo (tabla barbers) ---------------- */
   setBarberFilter(barberId) {
     this.selectedBarberFilter = barberId;
     this.renderBarbersShowcase();
   },
 
-  // "En sillón ahora": solo walk-in de HOY (un walk-in de otro día sin cerrar no cuenta)
+  // "Atendiendo ahora" (inService del rubro): solo walk-in de HOY (un walk-in de otro día sin cerrar no cuenta)
   isInChair(bp) {
     const today = DB.todayISO();
     return (DB.state.walkIns || []).some(w => w.status === 'EN_SILLON' && (!w.date || w.date === today) &&
@@ -150,7 +174,7 @@ const PublicBooking = {
     const listEl = document.getElementById('pub-barbers-showcase-list');
     if (!listEl) return;
     if (!profiles.length) {
-      listEl.innerHTML = '<div class="empty-state">' + ic('users') + '<strong>Pronto conocerás a nuestro equipo</strong>Estamos preparando los perfiles y trabajos de nuestros barberos.</div>';
+      listEl.innerHTML = '<div class="empty-state">' + ic('users') + '<strong>Pronto conocerás a nuestro equipo</strong>Estamos preparando los perfiles de quienes te atenderán.</div>';
       return;
     }
 
@@ -160,10 +184,11 @@ const PublicBooking = {
 
     listEl.innerHTML = filtered.map(bp => {
       const pill = this.isInChair(bp)
-        ? '<span class="live-pill working">En sillón ahora</span>'
+        ? '<span class="live-pill working">' + this.esc(this.V('inService')) + '</span>'
         : '<span class="live-pill available">Disponible para reservar</span>';
       const specs = (bp.specialties || []).map(sp => '<span class="specialty-pill">' + this.esc(sp) + '</span>').join('');
 
+      // Galería solo si hay fotos (en un consultorio lo normal es no tener)
       const works = bp.works.length
         ? '<div class="works-gallery-grid">' + bp.works.map(w =>
             '<button type="button" class="work-photo-card" data-pb-action="work" data-id="' + this.esc(bp.id) + '" data-work="' + this.esc(w.id) + '" aria-label="Ampliar: ' + this.esc(w.title) + '">' +
@@ -171,7 +196,7 @@ const PublicBooking = {
               '<span class="work-photo-caption"><span class="work-photo-title">' + this.esc(w.title) + '</span></span>' +
             '</button>'
           ).join('') + '</div>'
-        : '<div class="empty-state">' + ic('image') + '<strong>Aún sin fotos</strong>Muy pronto verás aquí los trabajos de ' + this.esc(bp.name) + '.</div>';
+        : '';
 
       return '<article class="barber-showcase-block reveal">' +
         '<div class="barber-profile-header">' +
@@ -179,17 +204,19 @@ const PublicBooking = {
           '<div class="barber-profile-info">' +
             pill +
             '<h2 class="barber-name-heading">' + this.esc(bp.name) + '</h2>' +
-            '<p class="barber-role-text">' + this.esc(bp.role || 'Maestro barbero') + '</p>' +
+            '<p class="barber-role-text">' + this.esc(bp.role || this.V('staff')) + '</p>' +
             (specs ? '<div class="barber-specs"><span class="barber-specs-label">Especialidades</span><div class="specialty-tags-wrap">' + specs + '</div></div>' : '') +
             '<div class="barber-cta-group">' +
-              '<button type="button" class="btn-golden" data-pb-action="book" data-id="' + this.esc(bp.id) + '">' + ic('calendar') + 'Reservar con ' + this.esc(bp.name) + '</button>' +
+              '<button type="button" class="btn btn-solid" data-pb-action="book" data-id="' + this.esc(bp.id) + '">' + ic('calendar') + 'Reservar con ' + this.esc(bp.name) + '</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="barber-works-section">' +
-          '<div class="works-head"><h3>Trabajos realizados</h3><span class="works-count">' + bp.works.length + ' fotos</span></div>' +
-          works +
-        '</div>' +
+        (works
+          ? '<div class="barber-works-section">' +
+              '<div class="works-head"><h3>Galería de trabajos</h3><span class="works-count">' + bp.works.length + (bp.works.length === 1 ? ' foto' : ' fotos') + '</span></div>' +
+              works +
+            '</div>'
+          : '') +
       '</article>';
     }).join('');
 
@@ -206,8 +233,8 @@ const PublicBooking = {
         '<div class="team-photo">' + this.photoHTML(bp) + '</div>' +
         '<div class="team-body">' +
           '<h3>' + this.esc(bp.name) + '</h3>' +
-          '<p>' + this.esc(bp.role || 'Maestro barbero') + '</p>' +
-          '<button type="button" class="team-link" data-pb-action="book" data-id="' + this.esc(bp.id) + '">Reservar ' + ic('arrowRight') + '</button>' +
+          '<p>' + this.esc(bp.role || this.V('staff')) + '</p>' +
+          '<button type="button" class="btn btn-outline btn-sm team-link" data-pb-action="book" data-id="' + this.esc(bp.id) + '">Reservar con ' + this.esc(bp.name) + ' ' + ic('arrowRight') + '</button>' +
         '</div>' +
       '</article>'
     ).join('');
@@ -235,14 +262,14 @@ const PublicBooking = {
   openLightbox(imgSrc, title, bp) {
     const html = '<div class="crm-modal-header">' +
         '<div>' +
-          '<span class="eyebrow-golden">Trabajo de ' + this.esc(bp.name) + '</span>' +
-          '<h3 style="font-size:1.5rem; margin-top:4px;">' + this.esc(title) + '</h3>' +
+          '<span class="eyebrow">Trabajo de ' + this.esc(bp.name) + '</span>' +
+          '<h3>' + this.esc(title) + '</h3>' +
         '</div>' +
-        '<button type="button" class="btn-dark btn-xs" onclick="ModalComponent.close()" aria-label="Cerrar">' + ic('x') + '</button>' +
+        '<button type="button" class="btn btn-outline btn-icon" data-pb-action="close" aria-label="Cerrar">' + ic('x') + '</button>' +
       '</div>' +
       '<div class="lightbox-frame"><img src="' + this.esc(imgSrc) + '" alt="' + this.esc(title) + '" /></div>' +
-      '<div style="display:flex; justify-content:flex-end; margin-top:16px;">' +
-        '<button type="button" class="btn-golden" data-pb-action="book" data-id="' + this.esc(bp.id) + '">' + ic('calendar') + 'Quiero este corte</button>' +
+      '<div class="modal-actions">' +
+        '<button type="button" class="btn btn-solid" data-pb-action="book" data-id="' + this.esc(bp.id) + '">' + ic('calendar') + 'Reservar con ' + this.esc(bp.name) + '</button>' +
       '</div>';
     if (typeof ModalComponent !== 'undefined') ModalComponent.open(html, { wide: true });
   },
@@ -252,17 +279,18 @@ const PublicBooking = {
     const featured = s.featured;
     return '<article class="service-card' + (featured ? ' is-featured' : '') + ' reveal">' +
       '<div class="service-card-top">' +
-        '<span class="service-icon">' + ic('scissors') + '</span>' +
-        '<span class="service-cat">' + this.esc(s.category || 'Servicio') + '</span>' +
+        '<span class="service-icon">' + this.rubroIcon() + '</span>' +
+        '<span class="service-cat">' + this.esc(s.category || this.V('service')) + '</span>' +
+        (featured ? '<span class="service-badge">Destacado</span>' : '') +
       '</div>' +
       '<h3 class="service-name">' + this.esc(s.name) + '</h3>' +
-      '<p class="service-desc">' + this.esc(s.desc || '') + '</p>' +
+      (s.desc ? '<p class="service-desc">' + this.esc(s.desc) + '</p>' : '') +
       '<div class="service-foot">' +
         '<div class="service-meta">' +
           '<span class="service-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +
           (s.duration ? '<span class="service-duration">' + ic('clock') + this.esc(s.duration) + ' min</span>' : '') +
         '</div>' +
-        '<button type="button" class="service-cta" data-pb-action="service" data-id="' + this.esc(s.id) + '" aria-label="Reservar ' + this.esc(s.name) + '">' +
+        '<button type="button" class="btn btn-solid btn-sm service-cta" data-pb-action="service" data-id="' + this.esc(s.id) + '" aria-label="Reservar ' + this.esc(s.name) + '">' +
           'Reservar ' + ic('arrowRight') +
         '</button>' +
       '</div>' +
@@ -295,7 +323,7 @@ const PublicBooking = {
     const phone = DB.tenant && DB.tenant.phone;
     form.innerHTML = '<div class="lookup-empty">' + ic('calendar') + '<strong>' + this.esc(title) + '</strong>' +
       '<span>' + this.esc(text) + '</span>' +
-      (phone ? '<a class="btn-black btn-xs" href="' + this.esc(TenantBrand.telHref(phone)) + '">' + ic('phone') + 'Llamar al ' + this.esc(phone) + '</a>' : '') +
+      (phone ? '<a class="btn btn-solid btn-sm" href="' + this.esc(TenantBrand.telHref(phone)) + '">' + ic('phone') + 'Llamar al ' + this.esc(phone) + '</a>' : '') +
       '</div>';
   },
 
@@ -307,13 +335,13 @@ const PublicBooking = {
     if (!srvSel || !barSel || !dateInp || !timeSel) return;
     const form = srvSel.closest('form');
 
-    // Barbería que no está recibiendo reservas (suspendida o suscripción vencida)
+    // Negocio que no está recibiendo reservas (suspendido o suscripción vencida)
     if (DB.tenant && DB.tenant.accepting === false) {
-      this.formNotice(form, 'Reservas en línea pausadas', 'Esta barbería no está recibiendo reservas en línea por ahora. Llámanos o escríbenos para agendar.');
+      this.formNotice(form, 'Reservas en línea pausadas', this.Dem('business') + ' no está recibiendo reservas en línea por ahora. Llámanos o escríbenos para agendar.');
       return;
     }
     if (!DB.state.barberProfiles.length || !DB.state.services.length) {
-      this.formNotice(form, 'Reservas en línea aún no disponibles', 'Esta barbería todavía está configurando sus servicios y barberos. Escríbenos o llámanos para agendar.');
+      this.formNotice(form, 'Reservas en línea aún no disponibles', this.Dem('business') + ' todavía está configurando sus ' + this.v('servicePlural') + ' y su equipo. Escríbenos o llámanos para agendar.');
       return;
     }
     this.bindForm(form);
@@ -362,7 +390,7 @@ const PublicBooking = {
     }
   },
 
-  // Cambio de servicio, barbero o fecha: se repinta al instante y se piden las horas ocupadas al servidor
+  // Cambio de servicio, profesional o fecha: se repinta al instante y se piden las horas ocupadas al servidor
   onSelectionChange() {
     this.refreshTimes();
     clearTimeout(this._busyDebounce);
@@ -400,7 +428,7 @@ const PublicBooking = {
 
     const today = DB.todayISO();
     const barber = barSel.value;
-    const who = this.barberName(barber) || 'este barbero';
+    const who = this.barberName(barber) || this.dem('staff');
     const dur = this.selectedDuration();
     dateInp.min = today;
     dateInp.max = DB.maxBookDate();
@@ -434,7 +462,7 @@ const PublicBooking = {
     const date = dateInp.value;
     let firstFree = null;
     const slots = DB.slotsFor(date, barber, dur);
-    if (!DB.freeSlots(date, barber, dur).length && !msg) msg = who + ' no tiene horarios disponibles por ahora. Prueba con otro barbero o servicio.';
+    if (!DB.freeSlots(date, barber, dur).length && !msg) msg = who.charAt(0).toUpperCase() + who.slice(1) + ' no tiene horarios disponibles por ahora. Prueba cambiando de ' + this.v('staff') + ' o de ' + this.v('service') + '.';
     setNote(msg);
     const labels = { past: ' · Ya pasó', soon: ' · Muy pronto', busy: ' · Ocupado' };
     timeSel.innerHTML = slots.map(t => {
@@ -526,7 +554,7 @@ const PublicBooking = {
       fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
-    if (DB.tenant && DB.tenant.accepting === false) { showError('Esta barbería no está recibiendo reservas en línea por ahora.'); return; }
+    if (DB.tenant && DB.tenant.accepting === false) { showError(this.Dem('business') + ' no está recibiendo reservas en línea por ahora.'); return; }
     if (name.length < 2) { showError('Escribe tu nombre.'); document.getElementById('pb-name').focus(); return; }
     if (name.length > 80) { showError('El nombre puede tener como máximo 80 caracteres.'); document.getElementById('pb-name').focus(); return; }
     if (!/^9\d{8}$/.test(phone)) {
@@ -543,7 +571,7 @@ const PublicBooking = {
 
     const srvObj = DB.state.services.find(s => s.id === serviceId);
     const barberObj = DB.barberOf(barberId);
-    if (!srvObj || !barberObj) { showError('Selecciona un servicio y un barbero.'); return; }
+    if (!srvObj || !barberObj) { showError(this.vf('Elige {service} y {staff}.')); return; }
 
     // Validación de horario en pantalla (el servidor la repite)
     const slotError = DB.validateBooking(date, time, barberObj.id, null, Number(srvObj.duration) || 0);
@@ -645,7 +673,7 @@ const PublicBooking = {
       box.innerHTML = '<div class="lookup-empty">' + ic('search') +
         '<strong>No encontramos una cita con esos datos</strong>' +
         '<span>Revisa el celular y el código, o agenda una nueva cita.</span>' +
-        '<a class="btn-black btn-xs" href="' + this.esc(this.href('reservar.html')) + '">Reservar cita</a></div>';
+        '<a class="btn btn-solid btn-sm" href="' + this.esc(this.href('reservar.html')) + '">Reservar cita</a></div>';
       return;
     }
     box.innerHTML = matches.map(a =>
