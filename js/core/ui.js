@@ -6,6 +6,18 @@ const UI = {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   },
 
+  /* CSV / Excel: un texto que empieza con = + - @ (o tab / retorno) se
+     interpreta como fórmula al abrir el archivo. Se le antepone ' para que
+     quede como texto. Los números (incluidos negativos como "-5.0") no se tocan. */
+  safeText(v) {
+    const s = v == null ? '' : String(v);
+    if (typeof v === 'number') return s;
+    if (/^[=+\-@\t\r]/.test(s) && !/^[+-]?\d+([.,]\d+)?%?$/.test(s)) return "'" + s;
+    return s;
+  },
+  csvCell(v) { return '"' + this.safeText(v).replace(/"/g, '""') + '"'; },
+  csv(rows) { return rows.map(r => r.map(v => this.csvCell(v)).join(',')).join('\r\n'); },
+
   // Para meter texto dentro de onclick="Fn('...')"
   arg(str) {
     return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');

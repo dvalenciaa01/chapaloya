@@ -332,10 +332,21 @@ const Reservalope = {
     if (sel) sel.innerHTML = '<option value="ALL">Todos</option>' + Object.keys(DB.PLANS).map(k => '<option value="' + k + '">' + DB.PLANS[k].label + '</option>').join('');
   },
 
+  /* C1: la paleta la puede escribir el administrador de la barbería (por API).
+     Aquí solo se aceptan colores #RRGGBB; cualquier otra cosa se reemplaza por
+     el color por defecto, y aun así todo se escapa al pintarlo. */
+  HEX: /^#[0-9a-fA-F]{6}$/,
+  safePalette(t) {
+    const p = TenantBrand.paletteOf(t) || {};
+    const d = TenantBrand.DEFAULT_PALETTE;
+    const ok = (v, def) => (this.HEX.test(String(v || '')) ? String(v).toUpperCase() : def);
+    return { primary: ok(p.primary, d.primary), secondary: ok(p.secondary, d.secondary), tertiary: ok(p.tertiary, d.tertiary) };
+  },
+
   swatches(t) {
-    const p = TenantBrand.paletteOf(t);
-    return '<span class="rl-swatches" title="Primario ' + p.primary + ' · Secundario ' + p.secondary + ' · Terciario ' + p.tertiary + '">' +
-      ['primary', 'secondary', 'tertiary'].map(k => '<i style="background:' + p[k] + ';"></i>').join('') + '</span>';
+    const p = this.safePalette(t);
+    return '<span class="rl-swatches" title="' + UI.esc('Primario ' + p.primary + ' · Secundario ' + p.secondary + ' · Terciario ' + p.tertiary) + '">' +
+      ['primary', 'secondary', 'tertiary'].map(k => '<i style="background:' + UI.esc(p[k]) + ';"></i>').join('') + '</span>';
   },
 
   relDay(iso) {
@@ -344,6 +355,15 @@ const Reservalope = {
     if (days <= 0) return 'Hoy';
     if (days === 1) return 'Ayer';
     return 'Hace ' + days + ' días';
+  },
+
+  // M17: vencida hace más de 7 días → la web ya no recibe reservas (lo aplica la base)
+  subNote(t) {
+    const s = Analytics.subscriptionState(t);
+    if (s.key !== 'expired') return '';
+    const blocked = -s.days > 7;
+    return '<br/><small class="' + (blocked ? 'text-bad' : 'text-warn') + '">' +
+      (blocked ? 'Web sin reservas en línea' : 'Reservas web hasta el ' + UI.esc(DB.addDays(t.subscriptionEnd, 7))) + '</small>';
   },
 
   subBadge(t) {
@@ -372,10 +392,10 @@ const Reservalope = {
       return '<tr>' +
         '<td data-label="Barbería"><div class="rl-tenant-cell">' + this.swatches(t) + '<div><strong>' + UI.esc(t.name) + '</strong><br/><a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">?b=' + UI.esc(t.slug) + '</a></div></div></td>' +
         '<td data-label="Estado">' + (t.status === 'ACTIVE' ? '<span class="st-badge st-COMPLETADA">Activa</span>' : '<span class="st-badge st-CANCELADA">Suspendida</span>') + '</td>' +
-        '<td data-label="Plan"><strong>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + '</strong><br/><span class="text-grey" style="font-size:0.8rem;">S/ ' + t.planFee + '/mes</span></td>' +
-        '<td data-label="Suscripción">' + this.subBadge(t) + '<br/><span class="text-grey" style="font-size:0.8rem;">' + UI.esc(t.subscriptionEnd) + '</span></td>' +
+        '<td data-label="Plan"><strong>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + '</strong><br/><span class="text-grey" style="font-size:0.8rem;">S/ ' + UI.esc(t.planFee) + '/mes</span></td>' +
+        '<td data-label="Suscripción">' + this.subBadge(t) + '<br/><span class="text-grey" style="font-size:0.8rem;">' + UI.esc(t.subscriptionEnd) + '</span>' + this.subNote(t) + '</td>' +
         '<td data-label="Ingresos"><strong>' + Charts.money(m.revenue, t.currency) + '</strong><br/>' + this.deltaHTML(Analytics.delta(m.revenue, pm.revenue), true) + '</td>' +
-        '<td data-label="Citas">' + m.appts + '</td>' +
+        '<td data-label="Citas">' + Number(m.appts) + '</td>' +
         '<td data-label="Cancelación"><span class="' + (lost != null && lost > 0.2 ? 'text-bad' : '') + '">' + Charts.pct(lost) + '</span></td>' +
         '<td data-label="Última actividad">' + UI.esc(this.relDay(Analytics.lastActivity(t))) + '</td>' +
         '<td data-label="Acciones"><button type="button" class="btn-golden btn-xs" onclick="Reservalope.go(\'detail\', \'' + t.id + '\')">Ver ficha' + ic('arrowRight') + '</button></td>' +
@@ -392,21 +412,21 @@ const Reservalope = {
     const r = this.range(), p = Analytics.previous(r);
     const cur = Analytics.tenantMetrics(t, r), prev = Analytics.tenantMetrics(t, p);
     const cs = t.currency || 'S/';
-    const pal = TenantBrand.paletteOf(t);
+    const pal = this.safePalette(t);
     const active = t.status === 'ACTIVE';
 
     document.getElementById('rl-detail-head').innerHTML =
-      '<section class="rl-head" style="--t-bg:' + pal.primary + '; --t-accent:' + pal.secondary + '; --t-text:' + pal.tertiary + ';">' +
+      '<section class="rl-head" style="--t-bg:' + UI.esc(pal.primary) + '; --t-accent:' + UI.esc(pal.secondary) + '; --t-text:' + UI.esc(pal.tertiary) + ';">' +
         '<div class="rl-head-brand">' + TenantBrand.logoHTML(t, 'tenant-logo') +
           '<ul class="rl-head-palette">' + [['primary', 'Primario'], ['secondary', 'Secundario'], ['tertiary', 'Terciario']].map(([k, l]) =>
-            '<li><i style="background:' + pal[k] + ';"></i><span>' + l + '</span><code>' + pal[k] + '</code></li>').join('') + '</ul>' +
+            '<li><i style="background:' + UI.esc(pal[k]) + ';"></i><span>' + l + '</span><code>' + UI.esc(pal[k]) + '</code></li>').join('') + '</ul>' +
         '</div>' +
         '<div class="rl-head-info">' +
           '<div class="rl-head-top"><h1 class="crm-title">' + UI.esc(t.name) + '</h1>' +
             (active ? '<span class="st-badge st-COMPLETADA">Activa</span>' : '<span class="st-badge st-CANCELADA">Suspendida</span>') + '</div>' +
           '<dl class="rl-facts">' +
-            '<div><dt>Plan</dt><dd>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + ' · S/ ' + t.planFee + '/mes</dd></div>' +
-            '<div><dt>Suscripción</dt><dd>' + this.subBadge(t) + ' <span class="text-grey">' + UI.esc(t.subscriptionEnd) + '</span></dd></div>' +
+            '<div><dt>Plan</dt><dd>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + ' · S/ ' + UI.esc(t.planFee) + '/mes</dd></div>' +
+            '<div><dt>Suscripción</dt><dd>' + this.subBadge(t) + ' <span class="text-grey">' + UI.esc(t.subscriptionEnd) + '</span>' + this.subNote(t) + '</dd></div>' +
             '<div><dt>Dueño</dt><dd>' + UI.esc(t.ownerName || '—') + (t.ownerEmail ? ' · <a class="inline-link" href="mailto:' + UI.esc(t.ownerEmail) + '">' + UI.esc(t.ownerEmail) + '</a>' : '') + (t.ownerPhone ? ' · ' + UI.esc(t.ownerPhone) : '') + '</dd></div>' +
             '<div><dt>Web</dt><dd><a class="inline-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">index.html?b=' + UI.esc(t.slug) + '</a></dd></div>' +
             '<div><dt>Alta</dt><dd>' + UI.esc(UI.fmtDateTime(t.createdAt)) + '</dd></div>' +
@@ -517,41 +537,12 @@ const Reservalope = {
 
     document.getElementById('rl-policy').innerHTML = [
       ['Intentos fallidos antes de bloquear', Auth.MAX_ATTEMPTS],
-      ['Duración del bloqueo', Auth.LOCK_MINUTES + ' min'],
+      ['Duración del bloqueo', 'La define Supabase Auth'],
       ['Duración máxima de la sesión', Auth.SESSION_HOURS + ' h'],
       ['Cierre por inactividad', Auth.IDLE_MINUTES + ' min'],
       ['Contraseña mínima', '8 caracteres, letras y números'],
       ['Contraseña temporal', 'Cambio obligatorio al primer ingreso']
-    ].map(([k, v]) => '<li><span>' + k + '</span><strong>' + v + '</strong></li>').join('');
-
-    let demo = 0;
-    Object.values(root.data).forEach(s => ['appointments', 'walkIns', 'customers'].forEach(k => { demo += (s[k] || []).filter(x => x.demo).length; }));
-    const demoTenants = root.tenants.filter(t => t.demo);
-    const txt = document.getElementById('rl-demo-text');
-    const btn = document.getElementById('rl-demo-clear');
-    if (demo || demoTenants.length) {
-      txt.textContent = 'Hay ' + demo.toLocaleString('es-PE') + ' registros de ejemplo' + (demoTenants.length ? ' y ' + demoTenants.length + ' barbería de ejemplo (' + demoTenants.map(t => t.name).join(', ') + ') con sus usuarios' : '') + '. Bórralos antes de usar el sistema con datos reales.';
-      btn.disabled = false;
-    } else {
-      txt.textContent = 'No hay datos de demostración. El sistema solo contiene datos reales.';
-      btn.disabled = true;
-    }
-  },
-
-  clearDemo() {
-    if (typeof DemoSeed === 'undefined') return UI.toast('En producción no hay datos de demostración que borrar.');
-    UI.confirm({
-      title: 'Borrar datos de demostración',
-      message: 'Se eliminarán las citas, walk-in y clientes de ejemplo, y la barbería de ejemplo con sus usuarios. Tus datos reales se conservan.',
-      confirmText: 'Borrar datos demo', danger: true
-    }).then(ok => {
-      if (!ok) return;
-      const res = DemoSeed.clear(DB.load());
-      DB.persist();
-      DB.log('Borró datos de demostración', res.removed + ' registros y ' + res.tenants + ' barbería(s) de ejemplo', { tenantId: null });
-      UI.toast('Datos de demostración eliminados.');
-      this.render();
-    });
+    ].map(([k, v]) => '<li><span>' + UI.esc(k) + '</span><strong>' + UI.esc(v) + '</strong></li>').join('');
   },
 
   exportBackup() {
@@ -582,8 +573,8 @@ const Reservalope = {
         m.appts ? ((m.cancelled / m.appts) * 100).toFixed(1) : '', m.walkins, Math.round(m.avgTicket), m.clients,
         m.webShare == null ? '' : (m.webShare * 100).toFixed(1), Analytics.lastActivity(t) || ''];
     });
-    const csv = [['Período', r.from + ' a ' + r.to, 'Comparado con', p.from + ' a ' + p.to], head].concat(rows)
-      .map(row => row.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    // UI.csv neutraliza fórmulas (nombres que empiezan con = + - @)
+    const csv = UI.csv([['Período', r.from + ' a ' + r.to, 'Comparado con', p.from + ' a ' + p.to], head].concat(rows));
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

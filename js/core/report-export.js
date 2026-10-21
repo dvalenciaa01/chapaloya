@@ -33,7 +33,9 @@ const ReportExport = {
   },
 
   /* ---------------- Colores ---------------- */
-  hex(h) { return String(h || '#000000').replace('#', '').toUpperCase().padStart(6, '0'); },
+  hex(h) { const v = String(h || '').replace('#', '').toUpperCase(); return /^[0-9A-F]{6}$/.test(v) ? v : '000000'; },
+  // Texto para una celda: neutraliza fórmulas (= + - @ al inicio) anteponiendo '
+  txt(v) { return typeof v === 'string' ? UI.safeText(v) : v; },
   rgb(h) { const x = this.hex(h); return [parseInt(x.slice(0, 2), 16), parseInt(x.slice(2, 4), 16), parseInt(x.slice(4, 6), 16)]; },
 
   /* ======================================================================
@@ -64,7 +66,7 @@ const ReportExport = {
     const used = new Set();
 
     const writeMeta = (ws, title, withFilters) => {
-      ws.getCell('A1').value = rep.meta.name;
+      ws.getCell('A1').value = this.txt(rep.meta.name);
       ws.getCell('A1').font = { bold: true, size: 16 };
       ws.getCell('A2').value = title;
       ws.getCell('A2').font = { bold: true, size: 12, color: { argb: 'FF444444' } };
@@ -73,13 +75,13 @@ const ReportExport = {
       lines.forEach(([k, v]) => {
         ws.getCell('A' + r).value = k;
         ws.getCell('A' + r).font = { bold: true, color: { argb: 'FF555555' } };
-        ws.getCell('B' + r).value = v;
+        ws.getCell('B' + r).value = this.txt(v);
         r++;
       });
       if (withFilters) {
         ws.getCell('A' + r).value = 'Generado por';
         ws.getCell('A' + r).font = { bold: true, color: { argb: 'FF555555' } };
-        ws.getCell('B' + r).value = rep.meta.generatedBy + ' · ' + rep.meta.generatedText;
+        ws.getCell('B' + r).value = this.txt(rep.meta.generatedBy + ' · ' + rep.meta.generatedText);
         r++;
         if (rep.mixedCurrency) {
           ws.getCell('A' + r).value = 'Aviso';
@@ -122,7 +124,7 @@ const ReportExport = {
           else if (type === 'money' && typeof v === 'number') { cell.value = Math.round(v * 100) / 100; cell.numFmt = this.moneyFmt(row.currency || rep.currency); }
           else if (type === 'pct' && typeof v === 'number') { cell.value = v; cell.numFmt = '0.0%'; }
           else if (type === 'int' && typeof v === 'number') { cell.value = v; cell.numFmt = '#,##0'; }
-          else cell.value = v;
+          else cell.value = this.txt(v);
           if (['int', 'money', 'pct'].includes(type)) cell.alignment = { horizontal: 'right' };
         });
         if (isTotal) {

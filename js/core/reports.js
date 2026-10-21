@@ -152,17 +152,19 @@ const Reports = {
   },
 
   /* ---------------- Construcción del reporte ----------------
-     opts: { tenants:[tenant], global:bool, filters, sections:[keys], money:bool } */
+     opts: { tenants:[tenant], global:bool, filters, sections:[keys], money:bool, customers:bool }
+     customers=false (sin el permiso de Clientes): sin teléfonos ni cartera de clientes. */
   build(opts) {
     const f = Object.assign(this.defaultFilters(), opts.filters || {});
     const money = opts.money !== false;
+    const custOk = opts.customers !== false;
     const sections = (opts.sections || this.SECTIONS.map(s => s.key)).filter(k => money || k !== 'sales');
     const tenants = opts.tenants;
     const range = Analytics.range(f.preset, f.from, f.to);
     const prev = Analytics.previous(range);
 
     const all = [];
-    tenants.forEach(t => this.recordsOf(t).forEach(r => all.push(r)));
+    tenants.forEach(t => this.recordsOf(t).forEach(r => { if (!custOk) r.phone = ''; all.push(r); }));
     const filtered = all.filter(r => this.matches(r, f));
     const cur = filtered.filter(r => r.date >= range.from && r.date <= range.to);
     const prv = filtered.filter(r => r.date >= prev.from && r.date <= prev.to);
@@ -172,7 +174,7 @@ const Reports = {
     const currencies = Array.from(new Set(tenants.map(t => t.currency || 'S/')));
     const report = {
       global: !!opts.global,
-      tenants, money, sections, filters: f,
+      tenants, money, sections, filters: f, customersOk: custOk,
       range, prev,
       currency: currencies[0] || 'S/',
       mixedCurrency: currencies.length > 1,
@@ -184,7 +186,7 @@ const Reports = {
       prevByDay: this.byDay(prv, prev),
       byService: this.byService(cur),
       byBarber: this.byBarber(cur, tenants, f, range, !!opts.global),
-      customers: this.customers(cur, all, !!opts.global),
+      customers: custOk ? this.customers(cur, all, !!opts.global) : [],
       perTenant: opts.global ? tenants.map(t => ({
         tenant: t,
         cur: this.kpis(cur.filter(r => r.tenantId === t.id)),
@@ -382,7 +384,7 @@ const Reports = {
 
     const recCols = (withStatus) => keep([
       col('date', 'Fecha', 'date', 12), col('time', 'Hora', 'text', 8), G ? col('tenantName', 'Barbería', 'text', 20) : null,
-      col('kindLabel', 'Tipo', 'text', 9), col('customer', 'Cliente', 'text', 24), col('phone', 'Teléfono', 'text', 13),
+      col('kindLabel', 'Tipo', 'text', 9), col('customer', 'Cliente', 'text', 24), rep.customersOk ? col('phone', 'Teléfono', 'text', 13) : null,
       col('service', 'Servicio', 'text', 28), col('barber', 'Barbero', 'text', 14), col('channelLabel', 'Canal', 'text', 11),
       withStatus ? col('statusLabel', 'Estado', 'text', 13) : null, col('price', 'Monto', 'money', 13)]);
     const recRows = (arr) => arr.map(r => Object.assign({}, r, { channelLabel: this.CHANNEL_LABEL[r.channel] || r.channel }));
@@ -410,7 +412,7 @@ const Reports = {
         totals: { barber: 'Total', tenantName: G ? 'Total' : undefined, appts: sum(b, 'appts'), completed: sum(b, 'completed'), cancelled: sum(b, 'cancelled'), noShow: sum(b, 'noShow'), walkins: sum(b, 'walkins'), sales: sum(b, 'sales'), revenue: sum(b, 'revenue') } });
 
       const c = rep.customers;
-      out.push({ key: 'customers', section: 'people', sheet: 'Clientes', title: 'Clientes',
+      if (rep.customersOk) out.push({ key: 'customers', section: 'people', sheet: 'Clientes', title: 'Clientes',
         columns: keep([G ? col('tenantName', 'Barbería', 'text', 20) : null, col('customer', 'Cliente', 'text', 26), col('phone', 'Teléfono', 'text', 13),
           col('visits', 'Visitas', 'int', 9), col('appts', 'Citas', 'int', 8), col('lost', 'Cancel./No asistió', 'int', 16),
           col('spend', 'Gasto total', 'money', 14), col('avgTicket', 'Ticket prom.', 'money', 13), col('last', 'Última visita', 'date', 13),

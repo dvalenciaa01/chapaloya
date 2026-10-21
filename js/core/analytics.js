@@ -215,7 +215,8 @@ const Analytics = {
       const s = root.data[t.id] || {};
       if (t.status !== 'ACTIVE') { push('info', t, 'Barbería suspendida', 'Su web muestra “no disponible” y su personal no puede ingresar.', 'tenant'); return; }
       const sub = this.subscriptionState(t);
-      if (sub.key === 'expired') push('critical', t, 'Suscripción vencida', 'Venció el ' + t.subscriptionEnd + ' (plan ' + (DB.PLANS[t.plan] || {}).label + ', S/ ' + t.planFee + ').', 'edit');
+      if (sub.key === 'expired') push('critical', t, 'Suscripción vencida', 'Venció el ' + t.subscriptionEnd + ' (plan ' + (DB.PLANS[t.plan] || {}).label + ', S/ ' + t.planFee + ').' +
+        (-sub.days > 7 ? ' Su web ya no recibe reservas en línea.' : ' Su web deja de recibir reservas el ' + DB.addDays(t.subscriptionEnd, 8) + '.'), 'edit');
       else if (sub.key === 'soon') push('warning', t, 'Suscripción por vencer', sub.label + ' · ' + t.subscriptionEnd + ' (plan ' + (DB.PLANS[t.plan] || {}).label + ').', 'edit');
 
       const missing = [];
