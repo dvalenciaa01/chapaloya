@@ -1,0 +1,6 @@
+# Archivos que crea el bot al funcionar (nunca subir)
+logs/
+bot.lock
+bot.stop
+marcados-pendientes.json
+marcados-pendientes.json.tmp
