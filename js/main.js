@@ -8,6 +8,7 @@ const App = {
     box.innerHTML = '<section class="unavailable"><div class="container"><h1>No pudimos cargar la información</h1>' +
       '<p>' + esc(msg) + '</p><p><button type="button" class="btn-golden" onclick="location.reload()">Reintentar</button></p></div></section>';
     document.body.classList.add('auth-ok');
+    document.documentElement.classList.remove('brand-pending');
   }
 };
 
@@ -61,6 +62,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     return App.fatal(DB.errorText(e));
   }
   if (!res.ok) {
+    // Raíz del sitio sin barbería (ni ?b= ni defaultSlug): se muestra la landing de Reservalope
+    if (!res.slug && activePage === 'inicio') { window.location.replace('landing/'); return; }
     TenantBrand.showUnavailable(res);
     return;
   }

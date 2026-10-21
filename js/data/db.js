@@ -62,14 +62,46 @@ const DB = {
 
   DEFAULT_PALETTE: { primary: '#000000', secondary: '#D79848', tertiary: '#FFFFFF' },
 
-  /* ---------------- Utilidades de fecha y texto (iguales a la demo) ---------------- */
-  todayISO() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  /* ---------------- Fecha y hora de la BARBERÍA ----------------
+     "Hoy" y "ahora" se calculan en la zona horaria de la barbería
+     (DB.tenant.timezone; por defecto America/Lima), no en la del aparato
+     del cliente: un turista con el celular en hora de Madrid ve los mismos
+     horarios que alguien en Lima.
+     En la web pública, además, se corrige el reloj del aparato con la hora
+     del servidor (web_barberia.server_now): _clockOffset = servidor − aparato. */
+  DEFAULT_TZ: 'America/Lima',
+  _clockOffset: 0,
+  _tzFmt: {},
+  timeZone() {
+    const tz = (this.tenant && this.tenant.timezone) || this.DEFAULT_TZ;
+    return this._fmtFor(tz) ? tz : this.DEFAULT_TZ;
   },
+  _fmtFor(tz) {
+    if (this._tzFmt[tz] !== undefined) return this._tzFmt[tz];
+    let f = null;
+    try {
+      f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    } catch (e) { f = null; } // zona no válida → se usa America/Lima
+    this._tzFmt[tz] = f;
+    return f;
+  },
+  // Partes de la fecha/hora actual en la zona de la barbería: { date: 'AAAA-MM-DD', h, m }
+  nowParts() {
+    const now = new Date(Date.now() + (this._clockOffset || 0));
+    const f = this._fmtFor(this.timeZone());
+    if (!f) {
+      return { date: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'),
+        h: now.getHours(), m: now.getMinutes() };
+    }
+    const p = {};
+    f.formatToParts(now).forEach(x => { p[x.type] = x.value; });
+    return { date: p.year + '-' + p.month + '-' + p.day, h: parseInt(p.hour, 10) % 24, m: parseInt(p.minute, 10) };
+  },
+  todayISO() { return this.nowParts().date; },
   nowTimeStr() {
-    const d = new Date();
-    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const n = this.nowParts();
+    return String(n.h).padStart(2, '0') + ':' + String(n.m).padStart(2, '0');
   },
   uid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -467,26 +499,41 @@ const DB = {
     if (!slug) return { ok: false, slug: null, tenant: null };
 
     const sb = this.client();
+    const t0 = Date.now();
     const { data, error } = await sb.rpc('web_barberia', { p_slug: slug });
     if (error) throw error;
-    if (!data) return { ok: false, slug, tenant: null };
+    if (!data || !data.tenant) return { ok: false, slug, tenant: null };
 
+    // Campos nuevos (migración de correcciones QA). Pueden venir en la raíz o en
+    // "tenant"; si la base es antigua y no los envía, la página sigue como antes.
     const r = data.tenant;
+    const pick = (k) => (data[k] !== undefined && data[k] !== null) ? data[k] : r[k];
+
+    // Reloj: diferencia entre el servidor y este aparato (a mitad del viaje de ida y vuelta)
+    const serverNow = Date.parse(pick('server_now') || '');
+    this._clockOffset = isNaN(serverNow) ? 0 : serverNow - Math.round((t0 + Date.now()) / 2);
+
     const t = this.fromTenant({
       id: r.id, slug: r.slug, name: r.name, logo_url: r.logo_url, palette: r.palette, address: r.address,
-      phone: r.phone, hours: r.hours, city: r.city, currency: r.currency, timezone: r.timezone,
+      phone: r.phone, hours: r.hours, city: r.city, currency: r.currency, timezone: pick('timezone'),
       time_slots: r.time_slots, schedule: r.schedule, status: 'ACTIVE'
     });
+    const lead = parseInt(pick('lead_minutes'), 10);
+    t.leadMinutes = isNaN(lead) ? 0 : Math.min(1440, Math.max(0, lead));
+    t.waEnabled = pick('wa_enabled') !== false;      // sin dato (base antigua) = como antes
+    t.accepting = pick('accepting') !== false;
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
-    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: s.duration_min, desc: s.description || '', featured: !!s.featured }));
+    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
       works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
       schedule: this.normWeek(b.schedule)
     }));
     st.scheduleExceptions = (data.exceptions || []).map(e => this.SPECS.exceptions.from(e));
-    st.walkIns = st.barberProfiles.filter(b => b.inChair).map(b => ({ id: 'live-' + b.id, barber: b.name, status: 'EN_SILLON' }));
+    // "En sillón ahora": la base lo calcula; aquí se fecha con hoy para que solo cuente el día actual
+    const today = this.todayISO();
+    st.walkIns = st.barberProfiles.filter(b => b.inChair).map(b => ({ id: 'live-' + b.id, barber: b.name, barberId: b.id, date: today, status: 'EN_SILLON' }));
     this.root.data[t.id] = st;
     this.sanitize(st);
     this.useTenant(t.id);
@@ -495,14 +542,19 @@ const DB = {
     return { ok: true, slug: t.slug, tenant: t };
   },
 
-  // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario
+  // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario.
+  // Cada fila trae su duración (duration_min); sin ella (base antigua) se asume un turno.
   async refreshBusy() {
     if (this.mode !== 'public' || !this.tenant) return;
     const { data, error } = await this.client().rpc('web_ocupados', { p_slug: this.tenant.slug, p_days: this.tenant.schedule.maxDays });
     if (error) throw error;
     const byId = {};
     this.state.barberProfiles.forEach(b => { byId[b.id] = b.name; });
-    this.state.appointments = (data || []).map((r, i) => ({ id: 'busy-' + i, barber: byId[r.barber_id] || '', date: r.date, time: this.hhmm(r.time), status: 'PROGRAMADA' }));
+    this.state.appointments = (data || []).map((r, i) => ({
+      id: 'busy-' + i, barberId: r.barber_id || null, barber: byId[r.barber_id] || '', date: r.date, time: this.hhmm(r.time),
+      durationMin: Number(r.duration_min) || 0, status: 'PROGRAMADA'
+    }));
+    this._busyAt = Date.now();
   },
 
   // Web pública: enviar la reserva (Edge Function "reservar": captcha + crear_reserva)
@@ -838,10 +890,15 @@ const DB = {
   },
   dayOfWeek(iso) { return new Date(iso + 'T12:00:00').getDay(); },
   fromMinutes(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); },
-  rangesSlots(ranges, interval) {
+  /* Horas de inicio cada "interval" minutos dentro de cada tramo. "length" es lo
+     que debe caber desde el inicio hasta el fin del tramo (por defecto, un turno):
+     con un servicio de 60 min y turnos de 30, en un tramo 14:00–20:30 la última
+     hora es 19:30. Los descansos son el hueco entre tramos, así que nada los invade. */
+  rangesSlots(ranges, interval, length) {
     const out = [];
+    const len = Math.max(Number(length) || 0, interval);
     this.normRanges(ranges).forEach(r => {
-      for (let m = this.toMinutes(r[0]); m + interval <= this.toMinutes(r[1]); m += interval) out.push(this.fromMinutes(m));
+      for (let m = this.toMinutes(r[0]); m + len <= this.toMinutes(r[1]); m += interval) out.push(this.fromMinutes(m));
     });
     return Array.from(new Set(out)).sort();
   },
@@ -852,18 +909,42 @@ const DB = {
   exceptionFor(date, barberId) {
     return ((this.state && this.state.scheduleExceptions) || []).find(e => e.date === date && (e.barberId || null) === (barberId || null)) || null;
   },
-  // Horas de inicio disponibles para un barbero (por nombre) en una fecha. Sin barbero = horario de la barbería.
-  slotsFor(date, barberName) {
+  // Barbero por id (preferido) o por nombre (compatibilidad con pantallas antiguas)
+  barberOf(ref) {
+    if (!ref || !this.state) return null;
+    const list = this.state.barberProfiles || [];
+    return list.find(b => b.id === ref) || list.find(b => b.name === ref) || null;
+  },
+  // Minutos que ocupa el servicio elegido (0 = un turno)
+  serviceDuration(ref) {
+    if (!ref || !this.state) return 0;
+    const s = (this.state.services || []).find(x => x.id === ref || x.name === ref);
+    return s ? (Number(s.duration) || 0) : 0;
+  },
+  // Duración de una cita ya registrada: la suya, la de su servicio o un turno
+  apptDuration(a) {
+    const own = Number(a.durationMin || a.duration_min || a.duration) || 0;
+    if (own > 0) return own;
+    const bySrv = this.serviceDuration(a.serviceId) || this.serviceDuration(a.service);
+    if (bySrv > 0) return bySrv;
+    return (this.tenant && this.tenant.schedule ? this.tenant.schedule.interval : 30);
+  },
+  /* Horas de inicio disponibles para un barbero en una fecha.
+     barber: id o nombre (sin barbero = horario de la barbería).
+     durationMin (opcional): duración del servicio elegido; la cita debe terminar
+     antes del cierre y del descanso. Sin duración se exige un turno, como antes. */
+  slotsFor(date, barber, durationMin) {
     if (!this.tenant || !date) return [];
     const sch = this.tenant.schedule || this.normSchedule(null);
+    const len = Math.max(sch.interval, Number(durationMin) || 0);
     const dow = this.dayOfWeek(date);
     const shopExc = this.exceptionFor(date, null);
-    let slots = this.rangesSlots(shopExc ? shopExc.ranges : sch.week[dow], sch.interval);
-    const b = barberName ? (this.state.barberProfiles || []).find(x => x.name === barberName) : null;
+    let slots = this.rangesSlots(shopExc ? shopExc.ranges : sch.week[dow], sch.interval, len);
+    const b = this.barberOf(barber);
     if (b) {
       const bExc = this.exceptionFor(date, b.id);
       const ranges = bExc ? bExc.ranges : (b.schedule ? (b.schedule.week[dow] || []) : null);
-      if (ranges) slots = slots.filter(t => this.slotFits(t, sch.interval, ranges));
+      if (ranges) slots = slots.filter(t => this.slotFits(t, len, ranges));
     }
     return slots;
   },
@@ -876,36 +957,68 @@ const DB = {
     return n / 7;
   },
 
-  nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); },
+  nowMinutes() { const n = this.nowParts(); return n.h * 60 + n.m; },
   toMinutes(t) { const p = String(t || '0:0').split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); },
+  daysBetweenISO(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); },
   isPastDate(date) { return !date || date < this.todayISO(); },
   isPastSlot(date, time) {
     if (this.isPastDate(date)) return true;
     return date === this.todayISO() && this.toMinutes(time) <= this.nowMinutes();
   },
-  isBusySlot(date, time, barber, excludeId) {
-    return this.state.appointments.some(a =>
-      a.id !== excludeId && a.date === date && a.time === time && a.barber === barber && a.status !== 'CANCELADA');
+  // Web pública: la cita debe pedirse con "lead_minutes" de anticipación (puede cruzar la medianoche)
+  isTooSoon(date, time) {
+    const lead = (this.mode === 'public' && this.tenant) ? (Number(this.tenant.leadMinutes) || 0) : 0;
+    if (!lead) return false;
+    const diff = this.daysBetweenISO(this.todayISO(), date) * 1440 + this.toMinutes(time) - this.nowMinutes();
+    return diff < lead;
   },
-  slotState(date, time, barber, excludeId) {
+  sameBarber(a, b, ref) {
+    if (b) return a.barberId ? a.barberId === b.id : a.barber === b.name;
+    return a.barber === ref || (!!a.barberId && a.barberId === ref);
+  },
+  // Ocupado si el rango [inicio, inicio + duración) se cruza con otra cita vigente del barbero
+  isBusySlot(date, time, barber, excludeId, durationMin) {
+    const b = this.barberOf(barber);
+    const interval = this.tenant && this.tenant.schedule ? this.tenant.schedule.interval : 30;
+    const s = this.toMinutes(time);
+    const e = s + (Number(durationMin) > 0 ? Number(durationMin) : interval);
+    return (this.state.appointments || []).some(a => {
+      if (a.id === excludeId || a.date !== date || a.status === 'CANCELADA' || !this.sameBarber(a, b, barber)) return false;
+      const as = this.toMinutes(a.time);
+      return as < e && s < as + this.apptDuration(a);
+    });
+  },
+  // 'past' | 'soon' (sin la anticipación mínima, solo web) | 'busy' | 'free'
+  slotState(date, time, barber, excludeId, durationMin) {
     if (this.isPastSlot(date, time)) return 'past';
-    if (barber && this.isBusySlot(date, time, barber, excludeId)) return 'busy';
+    if (this.isTooSoon(date, time)) return 'soon';
+    if (barber && this.isBusySlot(date, time, barber, excludeId, durationMin)) return 'busy';
     return 'free';
   },
-  freeSlots(date, barber) { return this.slotsFor(date, barber).filter(t => this.slotState(date, t, barber) === 'free'); },
-  firstBookableDate(barber) {
-    const last = this.maxBookDate();
-    for (let d = this.todayISO(); d <= last; d = this.addDays(d, 1)) {
-      if (this.freeSlots(d, barber).length) return d;
-    }
-    return this.todayISO();
+  freeSlots(date, barber, durationMin) {
+    return this.slotsFor(date, barber, durationMin).filter(t => this.slotState(date, t, barber, null, durationMin) === 'free');
   },
-  validateBooking(date, time, barber, excludeId) {
+  // Primer día con horario libre desde "fromDate" (o hoy); null si no hay ninguno hasta el máximo
+  nextBookableDate(barber, durationMin, fromDate) {
+    const today = this.todayISO();
+    const last = this.maxBookDate();
+    for (let d = (fromDate && fromDate > today) ? fromDate : today; d <= last; d = this.addDays(d, 1)) {
+      if (this.freeSlots(d, barber, durationMin).length) return d;
+    }
+    return null;
+  },
+  firstBookableDate(barber, durationMin, fromDate) {
+    return this.nextBookableDate(barber, durationMin, fromDate) || this.nextBookableDate(barber, durationMin) || this.todayISO();
+  },
+  validateBooking(date, time, barber, excludeId, durationMin) {
     if (!date || !time) return 'Selecciona fecha y hora.';
     if (this.isPastDate(date)) return 'No se puede reservar en una fecha que ya pasó.';
-    if (!this.slotsFor(date, barber).includes(time)) return (barber || 'La barbería') + ' no atiende en ese horario. Elige otro de la lista.';
+    const who = (this.barberOf(barber) || {}).name || barber || 'La barbería';
+    if (!this.slotsFor(date, barber).includes(time)) return who + ' no atiende en ese horario. Elige otro de la lista.';
+    if (!this.slotsFor(date, barber, durationMin).includes(time)) return 'Ese servicio no termina antes del cierre o del descanso. Elige una hora más temprana.';
     if (this.isPastSlot(date, time)) return 'Ese horario ya pasó. Elige uno más tarde.';
-    if (this.isBusySlot(date, time, barber, excludeId)) return 'Ese horario ya está ocupado para ' + barber + '.';
+    if (this.isTooSoon(date, time)) return 'Reserva con al menos ' + this.tenant.leadMinutes + ' minutos de anticipación. Elige una hora más tarde.';
+    if (this.isBusySlot(date, time, barber, excludeId, durationMin)) return 'Ese horario ya está ocupado para ' + who + '.';
     return '';
   },
 
