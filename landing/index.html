@@ -7,7 +7,16 @@
 <meta name="description" content="Plataforma de reservas para barberías, peluquerías, consultorios médicos y negocios con citas: web de reservas con tu marca, panel para tu equipo y confirmaciones y recordatorios por WhatsApp." />
 <meta property="og:title" content="Reservalope · Agenda fácil. Negocios que crecen." />
 <meta property="og:description" content="Web de reservas con tu marca, panel para tu equipo y avisos por WhatsApp." />
-<meta property="og:image" content="../assets/icons/reservalope-isotipo.webp" />
+<link rel="canonical" href="https://dvalenciaa01.github.io/chapaloya/landing/" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://dvalenciaa01.github.io/chapaloya/landing/" />
+<meta property="og:site_name" content="Reservalope" />
+<meta property="og:locale" content="es_PE" />
+<meta property="og:image" content="https://dvalenciaa01.github.io/chapaloya/assets/og/reservalope-og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Reservalope · Agenda fácil. Negocios que crecen." />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="theme-color" content="#0F172A" />
 <link rel="icon" type="image/webp" href="../assets/icons/reservalope-isotipo.webp" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -427,7 +436,7 @@ footer{padding-block:56px 40px}
 .foot>div{min-width:0}
 .foot a{overflow-wrap:anywhere}
 .mailbox{display:grid;gap:6px;justify-items:start;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,.12);font-size:.9rem;color:#A8B0C6;position:relative}
-.mailbox b{color:#fff;font-weight:600;word-break:break-all;user-select:all}
+.mailbox a{color:#fff;font-weight:600;word-break:break-all;text-underline-offset:3px}
 .mailbox .chip-ctl{background:transparent;color:#fff;border-color:rgba(255,255,255,.25)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -762,9 +771,12 @@ footer{padding-block:56px 40px}
             <li><svg aria-hidden="true"><use href="#i-check"/></svg>El panel para tu equipo y los reportes</li>
             <li><svg aria-hidden="true"><use href="#i-check"/></svg>Las confirmaciones y recordatorios por WhatsApp</li>
           </ul>
-          <div class="mailbox"><span>También puedes escribirnos a</span><b id="contacto-mail">vexastudio.contacto@gmail.com</b><button type="button" class="chip-ctl" id="copy-mail">Copiar correo</button></div>
+          <div class="mailbox"><span>También puedes escribirnos a</span><a id="contacto-mail" href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a><button type="button" class="chip-ctl" id="copy-mail">Copiar correo</button></div>
         </div>
-        <form id="lead" novalidate>
+        <form id="lead" action="https://formsubmit.co/vexastudio.contacto@gmail.com" method="POST" novalidate>
+          <input type="hidden" name="_subject" id="f-subject" value="Reservalope · Nueva solicitud de demo">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_next" id="f-next" value="https://dvalenciaa01.github.io/chapaloya/landing/?enviado=demo#demo">
           <div class="field full">
             <span class="flbl" id="mode-lbl">¿Qué prefieres?</span>
             <div class="seg" role="radiogroup" aria-labelledby="mode-lbl">
@@ -776,10 +788,10 @@ footer{padding-block:56px 40px}
           <div class="field"><label for="f-negocio">Nombre del negocio</label><input id="f-negocio" name="negocio" autocomplete="organization" required><span class="err" id="e-negocio"></span></div>
           <div class="field"><label for="f-rubro">Rubro</label>
             <select id="f-rubro" name="rubro"><option>Barbería</option><option>Peluquería</option><option>Consultorio médico</option><option>Otro</option></select></div>
-          <div class="field"><label for="f-wa">Celular (WhatsApp)</label><input id="f-wa" name="whatsapp" type="tel" inputmode="numeric" maxlength="9" autocomplete="tel-national" placeholder="987 654 321" required><span class="err" id="e-wa"></span></div>
+          <div class="field"><label for="f-wa">Celular (WhatsApp)</label><input id="f-wa" name="celular" type="tel" inputmode="tel" autocomplete="tel" placeholder="987 654 321" required><span class="err" id="e-wa"></span></div>
           <div class="field full"><label for="f-mail">Correo electrónico</label><input id="f-mail" name="email" type="email" autocomplete="email" required><span class="err" id="e-mail"></span></div>
           <input type="text" id="f-honey" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
-          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar demo</button><p class="err" id="f-error" role="alert"></p></div>
+          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar demo</button></div>
         </form>
       </div>
     </div>
@@ -795,7 +807,7 @@ footer{padding-block:56px 40px}
       </div>
       <div><h4>Producto</h4><ul><li><a href="#plataforma">Plataforma</a></li><li><a href="#reservas">Reservas</a></li><li><a href="#whatsapp">WhatsApp</a></li><li><a href="#panel">Panel</a></li></ul></div>
       <div><h4>Ideal para</h4><ul><li><a href="#rubros">Barberías</a></li><li><a href="#rubros">Peluquerías</a></li><li><a href="#rubros">Consultorios médicos</a></li></ul></div>
-      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar demo</a></li><li><a href="#contacto-mail">vexastudio.contacto@gmail.com</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
+      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar demo</a></li><li><a href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
     </div>
     <div class="legal"><span>© 2026 Reservalope</span><span>Los ejemplos usan Navaja Norte, la barbería de demostración del sistema.</span></div>
   </div>
@@ -897,42 +909,32 @@ footer{padding-block:56px 40px}
 
   /* Formulario (celular peruano de 9 dígitos que empieza con 9, igual que en el sistema) */
   const form=document.getElementById('lead');
+  // 987 654 321, 987-654-321, +51 987654321 o 51987654321 → 987654321
+  const celular=v=>{let d=String(v).replace(/\D/g,'');if(d.length===11&&d.startsWith('51'))d=d.slice(2);return d};
   const rules=[
     ['f-nombre','e-nombre',v=>v.trim().length>1,'Escribe tu nombre.'],
     ['f-negocio','e-negocio',v=>v.trim().length>1,'Escribe el nombre de tu negocio.'],
-    ['f-wa','e-wa',v=>/^9\d{8}$/.test(v.replace(/\s/g,'')),'Escribe un celular de 9 dígitos que empiece con 9.'],
+    ['f-wa','e-wa',v=>/^9\d{8}$/.test(celular(v)),'Escribe un celular peruano de 9 dígitos que empiece con 9, con o sin +51.'],
     ['f-mail','e-mail',v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),'Escribe un correo válido, por ejemplo nombre@negocio.com.']
   ];
   const check=([id,eid,fn,msg])=>{const el=document.getElementById(id),ok=fn(el.value);el.setAttribute('aria-invalid',ok?'false':'true');el.setAttribute('aria-describedby',eid);document.getElementById(eid).textContent=ok?'':msg;return ok};
   rules.forEach(r=>document.getElementById(r[0]).addEventListener('blur',()=>{if(document.getElementById(r[0]).value)check(r)}));
-  // Las solicitudes llegan a vexastudio.contacto@gmail.com mediante FormSubmit (sin servidor propio)
-  const FORM_ENDPOINT='https://formsubmit.co/ajax/vexastudio.contacto@gmail.com';
-  const formErr=document.getElementById('f-error');
-  form.addEventListener('submit',async e=>{
-    e.preventDefault();
-    formErr.textContent='';
+  // Las solicitudes llegan a vexastudio.contacto@gmail.com con FormSubmit. El envío es un POST normal
+  // para que FormSubmit muestre su captcha; al terminar vuelve aquí con ?enviado=demo|prueba.
+  form.addEventListener('submit',e=>{
     const bad=rules.filter(r=>!check(r));
-    if(bad.length){document.getElementById(bad[0][0]).focus();return}
-    if(document.getElementById('f-honey').value) return; // bot
-    const v=id=>document.getElementById(id).value.trim();
-    const prueba=document.getElementById('m-prueba').checked;
-    const nombre=v('f-nombre').split(' ')[0].replace(/[<>&"]/g,'');
-    submit.disabled=true; const label=submit.textContent; submit.textContent='Enviando…';
-    try{
-      const res=await fetch(FORM_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({
-        _subject:'Reservalope · Nueva solicitud de '+(prueba?'prueba':'demo')+' · '+v('f-negocio'),
-        _template:'table', _captcha:'false',
-        Solicitud: prueba?'Prueba':'Demo', Nombre:v('f-nombre'), Negocio:v('f-negocio'), Rubro:v('f-rubro'),
-        Celular:v('f-wa').replace(/\s/g,''), Correo:v('f-mail'), _replyto:v('f-mail')
-      })});
-      const data=await res.json().catch(()=>({}));
-      if(!res.ok||String(data.success)==='false') throw new Error(data.message||'Error');
-      form.innerHTML='<div class="done" role="status"><span class="ok"><svg aria-hidden="true"><use href="#i-check"/></svg></span><h3>¡Listo, '+nombre+'!</h3><p>'+(prueba?'Recibimos tu solicitud de prueba. Te responderemos desde vexastudio.contacto@gmail.com.':'Recibimos tu solicitud de demo. Te responderemos desde vexastudio.contacto@gmail.com para coordinar el día y la hora.')+'</p></div>';
-    }catch(err){
-      submit.disabled=false; submit.textContent=label;
-      formErr.textContent='No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a vexastudio.contacto@gmail.com.';
-    }
+    if(bad.length){e.preventDefault();document.getElementById(bad[0][0]).focus();return}
+    const prueba=document.getElementById('m-prueba').checked, tipo=prueba?'prueba':'demo';
+    document.getElementById('f-wa').value='+51 '+celular(document.getElementById('f-wa').value);
+    document.getElementById('f-subject').value='Reservalope · Nueva solicitud de '+tipo+' · '+document.getElementById('f-negocio').value.trim();
+    document.getElementById('f-next').value=location.origin+location.pathname+'?enviado='+tipo+'#demo';
+    submit.disabled=true; submit.textContent='Enviando…';
   });
+  const enviado=new URLSearchParams(location.search).get('enviado');
+  if(enviado==='demo'||enviado==='prueba'){
+    form.innerHTML='<div class="done" role="status"><span class="ok"><svg aria-hidden="true"><use href="#i-check"/></svg></span><h3>¡Solicitud enviada!</h3><p>'+(enviado==='prueba'?'Recibimos tu solicitud de prueba. Te responderemos desde vexastudio.contacto@gmail.com.':'Recibimos tu solicitud de demo. Te responderemos desde vexastudio.contacto@gmail.com para coordinar el día y la hora.')+'</p></div>';
+    history.replaceState(null,'',location.pathname+'#demo');
+  }
 })();
 </script>
 </body>
