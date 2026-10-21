@@ -1,16 +1,20 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="brand-pending">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reservar cita | Golden Barbería</title>
-  <meta name="description" content="Reserva tu cita: elige servicio, barbero, fecha y hora. Confirmación por WhatsApp." />
+  <title>Reservar cita | Barbería</title>
+  <meta name="description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Reserva tu cita" />
+  <meta property="og:description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
   <meta name="theme-color" content="#000000" />
-  <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
+  <link rel="icon" href="assets/icons/logo-blade.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/pages/publico.css" />
   <link rel="stylesheet" href="css/pages/reservar.css" />
 </head>
 <body data-page="reservar">
@@ -19,8 +23,8 @@
 
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand-logo" href="index.html" aria-label="Golden Barbería, ir al inicio">
-        <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" />
+      <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
+        <span class="brand-wordmark" data-brand-slot="1">Barbería</span>
       </a>
 
 
@@ -50,14 +54,14 @@
         <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
         <span class="eyebrow-golden">Reserva online</span>
         <h1>Reserva tu cita</h1>
-        <p>Completa tus datos, elige servicio, barbero y horario. Si lo aceptas, la confirmación te llega por WhatsApp.</p>
+        <p>Completa tus datos, elige servicio, barbero y horario.<span data-wa-only> Si lo aceptas, la confirmación te llega por WhatsApp.</span></p>
       </div>
     </section>
 
       <div class="booking-section">
         <div class="container">
           <div class="booking-layout-grid">
-            <form class="booking-form-card surface-light" onsubmit="PublicBooking.submit(event)" novalidate>
+            <form class="booking-form-card surface-light" novalidate>
               <div id="pb-feedback" aria-live="polite"></div>
 
               <fieldset class="form-step" style="border:0;">
@@ -65,12 +69,12 @@
                 <div class="form-row-2">
                   <div class="field">
                     <label class="field-lbl" for="pb-name">Nombre completo<span class="req">*</span></label>
-                    <input type="text" id="pb-name" class="input-dark" placeholder="Ej. Sebastián Alvarado" autocomplete="name" required />
+                    <input type="text" id="pb-name" class="input-dark" placeholder="Ej. Sebastián Alvarado" autocomplete="name" maxlength="80" required />
                   </div>
                   <div class="field">
                     <label class="field-lbl" for="pb-phone">Celular<span class="req">*</span></label>
-                    <input type="tel" id="pb-phone" class="input-dark" placeholder="987 654 321" maxlength="9" inputmode="numeric" autocomplete="tel-national" aria-describedby="pb-phone-hint pb-phone-error" oninput="PublicBooking.clearPhoneError()" required />
-                    <span class="field-hint" id="pb-phone-hint">9 dígitos. Aquí te llega la confirmación.</span>
+                    <input type="tel" id="pb-phone" class="input-dark" placeholder="987654321" maxlength="20" inputmode="tel" autocomplete="tel-national" aria-describedby="pb-phone-hint pb-phone-error" required />
+                    <span class="field-hint" id="pb-phone-hint">9 dígitos, empieza con 9.<span data-wa-only> Aquí te llega la confirmación si la aceptas.</span></span>
                     <span class="field-error" id="pb-phone-error"><i data-icon="alert"></i>Ingresa 9 dígitos que empiecen con 9.</span>
                   </div>
                 </div>
@@ -81,11 +85,11 @@
                 <div class="form-row-2">
                   <div class="field">
                     <label class="field-lbl" for="pb-service">Servicio<span class="req">*</span></label>
-                    <select id="pb-service" class="input-dark" onchange="PublicBooking.updateSummary()" required></select>
+                    <select id="pb-service" class="input-dark" required></select>
                   </div>
                   <div class="field">
                     <label class="field-lbl" for="pb-barber">Barbero<span class="req">*</span></label>
-                    <select id="pb-barber" class="input-dark" onchange="PublicBooking.refreshTimes()" required></select>
+                    <select id="pb-barber" class="input-dark" required></select>
                   </div>
                 </div>
               </fieldset>
@@ -95,27 +99,29 @@
                 <div class="form-row-2">
                   <div class="field">
                     <label class="field-lbl" for="pb-date">Fecha<span class="req">*</span></label>
-                    <input type="date" id="pb-date" class="input-dark" onchange="PublicBooking.refreshTimes()" required />
+                    <input type="date" id="pb-date" class="input-dark" required />
                   </div>
                   <div class="field">
                     <label class="field-lbl" for="pb-time">Hora disponible<span class="req">*</span></label>
-                    <select id="pb-time" class="input-dark" onchange="PublicBooking.updateSummary()" required></select>
+                    <select id="pb-time" class="input-dark" required></select>
                   </div>
                 </div>
                 <p class="field-hint date-note" id="pb-date-note" role="status" hidden></p>
                 <div class="field" style="margin-top:16px;">
                   <label class="field-lbl" for="pb-notes">Notas o preferencias <span style="font-weight:400; color:var(--on-light-lo);">(opcional)</span></label>
-                  <input type="text" id="pb-notes" class="input-dark" placeholder="Ej. Quiero un fade bajo" />
+                  <input type="text" id="pb-notes" class="input-dark" placeholder="Ej. Quiero un fade bajo" maxlength="300" />
                 </div>
               </fieldset>
 
-              <label class="check-line" style="display:flex; gap:10px; align-items:flex-start; margin:4px 0 16px;">
+              <label class="check-line" data-wa-only style="display:flex; gap:10px; align-items:flex-start; margin:4px 0 16px;">
                 <input type="checkbox" id="pb-wa" style="margin-top:3px; width:18px; height:18px;" />
                 <span>Acepto recibir la confirmación y los recordatorios de mi cita por WhatsApp.</span>
               </label>
               <div id="pb-captcha" style="margin-bottom:14px;"></div>
+              <p class="captcha-note" id="pb-captcha-note" role="alert" hidden></p>
               <button type="submit" class="btn-black booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
               <p class="form-legal">Al confirmar te mostraremos tu código de reserva. Guárdalo para consultar tu cita.</p>
+              <p class="form-legal">Usamos tu nombre y celular solo para gestionar tu cita. Lee nuestra <a href="privacidad.html">política de privacidad</a>.</p>
             </form>
 
             <aside class="booking-summary-card" aria-label="Resumen de tu cita">
@@ -131,7 +137,8 @@
                 </div>
               </div>
               <ul class="booking-perks">
-                <li><i data-icon="message"></i>Confirmación por WhatsApp, si la aceptas</li>
+                <li data-wa-only><i data-icon="message"></i>Confirmación por WhatsApp, si la aceptas</li>
+                <li><i data-icon="check"></i>Código de reserva para consultar tu cita</li>
                 <li><i data-icon="clock"></i>Solo te mostramos horarios realmente libres</li>
               </ul>
             </aside>
@@ -146,7 +153,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-            <img class="brand-img brand-img-lg" src="assets/icons/logo-golden-header.jpg" alt="Golden Barbershop" width="640" height="267" loading="lazy" />
+            <span class="brand-wordmark is-lg" data-brand-slot="1">Barbería</span>
           </a>
           <p>Barbería profesional con maestros barberos. Estilo impecable, cita tras cita.</p>
         </div>
@@ -158,14 +165,15 @@
             <li><a href="barberos.html">Barberos y trabajos</a></li>
             <li><a href="reservar.html">Reservar cita</a></li>
             <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+            <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
         </div>
         <div>
           <h2 class="footer-title">Contacto</h2>
           <ul class="footer-list">
-            <li data-t-row><i data-icon="pin"></i><span data-t="address">Av. Arenales 1945, Lince — Lima</span></li>
-            <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="tel:+51999999999">+51 932 824 708</a></li>
-            <li data-t-row><i data-icon="clock"></i><span data-t="hours">Citas de 9:00 a 20:00</span></li>
+            <li data-t-row><i data-icon="pin"></i><span data-t="address"></span></li>
+            <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="#"></a></li>
+            <li data-t-row><i data-icon="clock"></i><span data-t="hours"></span></li>
           </ul>
         </div>
         <div>
@@ -176,31 +184,13 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© <span data-t="year">2026</span> <span data-t="name">Golden Barbería</span>. Todos los derechos reservados.</span>
-        <span data-t="city">Lima, Perú</span>
+        <span>© <span data-t="year">2026</span> <span data-t="name">Barbería</span>. Todos los derechos reservados.</span>
+        <span data-t-row><span data-t="city"></span></span>
       </div>
     </div>
   </footer>
 
-  <button type="button" class="wsp-float-btn" onclick="WhatsAppBot.toggle()" aria-controls="wsp-modal" aria-label="Abrir mensajes de WhatsApp">
-    <i data-icon="message"></i>
-    <span class="wsp-label">WhatsApp</span>
-    <span id="wsp-badge" class="wsp-badge-pill">1</span>
-  </button>
 
-  <div class="wsp-modal" id="wsp-modal" role="dialog" aria-label="Mensajes de WhatsApp">
-    <div class="wsp-head">
-      <div class="wsp-head-id">
-        <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
-        <div>
-          <strong>Golden Barbería</strong>
-          <span>Confirmaciones y recordatorios de citas</span>
-        </div>
-      </div>
-      <button type="button" class="wsp-close-btn" onclick="WhatsAppBot.toggle()" aria-label="Cerrar chat"><i data-icon="x"></i></button>
-    </div>
-    <div class="wsp-body" id="wsp-messages"></div>
-  </div>
 
   <script src="js/utils/icons.js"></script>
   <script src="js/vendor/supabase.min.js"></script>

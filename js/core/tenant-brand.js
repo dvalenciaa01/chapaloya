@@ -44,12 +44,16 @@ const TenantBrand = {
      mezclando primario y terciario, igual que en la paleta original de Golden. */
   DEFAULT_PALETTE: { primary: '#000000', secondary: '#D79848', tertiary: '#FFFFFF' },
 
+  // Solo se aceptan colores #RRGGBB: cualquier otro valor (p. ej. texto inyectado por API) se descarta (C1)
+  isHex(v) { return /^#[0-9a-fA-F]{6}$/.test(String(v || '')); },
+
   paletteOf(t) {
-    const p = (t && t.palette) || {};
+    const p = (t && t.palette && typeof t.palette === 'object') ? t.palette : {};
+    const pick = (...vals) => vals.find(v => this.isHex(v));
     return {
-      primary: p.primary || this.DEFAULT_PALETTE.primary,
-      secondary: p.secondary || (t && t.accent) || this.DEFAULT_PALETTE.secondary,
-      tertiary: p.tertiary || this.DEFAULT_PALETTE.tertiary
+      primary: pick(p.primary) || this.DEFAULT_PALETTE.primary,
+      secondary: pick(p.secondary, t && t.accent) || this.DEFAULT_PALETTE.secondary,
+      tertiary: pick(p.tertiary) || this.DEFAULT_PALETTE.tertiary
     };
   },
 
@@ -106,7 +110,7 @@ const TenantBrand = {
 
   swapLogos(t) {
     document.querySelectorAll('img.brand-img, .brand-wordmark[data-brand-slot]').forEach(el => {
-      const lg = el.classList.contains('brand-img-lg');
+      const lg = el.classList.contains('brand-img-lg') || el.classList.contains('is-lg');
       if (t.logo) {
         if (el.tagName === 'IMG') { el.src = t.logo; el.alt = t.name; }
         else el.outerHTML = '<img class="brand-img' + (lg ? ' brand-img-lg' : '') + '" src="' + UIx.esc(t.logo) + '" alt="' + UIx.esc(t.name) + '" />';
@@ -118,8 +122,21 @@ const TenantBrand = {
 
   /* ---------------- Textos y enlaces ---------------- */
   telHref(phone) {
-    const digits = String(phone || '').replace(/[^\d+]/g, '');
+    let digits = String(phone || '').replace(/[^\d+]/g, '');
+    if (/^9\d{8}$/.test(digits)) digits = '+51' + digits;      // celular peruano sin prefijo
     return digits ? 'tel:' + digits : '#';
+  },
+
+  setMeta(sel, attr, value) {
+    let el = document.querySelector(sel);
+    if (!el) {
+      const m = /\[(name|property)="([^"]+)"\]/.exec(sel);
+      if (!m) return;
+      el = document.createElement('meta');
+      el.setAttribute(m[1], m[2]);
+      document.head.appendChild(el);
+    }
+    el.setAttribute(attr, value);
   },
 
   fillTexts(t) {
@@ -136,10 +153,33 @@ const TenantBrand = {
       el.textContent = val;
       if (key === 'phone' && el.tagName === 'A') el.setAttribute('href', this.telHref(val));
     });
-    // Títulos de pestaña: "Algo | Golden Barbería" → "Algo | <nombre>"
+    // Títulos de pestaña: "Algo | Barbería" → "Algo | <nombre>"
     const parts = document.title.split('|');
     document.title = parts.length > 1 ? parts[0].trim() + ' | ' + t.name : t.name;
+    // Vista previa al compartir (para quien ejecute JS; el HTML base es neutro)
+    const desc = document.querySelector('meta[name="description"]');
+    this.setMeta('meta[property="og:title"]', 'content', document.title);
+    if (desc) this.setMeta('meta[property="og:description"]', 'content', t.name + ': ' + desc.getAttribute('content'));
+    if (t.logo) {
+      const icon = document.querySelector('link[rel="icon"]');
+      if (icon) { icon.setAttribute('href', t.logo); icon.removeAttribute('type'); }
+    }
   },
+
+  /* WhatsApp: lo que promete avisos por WhatsApp (data-wa-only) se oculta si la
+     barbería no lo tiene activo; data-wa-off es el texto alternativo. */
+  applyWhatsApp(t) {
+    const on = t.waEnabled !== false;
+    document.querySelectorAll('[data-wa-only]').forEach(el => { el.hidden = !on; });
+    document.querySelectorAll('[data-wa-off]').forEach(el => { el.hidden = on; });
+    if (!on) {
+      const cb = document.getElementById('pb-wa');
+      if (cb) cb.checked = false;
+    }
+  },
+
+  // Los textos de marca se ocultan hasta saber qué barbería es (sin mostrar otra marca mientras carga)
+  brandReady() { document.documentElement.classList.remove('brand-pending'); },
 
   withSlug(href, slug) {
     if (!href || !slug) return href;
@@ -164,7 +204,9 @@ const TenantBrand = {
     this.applyPalette(this.paletteOf(t));
     this.swapLogos(t);
     this.fillTexts(t);
+    this.applyWhatsApp(t);
     this.rewriteLinks(t.slug);
+    this.brandReady();
     const wspName = document.querySelector('.wsp-head-id strong');
     if (wspName) wspName.textContent = t.name;
     document.querySelectorAll('.brand-logo').forEach(a => a.setAttribute('aria-label', t.name + ', ir al inicio'));
@@ -199,6 +241,7 @@ const TenantBrand = {
     document.querySelectorAll('.site-nav, .header-actions .header-cta, .wsp-float-btn, .site-footer .footer-grid > div:not(.footer-brand)').forEach(el => { el.hidden = true; });
     document.querySelectorAll('img.brand-img').forEach(el => { el.outerHTML = '<span class="brand-wordmark" data-brand-slot="1">Barbería</span>'; });
     document.title = suspended ? 'Barbería no disponible' : 'Barbería no encontrada';
+    this.brandReady();
   }
 };
 
