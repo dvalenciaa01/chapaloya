@@ -2,14 +2,25 @@
    Reportes: motor de datos con filtros (sin interfaz).
    Une citas y walk-in en un solo listado de "registros", aplica los filtros
    y arma las secciones que luego se previsualizan o exportan (PDF / Excel).
+   Títulos y columnas usan las palabras del rubro: las del negocio en un
+   reporte individual y las genéricas (profesional, cliente) en el comparativo.
+   Los textos con {llaves} se pintan con Reports.w(rep | tenant, texto).
    ========================================================================== */
 const Reports = {
   SECTIONS: [
-    { key: 'summary', label: 'Resumen ejecutivo', desc: 'Indicadores vs. periodo anterior, por día y por servicio.' },
+    { key: 'summary', label: 'Resumen ejecutivo', desc: 'Indicadores vs. periodo anterior, por día y por {service}.' },
     { key: 'sales', label: 'Ventas e ingresos', desc: 'Cada cita completada y walk-in finalizado con su monto.', money: true },
-    { key: 'records', label: 'Citas y walk-in', desc: 'Listado completo con estado, canal, barbero y servicio.' },
-    { key: 'people', label: 'Barberos y clientes', desc: 'Desempeño por barbero y cartera de clientes.' }
+    { key: 'records', label: 'Citas y walk-in', desc: 'Listado completo con estado, canal, {staff} y {service}.' },
+    { key: 'people', label: '{StaffPlural} y {clientPlural}', desc: 'Desempeño por {staff} y cartera de {clientPlural}.' }
   ],
+
+  /* Palabras del rubro: rep (reporte armado) o un negocio; comparativo/null = genéricas */
+  w(scope, str) {
+    if (typeof UI === 'undefined' || !UI.vFor) return String(str);
+    let t = scope;
+    if (scope && Array.isArray(scope.tenants)) t = scope.global ? null : scope.tenants[0];
+    return UI.vFor(t || null, str);
+  },
 
   STATUSES: [
     { key: 'PROGRAMADA', label: 'Programada', kind: 'appt' },
@@ -18,7 +29,7 @@ const Reports = {
     { key: 'CANCELADA', label: 'Cancelada', kind: 'appt' },
     { key: 'NO_ASISTIO', label: 'No asistió', kind: 'appt' },
     { key: 'ESPERANDO', label: 'En espera (walk-in)', kind: 'walkin' },
-    { key: 'EN_SILLON', label: 'En sillón (walk-in)', kind: 'walkin' },
+    { key: 'EN_SILLON', label: '{InServiceShort} (walk-in)', kind: 'walkin' },
     { key: 'FINALIZADO', label: 'Finalizado (walk-in)', kind: 'walkin' }
   ],
 
@@ -79,7 +90,7 @@ const Reports = {
         customer: w.customerName || '', phone: '',
         service: w.service || '', barber: w.barber || '',
         channel: 'WALKIN',
-        status: w.status, statusLabel: DB.statusLabel(w.status),
+        status: w.status, statusLabel: w.status === 'EN_SILLON' ? this.w(t, '{InServiceShort}') : DB.statusLabel(w.status),
         price: Number(w.price || 0),
         sale: w.status === 'FINALIZADO',
         booked: false
@@ -287,27 +298,27 @@ const Reports = {
     const u = (typeof Auth !== 'undefined' && Auth.user) ? Auth.user : null;
     const preset = (Analytics.PRESETS.find(p => p.key === f.preset) || {}).label || '';
     const list = (arr, all) => arr.length ? arr.join(', ') : all;
-    const lbl = (arr, src) => arr.map(k => (src.find(x => x.key === k) || {}).label || k);
+    const lbl = (arr, src) => arr.map(k => this.w(rep, (src.find(x => x.key === k) || {}).label || k));
     const filters = [
       ['Periodo', this.fmtDate(rep.range.from) + ' – ' + this.fmtDate(rep.range.to) + ' (' + rep.range.days + (rep.range.days === 1 ? ' día' : ' días') + (f.preset === 'today' || f.preset === 'month' ? ', ' + preset.toLowerCase() : '') + ')'],
       ['Comparado con', this.fmtDate(rep.prev.from) + ' – ' + this.fmtDate(rep.prev.to)]
     ];
-    if (rep.global) filters.push(['Barberías', f.tenants.length ? rep.tenants.map(t => t.name).join(', ') : 'Todas (' + rep.tenants.length + ')']);
+    if (rep.global) filters.push(['Negocios', f.tenants.length ? rep.tenants.map(t => t.name).join(', ') : 'Todos (' + rep.tenants.length + ')']);
     filters.push(
       ['Tipo', (this.KINDS.find(k => k.key === f.kind) || this.KINDS[0]).label],
-      ['Barberos', list(f.barbers, 'Todos')],
-      ['Servicios', list(f.services, 'Todos')],
+      [this.w(rep, '{StaffPlural}'), list(f.barbers, 'Todos')],
+      [this.w(rep, '{ServicePlural}'), list(f.services, 'Todos')],
       ['Estados', list(lbl(f.statuses, this.STATUSES), 'Todos')],
       ['Canales', list(lbl(f.channels, this.CHANNELS), 'Todos')]
     );
-    if (f.q) filters.push(['Cliente', f.q]);
+    if (f.q) filters.push([this.w(rep, '{Client}'), f.q]);
     const t0 = rep.tenants[0];
-    const name = rep.global ? 'Reservalope · Todas las barberías' : (t0 ? t0.name : '');
+    const name = rep.global ? 'Reservalope · Todos los negocios' : (t0 ? t0.name : '');
     const now = new Date();
     return {
-      title: rep.global ? 'Reporte comparativo de barberías' : 'Reporte de ' + name,
+      title: rep.global ? 'Reporte comparativo de negocios' : 'Reporte de ' + name,
       name,
-      slug: rep.global ? 'reservalope' : (t0 ? t0.slug : 'barberia'),
+      slug: rep.global ? 'reservalope' : (t0 ? t0.slug : 'negocio'),
       palette: rep.global ? { primary: '#000000', secondary: '#FFD503', tertiary: '#FFFFFF' } : TenantBrand.paletteOf(t0),
       logo: !rep.global && t0 && t0.logo ? t0.logo : null,
       filters,
@@ -315,7 +326,8 @@ const Reports = {
       generatedBy: u ? u.name + ' (' + (Auth.ROLE_LABEL[u.role] || u.role) + ')' : 'Sistema',
       generatedAt: now,
       generatedText: now.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
-      sectionLabels: rep.sections.map(k => (this.SECTIONS.find(s => s.key === k) || {}).label)
+      sectionLabels: rep.sections.map(k => this.w(rep, (this.SECTIONS.find(s => s.key === k) || {}).label || k)),
+      sectionNames: { summary: 'Resumen ejecutivo', sales: 'Ventas e ingresos', records: 'Citas y walk-in', people: this.w(rep, '{StaffPlural} y {clientPlural}') }
     };
   },
 
@@ -328,11 +340,12 @@ const Reports = {
     const col = (key, label, type, width, extra) => Object.assign({ key, label, type: type || 'text', width: width || 14 }, extra || {});
     const keep = (cols) => cols.filter(c => c && (M || c.type !== 'money'));
     const sum = (rows, k) => rows.reduce((x, r) => x + (Number(r[k]) || 0), 0);
+    const W = (s) => this.w(rep, s);
 
     if (rep.sections.includes('summary')) {
       const k = rep.kpis, p = rep.prevKpis;
       const rows = [];
-      const add = (label, cur, prev, type, mode, goodUp) => rows.push({ label, cur, prev, type, delta: mode === 'pp' ? (cur == null || prev == null ? null : cur - prev) : Analytics.delta(cur, prev), deltaMode: mode || 'pct', goodUp: goodUp !== false });
+      const add = (label, cur, prev, type, mode, goodUp, id) => rows.push({ id: id || '', label, cur, prev, type, delta: mode === 'pp' ? (cur == null || prev == null ? null : cur - prev) : Analytics.delta(cur, prev), deltaMode: mode || 'pct', goodUp: goodUp !== false });
       if (M) add('Ingresos', k.revenue, p.revenue, 'money');
       add('Ventas (citas completadas + walk-in finalizados)', k.sales, p.sales, 'int');
       if (M) add('Ticket promedio', k.avgTicket, p.avgTicket, 'money');
@@ -344,7 +357,7 @@ const Reports = {
       add('No asistió', k.noShow, p.noShow, 'int', 'pct', false);
       add('Citas pendientes', k.pending, p.pending, 'int');
       add('Walk-in atendidos', k.walkins, p.walkins, 'int');
-      add('Clientes únicos', k.clients, p.clients, 'int');
+      add(W('{ClientPlural} únicos'), k.clients, p.clients, 'int', 'pct', true, 'clients');
       add('Reservas desde la web', k.webShare, p.webShare, 'pct', 'pp');
       out.push({ key: 'kpis', section: 'summary', sheet: 'Resumen', title: 'Indicadores del periodo', kpi: true,
         columns: [col('label', 'Indicador', 'text', 44), col('cur', 'Periodo actual', 'auto', 18), col('prev', 'Periodo anterior', 'auto', 18), col('delta', 'Variación', 'delta', 14)],
@@ -358,11 +371,11 @@ const Reports = {
           completionRate: x.cur.completionRate, cancelRate: x.cur.cancelRate,
           walkins: x.cur.walkins, clients: x.cur.clients, webShare: x.cur.webShare
         })).sort((a, b) => b.revenue - a.revenue);
-        out.push({ key: 'tenants', section: 'summary', sheet: 'Por barbería', title: 'Comparativo por barbería',
-          columns: keep([col('tenantName', 'Barbería', 'text', 26), col('revenue', 'Ingresos', 'money', 15), M ? col('revDelta', 'Var. ingresos', 'pct', 13) : null,
+        out.push({ key: 'tenants', section: 'summary', sheet: 'Por negocio', title: 'Comparativo por negocio',
+          columns: keep([col('tenantName', 'Negocio', 'text', 26), col('revenue', 'Ingresos', 'money', 15), M ? col('revDelta', 'Var. ingresos', 'pct', 13) : null,
             col('sales', 'Ventas', 'int', 9), col('avgTicket', 'Ticket prom.', 'money', 13), col('appts', 'Citas', 'int', 9),
             col('completionRate', '% completadas', 'pct', 13), col('cancelRate', '% cancelación', 'pct', 13),
-            col('walkins', 'Walk-in', 'int', 9), col('clients', 'Clientes', 'int', 9), col('webShare', '% web', 'pct', 9)]),
+            col('walkins', 'Walk-in', 'int', 9), col('clients', W('{ClientPlural}'), 'int', 9), col('webShare', '% web', 'pct', 9)]),
           rows: rowsT,
           totals: { tenantName: 'Total', revenue: sum(rowsT, 'revenue'), sales: sum(rowsT, 'sales'), appts: sum(rowsT, 'appts'), walkins: sum(rowsT, 'walkins'), clients: sum(rowsT, 'clients') } });
       }
@@ -375,17 +388,17 @@ const Reports = {
         totals: { date: 'Total', appts: sum(days, 'appts'), walkins: sum(days, 'walkins'), cancelled: sum(days, 'cancelled'), sales: sum(days, 'sales'), revenue: sum(days, 'revenue') } });
 
       const sv = rep.byService;
-      out.push({ key: 'byService', section: 'summary', sheet: 'Por servicio', title: 'Servicios',
-        columns: keep([col('service', 'Servicio', 'text', 36), col('records', 'Registros', 'int', 11), col('sales', 'Ventas', 'int', 9),
+      out.push({ key: 'byService', section: 'summary', sheet: W('Por {service}'), title: W('{ServicePlural}'),
+        columns: keep([col('service', W('{Service}'), 'text', 36), col('records', 'Registros', 'int', 11), col('sales', 'Ventas', 'int', 9),
           col('revenue', 'Ingresos', 'money', 15), M ? col('share', '% de ingresos', 'pct', 13) : null]),
         rows: sv,
         totals: { service: 'Total', records: sum(sv, 'records'), sales: sum(sv, 'sales'), revenue: sum(sv, 'revenue'), share: sv.length && M ? 1 : null } });
     }
 
     const recCols = (withStatus) => keep([
-      col('date', 'Fecha', 'date', 12), col('time', 'Hora', 'text', 8), G ? col('tenantName', 'Barbería', 'text', 20) : null,
-      col('kindLabel', 'Tipo', 'text', 9), col('customer', 'Cliente', 'text', 24), rep.customersOk ? col('phone', 'Teléfono', 'text', 13) : null,
-      col('service', 'Servicio', 'text', 28), col('barber', 'Barbero', 'text', 14), col('channelLabel', 'Canal', 'text', 11),
+      col('date', 'Fecha', 'date', 12), col('time', 'Hora', 'text', 8), G ? col('tenantName', 'Negocio', 'text', 20) : null,
+      col('kindLabel', 'Tipo', 'text', 9), col('customer', W('{Client}'), 'text', 24), rep.customersOk ? col('phone', 'Teléfono', 'text', 13) : null,
+      col('service', W('{Service}'), 'text', 28), col('barber', W('{Staff}'), 'text', 14), col('channelLabel', 'Canal', 'text', 11),
       withStatus ? col('statusLabel', 'Estado', 'text', 13) : null, col('price', 'Monto', 'money', 13)]);
     const recRows = (arr) => arr.map(r => Object.assign({}, r, { channelLabel: this.CHANNEL_LABEL[r.channel] || r.channel }));
 
@@ -403,8 +416,8 @@ const Reports = {
 
     if (rep.sections.includes('people')) {
       const b = rep.byBarber;
-      out.push({ key: 'barbers', section: 'people', sheet: 'Barberos', title: 'Desempeño por barbero',
-        columns: keep([G ? col('tenantName', 'Barbería', 'text', 20) : null, col('barber', 'Barbero', 'text', 18), col('appts', 'Citas', 'int', 8),
+      out.push({ key: 'barbers', section: 'people', sheet: W('{StaffPlural}'), title: W('Desempeño por {staff}'),
+        columns: keep([G ? col('tenantName', 'Negocio', 'text', 20) : null, col('barber', W('{Staff}'), 'text', 18), col('appts', 'Citas', 'int', 8),
           col('completed', 'Completadas', 'int', 12), col('cancelled', 'Canceladas', 'int', 11), col('noShow', 'No asistió', 'int', 10),
           col('walkins', 'Walk-in', 'int', 9), col('sales', 'Ventas', 'int', 9), col('revenue', 'Ingresos', 'money', 14),
           col('avgTicket', 'Ticket prom.', 'money', 13), col('occupancy', 'Ocupación', 'pct', 11), col('lostRate', '% pérdida', 'pct', 10)]),
@@ -412,13 +425,13 @@ const Reports = {
         totals: { barber: 'Total', tenantName: G ? 'Total' : undefined, appts: sum(b, 'appts'), completed: sum(b, 'completed'), cancelled: sum(b, 'cancelled'), noShow: sum(b, 'noShow'), walkins: sum(b, 'walkins'), sales: sum(b, 'sales'), revenue: sum(b, 'revenue') } });
 
       const c = rep.customers;
-      if (rep.customersOk) out.push({ key: 'customers', section: 'people', sheet: 'Clientes', title: 'Clientes',
-        columns: keep([G ? col('tenantName', 'Barbería', 'text', 20) : null, col('customer', 'Cliente', 'text', 26), col('phone', 'Teléfono', 'text', 13),
+      if (rep.customersOk) out.push({ key: 'customers', section: 'people', sheet: W('{ClientPlural}'), title: W('{ClientPlural}'),
+        columns: keep([G ? col('tenantName', 'Negocio', 'text', 20) : null, col('customer', W('{Client}'), 'text', 26), col('phone', 'Teléfono', 'text', 13),
           col('visits', 'Visitas', 'int', 9), col('appts', 'Citas', 'int', 8), col('lost', 'Cancel./No asistió', 'int', 16),
           col('spend', 'Gasto total', 'money', 14), col('avgTicket', 'Ticket prom.', 'money', 13), col('last', 'Última visita', 'date', 13),
-          col('topBarber', 'Barbero frecuente', 'text', 18)]),
+          col('topBarber', W('{Staff} frecuente'), 'text', 18)]),
         rows: c,
-        totals: { customer: c.length + ' clientes', tenantName: G ? 'Total' : undefined, visits: sum(c, 'visits'), appts: sum(c, 'appts'), lost: sum(c, 'lost'), spend: sum(c, 'spend') } });
+        totals: { customer: c.length + ' ' + W('{clientPlural}'), tenantName: G ? 'Total' : undefined, visits: sum(c, 'visits'), appts: sum(c, 'appts'), lost: sum(c, 'lost'), spend: sum(c, 'spend') } });
     }
     return out;
   },
@@ -463,7 +476,7 @@ const Reports = {
   },
 
   fileName(rep, ext) {
-    const base = 'Reporte-' + DB.slugify(rep.meta.slug || 'barberia') + '-' + rep.range.from + '_a_' + rep.range.to;
+    const base = 'Reporte-' + DB.slugify(rep.meta.slug || 'negocio') + '-' + rep.range.from + '_a_' + rep.range.to;
     return base + '.' + ext;
   }
 };

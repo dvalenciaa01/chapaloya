@@ -1,5 +1,9 @@
 /* ==========================================================================
-   Administración: usuarios, permisos, barberías, historial y cuenta
+   Administración: usuarios, permisos, negocios, historial y cuenta
+   --------------------------------------------------------------------------
+   Lo que es de UN negocio usa sus palabras del rubro (UI.v / UI.vFor:
+   barbero/doctor, cliente/paciente…); lo que es de la plataforma dice
+   "negocio". Los nombres internos (barberId, tenants) no cambian.
    ========================================================================== */
 const AdminUI = {
   auditLimit: 200,
@@ -29,7 +33,7 @@ const AdminUI = {
     return '<span class="role-badge ' + cls + '">' + UI.esc(Auth.ROLE_LABEL[role] || role) + '</span>';
   },
 
-  /* ---------------- Encabezado: usuario y barbería ---------------- */
+  /* ---------------- Encabezado: usuario y negocio ---------------- */
   renderHeader() {
     const u = Auth.user;
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
@@ -43,7 +47,7 @@ const AdminUI = {
     if (sw && u.role === 'SUPERADMIN' && DB.tenant) {
       sw.innerHTML = DB.load().tenants.map(t =>
         '<option value="' + UI.esc(t.id) + '"' + (t.id === DB.tenant.id ? ' selected' : '') + '>' +
-        UI.esc(t.name) + (t.status !== 'ACTIVE' ? ' (suspendida)' : '') + '</option>'
+        UI.esc(t.name) + (t.status !== 'ACTIVE' ? ' (suspendido)' : '') + '</option>'
       ).join('');
     }
   },
@@ -60,7 +64,7 @@ const AdminUI = {
   switchTenant(tenantId) {
     if (!Auth.switchTenant(tenantId)) return;
     const t = DB.tenantById(tenantId);
-    DB.log('Cambió de barbería', 'Ahora administra: ' + t.name, { tenantId });
+    DB.log('Cambió de negocio', 'Ahora administra: ' + t.name, { tenantId });
     window.location.href = 'crm.html?tab=dashboard';
   },
 
@@ -129,7 +133,7 @@ const AdminUI = {
     const ft = document.getElementById('usr-filter-tenant');
     if (ft && me.role === 'SUPERADMIN') {
       const cur = ft.value || (DB.tenant ? DB.tenant.id : 'ALL');
-      ft.innerHTML = '<option value="ALL">Todas las barberías</option><option value="NONE">Superadministradores</option>' +
+      ft.innerHTML = '<option value="ALL">Todos los negocios</option><option value="NONE">Superadministradores</option>' +
         DB.load().tenants.map(t => '<option value="' + UI.esc(t.id) + '">' + UI.esc(t.name) + '</option>').join('');
       ft.value = cur;
     }
@@ -138,14 +142,15 @@ const AdminUI = {
 
     const sub = document.getElementById('users-lead');
     if (sub) sub.textContent = me.role === 'SUPERADMIN'
-      ? 'Crea administradores y personal para cualquier barbería, y define qué módulos puede usar cada administrador.'
-      : 'Crea y administra las cuentas del personal de ' + (DB.tenant ? DB.tenant.name : 'tu barbería') + '. Solo tendrán acceso a esta barbería.';
+      ? 'Crea administradores y personal para cualquier negocio, y define qué módulos puede usar cada administrador.'
+      : 'Crea y administra las cuentas del personal de ' + (DB.tenant ? DB.tenant.name : UI.v('tu {business}')) + UI.v('. Solo tendrán acceso a {este:business} {business}.');
 
     if (!list.length) {
       tbody.innerHTML = '<tr class="is-empty"><td colspan="7"><div class="empty-state">' + ic('users') + '<strong>Sin usuarios</strong>Crea el primero con “Nuevo usuario”.</div></td></tr>';
       return;
     }
 
+    const staffLbl = UI.esc(Vocab.T('staff'));
     tbody.innerHTML = list.map(u => {
       const t = u.tenantId ? DB.tenantById(u.tenantId) : null;
       const st = u.tenantId ? DB.load().data[u.tenantId] : null;
@@ -164,8 +169,8 @@ const AdminUI = {
       return '<tr>' +
         '<td data-label="Usuario"><div class="user-cell"><span class="user-avatar sm">' + UI.esc(this.initials(u.name)) + '</span><div><strong>' + UI.esc(u.name) + '</strong><br/><span class="text-grey" style="font-size:0.8rem;">' + UI.esc(u.email) + '</span></div></div></td>' +
         '<td data-label="Rol">' + this.roleBadge(u.role) + '</td>' +
-        '<td data-label="Barbería">' + (t ? UI.esc(t.name) : '<span class="text-grey">Todas</span>') + '</td>' +
-        '<td data-label="Barbero">' + (u.role === 'STAFF' ? (bp ? UI.esc(bp.name) : '<span class="text-grey">Sin vínculo</span>') : '<span class="text-grey">—</span>') + '</td>' +
+        '<td data-label="Negocio">' + (t ? UI.esc(t.name) : '<span class="text-grey">Todos</span>') + '</td>' +
+        '<td data-label="' + staffLbl + '">' + (u.role === 'STAFF' ? (bp ? UI.esc(bp.name) : '<span class="text-grey">Sin vínculo</span>') : '<span class="text-grey">—</span>') + '</td>' +
         '<td data-label="Estado">' + this.userStatus(u) + '</td>' +
         '<td data-label="Último acceso">' + (u.lastLoginAt ? UI.esc(UI.fmtDateTime(u.lastLoginAt)) : '<span class="text-grey">Nunca</span>') + '</td>' +
         '<td data-label="Acciones"><div class="row-actions user-actions">' + actions.join('') + '</div></td>' +
@@ -196,7 +201,7 @@ const AdminUI = {
       : '<input type="hidden" id="m-us-role" value="STAFF" />';
 
     const tenantField = isSuper
-      ? '<div id="m-us-tenant-wrap"><label class="field-lbl" for="m-us-tenant">Barbería <span class="req">*</span></label><select id="m-us-tenant" class="input-dark" onchange="AdminUI.onUserTenantChange()">' +
+      ? '<div id="m-us-tenant-wrap"><label class="field-lbl" for="m-us-tenant">Negocio <span class="req">*</span></label><select id="m-us-tenant" class="input-dark" onchange="AdminUI.onUserTenantChange()">' +
           DB.load().tenants.map(t => '<option value="' + UI.esc(t.id) + '"' + (t.id === tenantId ? ' selected' : '') + '>' + UI.esc(t.name) + '</option>').join('') +
         '</select></div>'
       : '<input type="hidden" id="m-us-tenant" value="' + UI.esc(me.tenantId) + '" />';
@@ -209,7 +214,7 @@ const AdminUI = {
           '<div><label class="field-lbl" for="m-us-name">Nombre completo <span class="req">*</span></label><input type="text" id="m-us-name" class="input-dark" value="' + UI.esc(u ? u.name : '') + '" required /></div>' +
           '<div><label class="field-lbl" for="m-us-email">Correo (usuario de acceso) <span class="req">*</span></label><input type="email" id="m-us-email" class="input-dark" value="' + UI.esc(u ? u.email : '') + '" autocomplete="off" required /></div>' +
           roleField + tenantField +
-          '<div id="m-us-barber-wrap" style="grid-column:1 / -1;"><label class="field-lbl" for="m-us-barber">Barbero vinculado</label><select id="m-us-barber" class="input-dark">' + this.barberOptions(tenantId, u ? u.barberId : null) + '</select>' +
+          '<div id="m-us-barber-wrap" style="grid-column:1 / -1;"><label class="field-lbl" for="m-us-barber" id="m-us-barber-lbl">' + UI.esc(this.linkedStaffLabel(tenantId)) + '</label><select id="m-us-barber" class="input-dark">' + this.barberOptions(tenantId, u ? u.barberId : null) + '</select>' +
             '<span class="field-hint">Si lo vinculas, este usuario solo verá sus propias citas.</span></div>' +
         '</div>' +
         (u ? '' : '<p class="form-note">' + ic('lock') + 'Se generará una <strong>contraseña temporal</strong> que deberá cambiar en su primer ingreso.</p>') +
@@ -231,6 +236,13 @@ const AdminUI = {
   onUserTenantChange() {
     const tid = document.getElementById('m-us-tenant').value;
     document.getElementById('m-us-barber').innerHTML = this.barberOptions(tid, null);
+    const lbl = document.getElementById('m-us-barber-lbl');
+    if (lbl) lbl.textContent = this.linkedStaffLabel(tid);
+  },
+
+  // "Barbero vinculado" / "Doctor vinculado" / "Manicurista vinculada", según el rubro de ese negocio
+  linkedStaffLabel(tenantId) {
+    return UI.vFor(DB.tenantById(tenantId), '{Staff} vinculad{o:staff}');
   },
 
   async saveUser(e, editId) {
@@ -251,7 +263,7 @@ const AdminUI = {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Escribe un correo válido.'; return; }
     const dup = Auth.findByEmail(email);
     if (dup && dup.id !== editId) { err.textContent = 'Ya existe un usuario con ese correo.'; return; }
-    if (role !== 'SUPERADMIN' && !DB.tenantById(tenantId)) { err.textContent = 'Selecciona una barbería.'; return; }
+    if (role !== 'SUPERADMIN' && !DB.tenantById(tenantId)) { err.textContent = 'Selecciona un negocio.'; return; }
 
     const btn = e.target.querySelector('button[type="submit"]');
     if (btn) btn.disabled = true;
@@ -342,7 +354,9 @@ const AdminUI = {
     const u = Auth.findById(id);
     if (!u || u.role !== 'ADMIN' || Auth.user.role !== 'SUPERADMIN') return Guard.deny();
     const g = u.grants || {};
-    const base = ['Panel principal', 'Citas (ver, crear, confirmar, reprogramar, completar, cancelar, eliminar)', 'Walk-in', 'Servicios', 'Barberos y portafolio', 'Usuarios del personal de su barbería'];
+    const ut = DB.tenantById(u.tenantId);
+    const vf = (s) => UI.vFor(ut, s);
+    const base = ['Panel principal', 'Citas (ver, crear, confirmar, reprogramar, completar, cancelar, eliminar)', 'Walk-in', vf('{ServicePlural}'), vf('{StaffPlural} y portafolio'), vf('Usuarios del personal de su {business}')];
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">Permisos de administrador</span><h3>' + UI.esc(u.name) + '</h3></div>' +
         '<button type="button" class="btn-dark btn-xs" onclick="ModalComponent.close()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
@@ -353,7 +367,7 @@ const AdminUI = {
         '<div class="perm-list">' + Auth.GRANTABLE.map(m =>
           '<label class="perm-toggle"><input type="checkbox" id="perm-' + m.key + '"' + (g[m.key] ? ' checked' : '') + ' />' +
           '<span class="perm-switch" aria-hidden="true"></span>' +
-          '<span class="perm-text"><strong>' + UI.esc(m.label) + '</strong><small>' + UI.esc(m.hint) + '</small></span></label>'
+          '<span class="perm-text"><strong>' + UI.esc(vf(m.label)) + '</strong><small>' + UI.esc(vf(m.hint)) + '</small></span></label>'
         ).join('') + '</div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="ModalComponent.close()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + 'Guardar permisos</button></div>' +
       '</form>'
@@ -370,7 +384,8 @@ const AdminUI = {
     try {
       await Auth.updateUser(id, { grants: g });
     } catch (ex) { UI.toast(ex.message, 'error'); return; }
-    const changes = Auth.GRANTABLE.filter(m => !!before[m.key] !== g[m.key]).map(m => (g[m.key] ? '+' : '−') + m.label);
+    const ut = DB.tenantById(u.tenantId);
+    const changes = Auth.GRANTABLE.filter(m => !!before[m.key] !== g[m.key]).map(m => (g[m.key] ? '+' : '−') + UI.vFor(ut, m.label));
     DB.log('Cambió permisos de un administrador', u.name + ': ' + (changes.length ? changes.join(', ') : 'sin cambios'), { tenantId: u.tenantId });
     ModalComponent.close();
     UI.toast('Permisos actualizados. Se aplican en su próximo ingreso o al recargar.');
@@ -378,7 +393,7 @@ const AdminUI = {
   },
 
   /* ==================================================================
-     BARBERÍAS (solo superadmin)
+     NEGOCIOS (solo superadmin)
      ================================================================== */
   renderTenants() {
     const grid = document.getElementById('tenants-grid');
@@ -393,10 +408,10 @@ const AdminUI = {
         '<div class="tenant-card-brand">' + TenantBrand.logoHTML(t, 'tenant-logo') + '</div>' +
         '<div class="tenant-card-body">' +
           '<div class="tenant-card-top"><h3>' + UI.esc(t.name) + '</h3>' +
-            (active ? '<span class="st-badge st-COMPLETADA">Activa</span>' : '<span class="st-badge st-CANCELADA">Suspendida</span>') + '</div>' +
+            (active ? '<span class="st-badge st-COMPLETADA">Activo</span>' : '<span class="st-badge st-CANCELADA">Suspendido</span>') + '</div>' +
           '<a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">' + ic('external') + 'index.html?b=' + UI.esc(t.slug) + '</a>' +
           '<ul class="tenant-stats">' +
-            '<li><strong>' + (st.barberProfiles || []).length + '</strong>barberos</li>' +
+            '<li><strong>' + (st.barberProfiles || []).length + '</strong>' + UI.esc(UI.vFor(t, '{staffPlural}')) + '</li>' +
             '<li><strong>' + users.length + '</strong>usuarios</li>' +
             '<li><strong>' + (st.appointments || []).length + '</strong>citas</li>' +
           '</ul>' +
@@ -420,6 +435,9 @@ const AdminUI = {
     const pal = Object.assign({}, TenantBrand.DEFAULT_PALETTE);
     if (t) { const tp = TenantBrand.paletteOf(t); ['primary', 'secondary', 'tertiary'].forEach(k => { if (/^#[0-9a-fA-F]{6}$/.test(tp[k] || '')) pal[k] = tp[k]; }); }
     const plan = t ? t.plan : 'PRO';
+    const rubro = t && t.businessType ? t.businessType : 'barberia';
+    const rubroOpts = window.Vocab ? (Vocab.TYPES || Object.keys(Vocab.PRESETS)).map(k =>
+      '<option value="' + UI.esc(k) + '"' + (k === rubro ? ' selected' : '') + '>' + UI.esc(Vocab.PRESETS[k].label) + '</option>').join('') : '<option value="barberia">Barbería</option>';
     this._tenantLogo = t ? (t.logo || '') : '';
     const colorRow = (key, label, hint) =>
       '<div class="palette-row">' +
@@ -430,15 +448,17 @@ const AdminUI = {
       '</div>';
 
     ModalComponent.open(
-      '<div class="crm-modal-header"><div><span class="card-kicker">' + (t ? 'Editar barbería' : 'Nueva barbería') + '</span><h3>' + (t ? UI.esc(t.name) : 'Datos, marca y suscripción') + '</h3></div>' +
+      '<div class="crm-modal-header"><div><span class="card-kicker">' + (t ? 'Editar negocio' : 'Nuevo negocio') + '</span><h3>' + (t ? UI.esc(t.name) : 'Datos, marca y suscripción') + '</h3></div>' +
         '<button type="button" class="btn-dark btn-xs" onclick="ModalComponent.close()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="AdminUI.saveTenant(event, ' + (t ? '\'' + t.id + '\'' : 'null') + ')" novalidate>' +
         '<p class="perm-section-title">Identidad</p>' +
         '<div class="form-grid-2">' +
-          '<div><label class="field-lbl" for="m-tn-name">Nombre de la barbería <span class="req">*</span></label><input type="text" id="m-tn-name" class="input-dark" value="' + v('name') + '" oninput="AdminUI.onTenantNameInput()" required /></div>' +
+          '<div><label class="field-lbl" for="m-tn-name">Nombre del negocio <span class="req">*</span></label><input type="text" id="m-tn-name" class="input-dark" value="' + v('name') + '" oninput="AdminUI.onTenantNameInput()" required /></div>' +
           '<div><label class="field-lbl" for="m-tn-slug">Enlace público <span class="req">*</span></label>' +
             '<div class="input-prefix"><span>?b=</span><input type="text" id="m-tn-slug" class="input-dark" value="' + v('slug') + '" data-touched="' + (t ? '1' : '') + '" oninput="this.dataset.touched=\'1\'" required /></div>' +
             '<span class="field-hint">Solo minúsculas, números y guiones.</span></div>' +
+          '<div><label class="field-lbl" for="m-tn-rubro">Rubro <span class="req">*</span></label><select id="m-tn-rubro" class="input-dark">' + rubroOpts + '</select>' +
+            '<span class="field-hint">Define las palabras que se ven (barbero, doctor, paciente…). El negocio puede personalizarlas en su Configuración.</span></div>' +
           '<div><label class="field-lbl" for="m-tn-owner">Propietario</label><input type="text" id="m-tn-owner" class="input-dark" value="' + v('ownerName') + '" /></div>' +
           '<div><label class="field-lbl" for="m-tn-currency">Moneda</label><select id="m-tn-currency" class="input-dark">' +
             ['S/', '$', '€'].map(c => '<option value="' + c + '"' + ((t ? t.currency : 'S/') === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
@@ -452,9 +472,9 @@ const AdminUI = {
             colorRow('tertiary', 'Terciario · texto', 'Textos y secciones claras (30%). Debe ser claro.') +
           '</div>' +
           '<div class="palette-preview" id="m-tn-preview" aria-label="Vista previa de la paleta">' +
-            '<div class="pp-header"><span class="pp-logo">' + (t ? UI.esc(t.name) : 'Tu barbería') + '</span><span class="pp-cta">Reservar</span></div>' +
-            '<div class="pp-hero"><span class="pp-eyebrow">Servicios</span><strong>Estilo impecable</strong><small>Cortes, barba y grooming.</small><span class="pp-btn">Reservar cita</span></div>' +
-            '<div class="pp-light"><strong>Corte clásico</strong><small>S/ 32 · 30 min</small></div>' +
+            '<div class="pp-header"><span class="pp-logo">' + (t ? UI.esc(t.name) : 'Tu negocio') + '</span><span class="pp-cta">Reservar</span></div>' +
+            '<div class="pp-hero"><span class="pp-eyebrow">Reservas</span><strong>Tu cita en minutos</strong><small>Elige día, hora y quién te atiende.</small><span class="pp-btn">Reservar cita</span></div>' +
+            '<div class="pp-light"><strong>Atención destacada</strong><small>S/ 32 · 30 min</small></div>' +
           '</div>' +
         '</div>' +
         '<ul class="palette-checks" id="m-tn-checks"></ul>' +
@@ -485,7 +505,7 @@ const AdminUI = {
         '</div>' +
 
         '<div class="form-error" id="m-tn-error" role="alert"></div>' +
-        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="ModalComponent.close()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (t ? 'Guardar cambios' : 'Crear barbería') + '</button></div>' +
+        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="ModalComponent.close()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (t ? 'Guardar cambios' : 'Crear negocio') + '</button></div>' +
       '</form>',
       { wide: true }
     );
@@ -496,7 +516,7 @@ const AdminUI = {
     const slug = document.getElementById('m-tn-slug');
     if (slug && !slug.dataset.touched) slug.value = DB.slugify(document.getElementById('m-tn-name').value);
     const logo = document.querySelector('#m-tn-preview .pp-logo');
-    if (logo) logo.textContent = document.getElementById('m-tn-name').value || 'Tu barbería';
+    if (logo) logo.textContent = document.getElementById('m-tn-name').value || 'Tu negocio';
   },
 
   onPlanChange() {
@@ -567,10 +587,10 @@ const AdminUI = {
     const name = g('m-tn-name');
     const slug = DB.slugify(g('m-tn-slug'));
     const palette = this.readPalette();
-    if (!name) { err.textContent = 'Escribe el nombre de la barbería.'; return; }
+    if (!name) { err.textContent = 'Escribe el nombre del negocio.'; return; }
     if (!slug) { err.textContent = 'Escribe un enlace público válido.'; return; }
     const dup = DB.tenantBySlug(slug);
-    if (dup && dup.id !== editId) { err.textContent = 'Ese enlace ya lo usa otra barbería.'; return; }
+    if (dup && dup.id !== editId) { err.textContent = 'Ese enlace ya lo usa otro negocio.'; return; }
     // C1: cada color debe ser exactamente #RRGGBB (la base también lo exige)
     const badHex = ['primary', 'secondary', 'tertiary'].find(k => !/^#[0-9A-F]{6}$/.test(palette[k]));
     if (badHex) { err.textContent = 'Cada color debe tener el formato #RRGGBB (por ejemplo #D79848).'; return; }
@@ -581,8 +601,10 @@ const AdminUI = {
     const fee = Number(g('m-tn-fee'));
     if (!isFinite(fee) || fee < 0) { err.textContent = 'El monto mensual debe ser 0 o más.'; return; }
 
+    const rubroEl = document.getElementById('m-tn-rubro');
+    const businessType = rubroEl && rubroEl.value ? rubroEl.value : 'barberia';
     const fields = {
-      name, slug, palette, accent: palette.secondary,
+      name, slug, palette, accent: palette.secondary, businessType,
       ownerName: g('m-tn-owner'),
       currency: document.getElementById('m-tn-currency').value,
       address: g('m-tn-address'), phone: g('m-tn-phone'), hours: g('m-tn-hours'), city: g('m-tn-city'),
@@ -598,26 +620,29 @@ const AdminUI = {
       if (root.data[t.id]) { root.data[t.id].settings.shopName = t.name; root.data[t.id].settings.currency = t.currency; }
       // M10: "actualizada" solo si el servidor aceptó el cambio (si no, ya se avisó el motivo y se recargó)
       if (!(await DB.persist())) return;
-      DB.log('Editó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label + ' · vence ' + t.subscriptionEnd, { tenantId: t.id });
+      DB.log('Editó un negocio', t.name + ' (?b=' + t.slug + ') · ' + this.rubroText(t) + ' · plan ' + DB.PLANS[t.plan].label + ' · vence ' + t.subscriptionEnd, { tenantId: t.id });
       ModalComponent.close();
-      UI.toast('Barbería actualizada.');
-      if (DB.tenant && DB.tenant.id === t.id) TenantBrand.applyCrm(t);
+      UI.toast('Negocio actualizado.');
+      if (DB.tenant && DB.tenant.id === t.id) {
+        TenantBrand.applyCrm(t);
+        if (typeof CRM !== 'undefined') CRM.renderAll();   // el rubro pudo cambiar: nuevas palabras
+      }
       this.renderHeader();
       this.renderTenants();
       return;
     }
-    const t = Object.assign({ id: DB.uid(), status: 'ACTIVE', createdAt: new Date().toISOString(), timeSlots: DB.DEFAULT_SLOTS.slice() }, fields);
+    const t = Object.assign({ id: DB.uid(), status: 'ACTIVE', createdAt: new Date().toISOString(), timeSlots: DB.DEFAULT_SLOTS.slice(), labels: {} }, fields);
     root.tenants.push(t);
-    root.data[t.id] = DB.templateData(t.name);
+    root.data[t.id] = DB.templateData(t.name, t.businessType);
     root.data[t.id].settings.currency = t.currency;
     if (!(await DB.persist()) || !DB.tenantById(t.id)) return; // el servidor la rechazó (ya se mostró el motivo)
-    DB.log('Creó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label, { tenantId: t.id });
+    DB.log('Creó un negocio', t.name + ' (?b=' + t.slug + ') · ' + this.rubroText(t) + ' · plan ' + DB.PLANS[t.plan].label, { tenantId: t.id });
     ModalComponent.close();
     this.renderHeader();
     this.renderTenants();
     UI.confirm({
-      title: 'Barbería creada',
-      message: t.name + ' ya existe con un catálogo de servicios base. Siguiente paso recomendado: crear su administrador.',
+      title: 'Negocio creado',
+      message: t.name + UI.vFor(t, ' ya existe con un catálogo de {servicePlural} base. Siguiente paso recomendado: crear su administrador.'),
       confirmText: 'Crear administrador'
     }).then(ok => {
       if (!ok) return;
@@ -628,12 +653,18 @@ const AdminUI = {
     });
   },
 
+  // "Consultorio médico" / "Barbería (personalizado)": rubro legible de un negocio
+  rubroText(t) {
+    if (!window.Vocab) return '';
+    return Vocab.label(t && t.businessType ? t.businessType : 'barberia') + (t && t.labels && Object.keys(t.labels).length ? ' (personalizado)' : '');
+  },
+
   toggleTenant(id) {
     if (!Auth.can('tenants.manage')) return Guard.deny();
     const t = DB.tenantById(id);
     const suspending = t.status === 'ACTIVE';
     UI.confirm({
-      title: suspending ? 'Suspender barbería' : 'Reactivar barbería',
+      title: suspending ? 'Suspender negocio' : 'Reactivar negocio',
       message: suspending
         ? 'Su web pública mostrará “no disponible” y sus administradores y personal no podrán ingresar. Los datos se conservan.'
         : 'Su web pública y sus usuarios volverán a funcionar.',
@@ -643,10 +674,10 @@ const AdminUI = {
       if (!ok) return;
       t.status = suspending ? 'SUSPENDED' : 'ACTIVE';
       if (!(await DB.persist())) return;
-      DB.log(suspending ? 'Suspendió una barbería' : 'Reactivó una barbería', t.name, { tenantId: t.id });
+      DB.log(suspending ? 'Suspendió un negocio' : 'Reactivó un negocio', t.name, { tenantId: t.id });
       this.renderHeader();
       this.renderTenants();
-      UI.toast(suspending ? 'Barbería suspendida.' : 'Barbería reactivada.');
+      UI.toast(suspending ? 'Negocio suspendido.' : 'Negocio reactivado.');
     });
   },
 
@@ -671,7 +702,7 @@ const AdminUI = {
 
     const ft = document.getElementById('aud-tenant');
     if (ft && me.role === 'SUPERADMIN' && !ft.dataset.ready) {
-      ft.innerHTML = '<option value="ALL">Todas las barberías</option><option value="NONE">Sistema / sin barbería</option>' +
+      ft.innerHTML = '<option value="ALL">Todos los negocios</option><option value="NONE">Sistema / sin negocio</option>' +
         DB.load().tenants.map(t => '<option value="' + UI.esc(t.id) + '">' + UI.esc(t.name) + '</option>').join('');
       ft.dataset.ready = '1';
     }
@@ -700,12 +731,12 @@ const AdminUI = {
     if (!list.length) {
       tbody.innerHTML = '<tr class="is-empty"><td colspan="5"><div class="empty-state">' + ic('file') + '<strong>Sin registros</strong>No hay actividad con esos filtros.</div></td></tr>';
     } else {
-      const roleLbl = (r) => r === 'PUBLIC' ? 'Cliente' : (r === 'SYSTEM' ? 'Sistema' : (Auth.ROLE_LABEL[r] || r));
+      const roleLbl = (r) => r === 'PUBLIC' ? Vocab.T('client') : (r === 'SYSTEM' ? 'Sistema' : (Auth.ROLE_LABEL[r] || r));
       tbody.innerHTML = list.slice(0, this.auditLimit).map(a =>
         '<tr>' +
           '<td data-label="Fecha" style="white-space:nowrap;">' + UI.esc(UI.fmtDateTime(a.ts)) + '</td>' +
           '<td data-label="Usuario"><strong>' + UI.esc(a.userName) + '</strong><br/><span class="text-grey" style="font-size:0.78rem;">' + UI.esc(roleLbl(a.role)) + '</span></td>' +
-          '<td data-label="Barbería">' + UI.esc(a.tenantName || '—') + '</td>' +
+          '<td data-label="Negocio">' + UI.esc(a.tenantName || '—') + '</td>' +
           '<td data-label="Acción"><span class="audit-action">' + UI.esc(a.action) + '</span></td>' +
           '<td data-label="Detalle">' + UI.esc(a.detail) + '</td>' +
         '</tr>'
@@ -717,7 +748,7 @@ const AdminUI = {
 
   exportAuditCSV() {
     if (!Auth.can('audit.view')) return Guard.deny();
-    const rows = [['Fecha', 'Usuario', 'Rol', 'Barbería', 'Acción', 'Detalle']].concat(
+    const rows = [['Fecha', 'Usuario', 'Rol', 'Negocio', 'Acción', 'Detalle']].concat(
       this.auditScope().map(a => [a.ts, a.userName, a.role, a.tenantName, a.action, a.detail])
     );
     const csv = UI.csv(rows);

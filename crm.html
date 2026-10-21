@@ -46,7 +46,7 @@
         <a class="btn-dark btn-xs rl-return" href="reservalope.html" data-role="SUPERADMIN"><i data-icon="arrowLeft"></i><span>Reservalope</span></a>
         <div class="tenant-switch" data-role="SUPERADMIN">
           <i data-icon="store"></i>
-          <label class="sr-only" for="tenant-switcher">Barbería activa</label>
+          <label class="sr-only" for="tenant-switcher">Negocio activo</label>
           <select id="tenant-switcher" class="input-dark" onchange="AdminUI.switchTenant(this.value)"></select>
         </div>
         <span class="crm-date" id="crm-current-date-label"></span>
@@ -75,9 +75,9 @@
       <aside class="crm-sidebar" aria-label="Menú del CRM">
         <div>
           <div class="crm-brand-box">
-            <div class="crm-brand-icon"><i data-icon="scissors"></i></div>
+            <div class="crm-brand-icon"><span class="crm-brand-ic" data-v-icon><i data-icon="calendar"></i></span></div>
             <div>
-              <div class="title-font crm-brand-name" id="crm-sidebar-shopname">Barbería</div>
+              <div class="title-font crm-brand-name" id="crm-sidebar-shopname">Negocio</div>
               <div class="crm-brand-sub" id="crm-sidebar-role">—</div>
             </div>
           </div>
@@ -98,7 +98,7 @@
               <span class="crm-nav-count" id="badge-nav-walkins">0</span>
             </button>
             <button type="button" class="crm-nav-btn" data-crm="barbers" onclick="CRM.switchTab('barbers')">
-              <span class="crm-nav-label"><i data-icon="users"></i>Barberos y portafolio</span>
+              <span class="crm-nav-label"><i data-icon="users"></i><span data-v-fmt="{StaffPlural} y portafolio">Profesionales y portafolio</span></span>
               <span class="crm-nav-count" id="badge-nav-barbers">0</span>
             </button>
 
@@ -107,10 +107,10 @@
               <span class="crm-nav-label"><i data-icon="wallet"></i>Ventas</span>
             </button>
             <button type="button" class="crm-nav-btn" data-crm="customers" onclick="CRM.switchTab('customers')">
-              <span class="crm-nav-label"><i data-icon="user"></i>Clientes</span>
+              <span class="crm-nav-label"><i data-icon="user"></i><span data-v="ClientPlural">Clientes</span></span>
             </button>
             <button type="button" class="crm-nav-btn" data-crm="services" onclick="CRM.switchTab('services')">
-              <span class="crm-nav-label"><i data-icon="tag"></i>Servicios</span>
+              <span class="crm-nav-label"><i data-icon="tag"></i><span data-v="ServicePlural">Servicios</span></span>
             </button>
             <button type="button" class="crm-nav-btn" data-crm="reports" onclick="CRM.switchTab('reports')">
               <span class="crm-nav-label"><i data-icon="chart"></i>Reportes</span>
@@ -163,7 +163,7 @@
               <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
             </div>
             <div class="quick-actions">
-              <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span>Barberos y portafolio</span></button>
+              <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span data-v-fmt="{StaffPlural} y portafolio">Profesionales y portafolio</span></button>
               <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span>Agregar cita</span></button>
               <button type="button" class="quick-action" onclick="CRM.openWalkInModal()"><i data-icon="hourglass"></i><span>Agregar walk-in</span></button>
             </div>
@@ -172,7 +172,7 @@
           <div class="crm-section-card">
             <div class="card-head">
               <div>
-                <h3>Barberos en vivo</h3>
+                <h3 data-v-fmt="{StaffPlural} en vivo">Profesionales en vivo</h3>
                 <p id="barber-live-summary-txt" class="card-sub">0 trabajando • 0 disponibles</p>
               </div>
               <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('barbers')"><i data-icon="camera"></i>Gestionar portafolio</button>
@@ -203,12 +203,12 @@
           <div class="crm-topbar">
             <div>
               <span class="eyebrow-golden">Equipo</span>
-              <h1 class="crm-title">Barberos y portafolio</h1>
-              <p class="crm-lead">Administra nombre, foto, especialidades y las fotos de cortes realizados por cada barbero.</p>
+              <h1 class="crm-title" data-v-fmt="{StaffPlural} y portafolio">Profesionales y portafolio</h1>
+              <p class="crm-lead" data-vx="Administra nombre, foto, especialidades y las fotos de trabajos realizados por cada {staff}.">Administra nombre, foto, especialidades y las fotos de trabajos realizados por cada profesional.</p>
             </div>
             <div class="crm-topbar-actions">
               <button type="button" class="btn-dark" onclick="AppRouter.goPublic('barberos')"><i data-icon="eye"></i>Ver página pública</button>
-              <button type="button" class="btn-golden" onclick="CRM.openBarberProfileModal()"><i data-icon="plus"></i>Nuevo barbero</button>
+              <button type="button" class="btn-golden" onclick="CRM.openBarberProfileModal()"><i data-icon="plus"></i><span data-vx="Nuev{o:staff} {staff}">Nuevo profesional</span></button>
             </div>
           </div>
           <div class="cards-grid-2" id="crm-barbers-portfolio-grid"></div>
@@ -234,9 +234,9 @@
           </div>
           <div class="crm-section-card">
             <div class="appt-filters-grid">
-              <div><label class="field-lbl" for="flt-appt-q">Buscar</label><input type="search" id="flt-appt-q" class="input-dark" placeholder="Nombre, teléfono, barbero…" oninput="CRM.renderAppointments()" /></div>
-              <div><label class="field-lbl" for="flt-appt-barber">Barbero</label><select id="flt-appt-barber" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
-              <div><label class="field-lbl" for="flt-appt-service">Servicio</label><select id="flt-appt-service" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
+              <div><label class="field-lbl" for="flt-appt-q">Buscar</label><input type="search" id="flt-appt-q" class="input-dark" placeholder="Nombre, teléfono, profesional…" data-v-attr="placeholder:Nombre, teléfono, {staff}…" oninput="CRM.renderAppointments()" /></div>
+              <div><label class="field-lbl" for="flt-appt-barber" data-v="Staff">Profesional</label><select id="flt-appt-barber" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
+              <div><label class="field-lbl" for="flt-appt-service" data-v="Service">Servicio</label><select id="flt-appt-service" class="input-dark" onchange="CRM.renderAppointments()"></select></div>
               <div><label class="field-lbl" for="flt-appt-date">Fecha</label><input type="date" id="flt-appt-date" class="input-dark" onchange="CRM.renderAppointments()" /></div>
               <div>
                 <label class="field-lbl" for="flt-appt-status">Estado</label>
@@ -254,7 +254,7 @@
           </div>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Cliente</th><th scope="col">Servicio</th><th scope="col">Barbero</th><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+              <thead><tr><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
               <tbody id="crm-appts-tbody"></tbody>
             </table>
           </div>
@@ -271,7 +271,7 @@
             <button type="button" class="btn-golden" onclick="CRM.openWalkInModal()"><i data-icon="plus"></i>Agregar walk-in</button>
           </div>
           <div class="crm-section-card">
-            <div class="card-head"><h3>Barberos en vivo</h3></div>
+            <div class="card-head"><h3 data-v-fmt="{StaffPlural} en vivo">Profesionales en vivo</h3></div>
             <div class="barber-live-grid" id="walkin-barber-live"></div>
           </div>
           <div class="cards-grid-2" id="walkin-active-grid" style="margin-bottom:24px;"></div>
@@ -294,14 +294,14 @@
           </div>
           <div class="crm-kpi-grid-3" id="sales-kpis-grid"></div>
           <div class="crm-split-2">
-            <div class="crm-section-card"><div class="card-head"><h3>Ingresos por barbero</h3></div><div id="sales-by-barber-bars"></div></div>
-            <div class="crm-section-card"><div class="card-head"><h3>Ingresos por servicio</h3></div><div id="sales-by-service-bars"></div></div>
+            <div class="crm-section-card"><div class="card-head"><h3 data-v-fmt="Ingresos por {staff}">Ingresos por profesional</h3></div><div id="sales-by-barber-bars"></div></div>
+            <div class="crm-section-card"><div class="card-head"><h3 data-v-fmt="Ingresos por {service}">Ingresos por servicio</h3></div><div id="sales-by-service-bars"></div></div>
           </div>
           <div class="crm-section-card">
             <div class="card-head"><h3>Ventas completadas recientes</h3></div>
             <div class="crm-table-wrap is-flat">
               <table class="crm-table">
-                <thead><tr><th scope="col">Fecha</th><th scope="col">Cliente</th><th scope="col">Servicio</th><th scope="col">Barbero</th><th scope="col">Origen</th><th scope="col">Ingreso</th></tr></thead>
+                <thead><tr><th scope="col">Fecha</th><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Origen</th><th scope="col">Ingreso</th></tr></thead>
                 <tbody id="sales-recent-tbody"></tbody>
               </table>
             </div>
@@ -313,13 +313,13 @@
           <div class="crm-topbar">
             <div>
               <span class="eyebrow-golden">Cartera</span>
-              <h1 class="crm-title">Clientes</h1>
+              <h1 class="crm-title" data-v="ClientPlural">Clientes</h1>
             </div>
-            <button type="button" class="btn-golden" onclick="CRM.openCustomerModal()"><i data-icon="plus"></i>Agregar cliente</button>
+            <button type="button" class="btn-golden" onclick="CRM.openCustomerModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {client}">Agregar cliente</span></button>
           </div>
           <div class="search-bar">
             <i data-icon="search"></i>
-            <label for="cust-search-q" class="sr-only">Buscar cliente</label>
+            <label for="cust-search-q" class="sr-only" data-v-fmt="Buscar {client}">Buscar cliente</label>
             <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre o teléfono…" oninput="CRM.renderCustomers(true)" />
           </div>
           <p class="field-hint" id="cust-count" aria-live="polite"></p>
@@ -332,9 +332,9 @@
           <div class="crm-topbar">
             <div>
               <span class="eyebrow-golden">Catálogo</span>
-              <h1 class="crm-title">Servicios</h1>
+              <h1 class="crm-title" data-v="ServicePlural">Servicios</h1>
             </div>
-            <button type="button" class="btn-golden" onclick="CRM.openServiceModal()"><i data-icon="plus"></i>Agregar servicio</button>
+            <button type="button" class="btn-golden" onclick="CRM.openServiceModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {service}">Agregar servicio</span></button>
           </div>
           <div class="cards-grid-3" id="crm-services-grid"></div>
         </div>
@@ -355,9 +355,9 @@
         <div id="crm-pane-settings" class="crm-pane">
           <div class="crm-topbar">
             <div>
-              <span class="eyebrow-golden">Barbería activa</span>
+              <span class="eyebrow-golden" data-v="Business">Negocio</span>
               <h1 class="crm-title">Configuración</h1>
-              <p class="crm-lead">Datos públicos de <strong id="set-tenant-name">esta barbería</strong>. Se muestran en su web: <a id="set-public-link" class="inline-link" href="index.html" target="_blank" rel="noopener">index.html</a></p>
+              <p class="crm-lead">Datos públicos de <strong id="set-tenant-name">este negocio</strong>. Se muestran en su web: <a id="set-public-link" class="inline-link" href="index.html" target="_blank" rel="noopener">index.html</a></p>
             </div>
           </div>
           <div class="crm-split-2">
@@ -389,15 +389,36 @@
             </div>
             <div class="crm-section-card">
               <div class="card-head"><h3>Respaldo</h3></div>
-              <p class="card-text">Descarga una copia de los datos de esta barbería (barberos, servicios, citas y clientes).</p>
+              <p class="card-text" data-vx="Descarga una copia de los datos de {este:business} {business} ({staffPlural}, {servicePlural}, citas y {clientPlural}).">Descarga una copia de los datos de este negocio (profesionales, servicios, citas y clientes).</p>
               <div class="btn-row">
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
             </div>
           </div>
+          <div class="crm-section-card sch-card" id="rubro-card">
+            <div class="card-head"><h3>Rubro del negocio</h3></div>
+            <p class="card-text">Define las palabras que ven el equipo y la web (por ejemplo “doctor” y “paciente” en un consultorio). Las citas y los datos guardados no cambian.</p>
+            <div class="form-grid-2">
+              <div>
+                <label class="field-lbl" for="set-rubro">Rubro</label>
+                <select id="set-rubro" class="input-dark" onchange="CRM.onRubroChange()"></select>
+              </div>
+              <div>
+                <span class="field-lbl">Así se verá</span>
+                <p class="field-hint rubro-preview" id="set-rubro-preview" aria-live="polite"></p>
+              </div>
+            </div>
+            <details class="rubro-custom" id="set-labels-box">
+              <summary>Personalizar palabras (opcional)</summary>
+              <p class="field-hint">Deja un campo vacío para usar la palabra del rubro. Hasta 40 caracteres, sin los signos &lt; &gt; ".</p>
+              <div class="form-grid-2" id="set-labels-grid"></div>
+            </details>
+            <p class="form-error" id="set-rubro-error" role="alert"></p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveRubro()"><i data-icon="check"></i>Guardar rubro</button></div>
+          </div>
           <div class="crm-section-card sch-card">
             <div class="card-head"><h3>Horario de atención</h3></div>
-            <p class="card-text">Define qué días y en qué horas se puede reservar. Cada barbero puede tener sus propios días y horas desde su ficha en <strong>Barberos</strong>, siempre dentro de este horario.</p>
+            <p class="card-text"><span data-vx="Define qué días y en qué horas se puede reservar. Cada {staff} puede tener sus propios días y horas desde su ficha en">Define qué días y en qué horas se puede reservar. Cada profesional puede tener sus propios días y horas desde su ficha en</span> <strong data-v="StaffPlural">Profesionales</strong>, siempre dentro de este horario.</p>
             <div class="form-grid-2">
               <div>
                 <label class="field-lbl" for="set-sch-interval">Una cita empieza cada</label>
@@ -415,7 +436,7 @@
 
           <div class="crm-section-card sch-card">
             <div class="card-head"><h3>Fechas especiales</h3></div>
-            <p class="card-text">Feriados, días con otro horario o el día libre de un barbero. Reemplazan al horario semanal solo en esa fecha.</p>
+            <p class="card-text" data-vx="Feriados, días con otro horario o el día libre de {un:staff} {staff}. Reemplazan al horario semanal solo en esa fecha.">Feriados, días con otro horario o el día libre de un profesional. Reemplazan al horario semanal solo en esa fecha.</p>
             <div class="sch-exc-form">
               <div><label class="field-lbl" for="set-exc-date">Fecha</label><input type="date" id="set-exc-date" class="input-dark" /></div>
               <div><label class="field-lbl" for="set-exc-who">Para</label><select id="set-exc-who" class="input-dark"></select></div>
@@ -439,7 +460,7 @@
 
           <div class="crm-section-card sch-card" id="wa-card">
             <div class="card-head"><h3>WhatsApp</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
-            <p class="card-text">Con el WhatsApp de la barbería se envían la confirmación y los recordatorios a los clientes que lo aceptan, y un aviso al equipo por cada reserva. El cliente confirma su asistencia respondiendo CONFIRMAR.</p>
+            <p class="card-text" data-vx="Con el WhatsApp {del:business} {business} se envían la confirmación y los recordatorios a los {clientPlural} que lo aceptan, y un aviso al equipo por cada reserva. El {client} confirma su asistencia respondiendo CONFIRMAR.">Con el WhatsApp del negocio se envían la confirmación y los recordatorios a los clientes que lo aceptan, y un aviso al equipo por cada reserva. El cliente confirma su asistencia respondiendo CONFIRMAR.</p>
             <div class="wa-link">
               <div class="wa-qr" id="wa-qr" hidden></div>
               <div class="wa-link-text">
@@ -462,9 +483,9 @@
                 <p class="field-hint">Separa los números con comas. Déjalo vacío si no quieres avisos.</p>
               </div>
               <div>
-                <label class="field-lbl" for="wa-quiet-from">No enviar mensajes a clientes entre</label>
+                <label class="field-lbl" for="wa-quiet-from" data-v-fmt="No enviar mensajes a {clientPlural} entre">No enviar mensajes a clientes entre</label>
                 <div class="sch-inline"><input type="time" step="300" id="wa-quiet-from" class="input-dark sch-time" oninput="CRM.waDirty = true" /><span>y</span><input type="time" step="300" id="wa-quiet-to" class="input-dark sch-time" oninput="CRM.waDirty = true" /></div>
-                <p class="field-hint">Formato HH:MM. Aplica a todos los mensajes a clientes: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.</p>
+                <p class="field-hint" data-v-fmt="Formato HH:MM. Aplica a todos los mensajes a {clientPlural}: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.">Formato HH:MM. Aplica a todos los mensajes a clientes: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.</p>
               </div>
             </div>
 
@@ -485,7 +506,7 @@
             <div class="field-lbl wa-sub">Recordatorios</div>
             <div id="wa-reminders"></div>
             <button type="button" class="btn-dark" onclick="CRM.waAddReminder()"><i data-icon="plus"></i>Agregar recordatorio</button>
-            <p class="field-hint wa-vars">Datos que puedes usar en los textos: {cliente} {servicio} {barbero} {fecha} {hora} {cuando} {barberia} {direccion} {precio} {codigo}. {cuando} dice "hoy", "mañana" o la fecha.</p>
+            <p class="field-hint wa-vars">Datos que puedes usar en los textos: {cliente} {servicio} {profesional} {fecha} {hora} {cuando} {negocio} {direccion} {precio} {codigo}. {cuando} dice "hoy", "mañana" o la fecha; {profesional} es el nombre de quien atiende y {negocio} el nombre del negocio.<span id="wa-vars-legacy" hidden></span></p>
 
             <p class="form-error" id="wa-error" role="alert"></p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWhatsApp()"><i data-icon="check"></i>Guardar WhatsApp</button></div>
@@ -495,7 +516,7 @@
               <div class="sch-inline"><input type="tel" id="wa-test-num" class="input-dark" placeholder="999 111 222" inputmode="numeric" /><button type="button" class="btn-dark" onclick="CRM.waTest()">Enviar prueba</button></div>
             </div>
 
-            <div class="field-lbl wa-sub">Clientes que pidieron no recibir mensajes</div>
+            <div class="field-lbl wa-sub" data-v-fmt="{ClientPlural} que pidieron no recibir mensajes">Clientes que pidieron no recibir mensajes</div>
             <div id="wa-optouts" class="sch-exc-list"></div>
 
             <div class="field-lbl wa-sub">Últimos envíos</div>
@@ -515,20 +536,20 @@
           </div>
 
           <div class="role-legend" data-role="SUPERADMIN,ADMIN">
-            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-super">Superadministrador</span><p>Acceso total: todas las barberías, usuarios y permisos.</p></div>
-            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-admin">Administrador</span><p>Su barbería: citas, walk-in, servicios, barberos, personal y los módulos que le otorgues.</p></div>
-            <div class="role-legend-item"><span class="role-badge role-staff">Personal</span><p>Panel, citas y walk-in (ver, crear y avanzar). Si está vinculado a un barbero, solo ve sus citas.</p></div>
+            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-super">Superadministrador</span><p>Acceso total: todos los negocios, usuarios y permisos.</p></div>
+            <div class="role-legend-item" data-role="SUPERADMIN"><span class="role-badge role-admin">Administrador</span><p data-vx="Su {business}: citas, walk-in, {servicePlural}, {staffPlural}, personal y los módulos que le otorgues.">Su negocio: citas, walk-in, servicios, profesionales, personal y los módulos que le otorgues.</p></div>
+            <div class="role-legend-item"><span class="role-badge role-staff">Personal</span><p data-vx="Panel, citas y walk-in (ver, crear y avanzar). Si está vinculado a {un:staff} {staff}, solo ve sus citas.">Panel, citas y walk-in (ver, crear y avanzar). Si está vinculado a un profesional, solo ve sus citas.</p></div>
           </div>
 
           <div class="crm-section-card">
             <div class="appt-filters-grid users-filters">
               <div><label class="field-lbl" for="usr-search">Buscar</label><input type="search" id="usr-search" class="input-dark" placeholder="Nombre o correo…" oninput="AdminUI.renderUsers()" /></div>
-              <div data-role="SUPERADMIN"><label class="field-lbl" for="usr-filter-tenant">Barbería</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
+              <div data-role="SUPERADMIN"><label class="field-lbl" for="usr-filter-tenant">Negocio</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
             </div>
           </div>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Barbería</th><th scope="col">Barbero</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Negocio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
               <tbody id="users-tbody"></tbody>
             </table>
           </div>
@@ -540,14 +561,14 @@
             <div>
               <span class="eyebrow-golden">Auditoría</span>
               <h1 class="crm-title">Historial de actividad</h1>
-              <p class="crm-lead">Quién hizo qué y cuándo: accesos, citas, walk-in, barberos, servicios, usuarios y configuración.</p>
+              <p class="crm-lead" data-v-fmt="Quién hizo qué y cuándo: accesos, citas, walk-in, {staffPlural}, {servicePlural}, usuarios y configuración.">Quién hizo qué y cuándo: accesos, citas, walk-in, profesionales, servicios, usuarios y configuración.</p>
             </div>
             <button type="button" class="btn-dark" onclick="AdminUI.exportAuditCSV()"><i data-icon="download"></i>Exportar CSV</button>
           </div>
           <div class="crm-section-card">
             <div class="appt-filters-grid audit-filters">
-              <div><label class="field-lbl" for="aud-search">Buscar</label><input type="search" id="aud-search" class="input-dark" placeholder="Usuario, cliente, detalle…" oninput="AdminUI.renderAudit(false)" /></div>
-              <div data-role="SUPERADMIN"><label class="field-lbl" for="aud-tenant">Barbería</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-search">Buscar</label><input type="search" id="aud-search" class="input-dark" placeholder="Usuario, cliente, detalle…" data-v-attr="placeholder:Usuario, {client}, detalle…" oninput="AdminUI.renderAudit(false)" /></div>
+              <div data-role="SUPERADMIN"><label class="field-lbl" for="aud-tenant">Negocio</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
               <div><label class="field-lbl" for="aud-action">Acción</label><select id="aud-action" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
               <div><label class="field-lbl" for="aud-from">Desde</label><input type="date" id="aud-from" class="input-dark" onchange="AdminUI.renderAudit(false)" /></div>
             </div>
@@ -555,7 +576,7 @@
           <p class="audit-count" id="audit-count"></p>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Barbería</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Negocio</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
               <tbody id="audit-tbody"></tbody>
             </table>
           </div>
@@ -581,7 +602,7 @@
       <div class="wsp-head-id">
         <span class="wsp-avatar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18l-3 4H6L3 4zm4 6h14l-7 11-3-4.5L14.5 12H7v-2z"/></svg></span>
         <div>
-          <strong>Golden Barbería</strong>
+          <strong>WhatsApp</strong>
           <span>Confirmaciones y recordatorios de citas</span>
         </div>
       </div>
@@ -590,6 +611,7 @@
     <div class="wsp-body" id="wsp-messages"></div>
   </div>
 
+  <script src="js/core/vocab.js"></script>
   <script src="js/utils/icons.js"></script>
   <script src="js/utils/image-compressor.js"></script>
   <script src="js/vendor/supabase.min.js"></script>

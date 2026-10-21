@@ -71,7 +71,7 @@
               <span class="crm-nav-label"><i data-icon="chart"></i>Dashboard global</span>
             </button>
             <button type="button" class="crm-nav-btn" data-rl="tenants" onclick="Reservalope.go('tenants')">
-              <span class="crm-nav-label"><i data-icon="store"></i>Barberías</span>
+              <span class="crm-nav-label"><i data-icon="store"></i>Negocios</span>
               <span class="crm-nav-count" id="rl-badge-tenants">0</span>
             </button>
             <button type="button" class="crm-nav-btn" data-rl="alerts" onclick="Reservalope.go('alerts')">
@@ -101,7 +101,7 @@
 
       <main class="crm-main" id="rl-main" tabindex="-1">
 
-        <!-- Filtro de período (compartido por Dashboard, Barberías y Ficha) -->
+        <!-- Filtro de período (compartido por Dashboard, Negocios y Ficha) -->
         <template id="rl-period-tpl">
           <div class="rl-period" role="group" aria-label="Período de análisis">
             <div class="segmented rl-presets"></div>
@@ -117,7 +117,7 @@
         <div class="crm-pane" id="rl-pane-dashboard">
           <div class="crm-topbar">
             <div>
-              <span class="eyebrow-golden">Todas las barberías</span>
+              <span class="eyebrow-golden">Todos los negocios</span>
               <h1 class="crm-title">Dashboard global</h1>
               <p class="crm-lead" id="rl-dash-compare"></p>
             </div>
@@ -131,7 +131,7 @@
               <div class="card-head"><div><h3>Ingresos por día</h3><p class="card-sub">Citas completadas + walk-in atendidos</p></div><div class="chart-legend-inline" id="rl-dash-line-legend"></div></div>
               <div class="chart-box" id="rl-dash-line"></div>
             </section>
-            <section class="crm-section-card"><div class="card-head"><div><h3>Ranking de barberías</h3><p class="card-sub">Ingresos del período</p></div></div><div id="rl-dash-rank"></div></section>
+            <section class="crm-section-card"><div class="card-head"><div><h3>Ranking de negocios</h3><p class="card-sub">Ingresos del período</p></div></div><div id="rl-dash-rank"></div></section>
             <section class="crm-section-card"><div class="card-head"><div><h3>Citas por estado</h3><p class="card-sub" id="rl-dash-status-sub"></p></div></div><div id="rl-dash-status"></div></section>
             <section class="crm-section-card"><div class="card-head"><div><h3>Servicios más vendidos</h3><p class="card-sub">Atenciones completadas</p></div></div><div id="rl-dash-services"></div></section>
             <section class="crm-section-card"><div class="card-head"><div><h3>Horas pico</h3><p class="card-sub">Citas y walk-in por hora de inicio</p></div></div><div id="rl-dash-hours"></div></section>
@@ -140,27 +140,28 @@
           </div>
         </div>
 
-        <!-- ================= BARBERÍAS ================= -->
+        <!-- ================= NEGOCIOS ================= -->
         <div class="crm-pane" id="rl-pane-tenants">
           <div class="crm-topbar">
             <div>
               <span class="eyebrow-golden">Cartera</span>
-              <h1 class="crm-title">Barberías</h1>
-              <p class="crm-lead">Rendimiento de cada barbería en el período elegido. Abre su ficha para el detalle.</p>
+              <h1 class="crm-title">Negocios</h1>
+              <p class="crm-lead">Rendimiento de cada negocio en el período elegido. Abre su ficha para el detalle.</p>
             </div>
-            <button type="button" class="btn-golden" onclick="AdminUI.openTenantModal()"><i data-icon="plus"></i>Nueva barbería</button>
+            <button type="button" class="btn-golden" onclick="AdminUI.openTenantModal()"><i data-icon="plus"></i>Nuevo negocio</button>
           </div>
           <div class="rl-period-slot"></div>
           <div class="crm-section-card">
             <div class="appt-filters-grid rl-tenant-filters">
               <div><label class="field-lbl" for="rl-t-search">Buscar</label><input type="search" id="rl-t-search" class="input-dark" placeholder="Nombre o enlace…" oninput="Reservalope.renderTenants()" /></div>
-              <div><label class="field-lbl" for="rl-t-status">Estado</label><select id="rl-t-status" class="input-dark" onchange="Reservalope.renderTenants()"><option value="ALL">Todas</option><option value="ACTIVE">Activas</option><option value="SUSPENDED">Suspendidas</option></select></div>
+              <div><label class="field-lbl" for="rl-t-status">Estado</label><select id="rl-t-status" class="input-dark" onchange="Reservalope.renderTenants()"><option value="ALL">Todos</option><option value="ACTIVE">Activos</option><option value="SUSPENDED">Suspendidos</option></select></div>
+              <div><label class="field-lbl" for="rl-t-rubro">Rubro</label><select id="rl-t-rubro" class="input-dark" onchange="Reservalope.renderTenants()"></select></div>
               <div><label class="field-lbl" for="rl-t-plan">Plan</label><select id="rl-t-plan" class="input-dark" onchange="Reservalope.renderTenants()"></select></div>
             </div>
           </div>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Barbería</th><th scope="col">Estado</th><th scope="col">Plan</th><th scope="col">Suscripción</th><th scope="col">Ingresos</th><th scope="col">Citas</th><th scope="col">Cancelación</th><th scope="col">Última actividad</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+              <thead><tr><th scope="col">Negocio</th><th scope="col">Rubro</th><th scope="col">Estado</th><th scope="col">Plan</th><th scope="col">Suscripción</th><th scope="col">Ingresos</th><th scope="col">Citas</th><th scope="col">Cancelación</th><th scope="col">Última actividad</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
               <tbody id="rl-tenants-tbody"></tbody>
             </table>
           </div>
@@ -168,7 +169,7 @@
 
         <!-- ================= FICHA INDIVIDUAL ================= -->
         <div class="crm-pane" id="rl-pane-detail">
-          <button type="button" class="btn-ghost rl-back" onclick="Reservalope.go('tenants')"><i data-icon="arrowLeft"></i>Volver a barberías</button>
+          <button type="button" class="btn-ghost rl-back" onclick="Reservalope.go('tenants')"><i data-icon="arrowLeft"></i>Volver a negocios</button>
           <div id="rl-detail-head"></div>
           <div class="rl-period-slot"></div>
           <div class="rl-kpis" id="rl-detail-kpis"></div>
@@ -178,8 +179,8 @@
               <div class="chart-box" id="rl-detail-line"></div>
             </section>
             <section class="crm-section-card rl-chart-wide">
-              <div class="card-head"><div><h3>Rendimiento por barbero</h3><p class="card-sub">Ocupación = horarios reservados / horarios disponibles del período</p></div></div>
-              <div class="crm-table-wrap is-flat"><table class="crm-table"><thead><tr><th scope="col">Barbero</th><th scope="col">Citas</th><th scope="col">Completadas</th><th scope="col">Walk-in</th><th scope="col">Ingresos</th><th scope="col">Ocupación</th></tr></thead><tbody id="rl-detail-barbers"></tbody></table></div>
+              <div class="card-head"><div><h3 id="rl-detail-staff-title">Rendimiento por profesional</h3><p class="card-sub">Ocupación = horarios reservados / horarios disponibles del período</p></div></div>
+              <div class="crm-table-wrap is-flat"><table class="crm-table"><thead><tr><th scope="col" id="rl-detail-staff-th">Profesional</th><th scope="col">Citas</th><th scope="col">Completadas</th><th scope="col">Walk-in</th><th scope="col">Ingresos</th><th scope="col">Ocupación</th></tr></thead><tbody id="rl-detail-barbers"></tbody></table></div>
             </section>
             <section class="crm-section-card"><div class="card-head"><div><h3>Servicios más vendidos</h3></div></div><div id="rl-detail-services"></div></section>
             <section class="crm-section-card"><div class="card-head"><div><h3>Citas por estado</h3></div></div><div id="rl-detail-status"></div></section>
@@ -197,7 +198,7 @@
             <div>
               <span class="eyebrow-golden">Análisis</span>
               <h1 class="crm-title">Reportes</h1>
-              <p class="crm-lead">Elige una barbería o todas, aplica filtros, revisa la vista previa y descarga en PDF o Excel.</p>
+              <p class="crm-lead">Elige un negocio o todos, aplica filtros, revisa la vista previa y descarga en PDF o Excel.</p>
             </div>
           </div>
           <div id="rl-reports-root"></div>
@@ -228,12 +229,12 @@
           <div class="crm-section-card">
             <div class="appt-filters-grid users-filters">
               <div><label class="field-lbl" for="usr-search">Buscar</label><input type="search" id="usr-search" class="input-dark" placeholder="Nombre o correo…" oninput="AdminUI.renderUsers()" /></div>
-              <div><label class="field-lbl" for="usr-filter-tenant">Barbería</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
+              <div><label class="field-lbl" for="usr-filter-tenant">Negocio</label><select id="usr-filter-tenant" class="input-dark" onchange="AdminUI.renderUsers()"></select></div>
             </div>
           </div>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Barbería</th><th scope="col">Barbero</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+              <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Negocio</th><th scope="col">Profesional</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
               <tbody id="users-tbody"></tbody>
             </table>
           </div>
@@ -245,14 +246,14 @@
             <div>
               <span class="eyebrow-golden">Auditoría</span>
               <h1 class="crm-title">Historial de actividad</h1>
-              <p class="crm-lead">Todas las barberías y la plataforma.</p>
+              <p class="crm-lead">Todos los negocios y la plataforma.</p>
             </div>
             <button type="button" class="btn-dark" onclick="AdminUI.exportAuditCSV()"><i data-icon="download"></i>Exportar CSV</button>
           </div>
           <div class="crm-section-card">
             <div class="appt-filters-grid audit-filters">
               <div><label class="field-lbl" for="aud-search">Buscar</label><input type="search" id="aud-search" class="input-dark" placeholder="Usuario, cliente, detalle…" oninput="AdminUI.renderAudit(false)" /></div>
-              <div><label class="field-lbl" for="aud-tenant">Barbería</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
+              <div><label class="field-lbl" for="aud-tenant">Negocio</label><select id="aud-tenant" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
               <div><label class="field-lbl" for="aud-action">Acción</label><select id="aud-action" class="input-dark" onchange="AdminUI.renderAudit(false)"></select></div>
               <div><label class="field-lbl" for="aud-from">Desde</label><input type="date" id="aud-from" class="input-dark" onchange="AdminUI.renderAudit(false)" /></div>
             </div>
@@ -260,7 +261,7 @@
           <p class="audit-count" id="audit-count"></p>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Barbería</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Negocio</th><th scope="col">Acción</th><th scope="col">Detalle</th></tr></thead>
               <tbody id="audit-tbody"></tbody>
             </table>
           </div>
@@ -287,7 +288,7 @@
             </section>
             <section class="crm-section-card">
               <div class="card-head"><h3>Respaldo completo</h3></div>
-              <p class="card-text">Descarga todas las barberías, usuarios (sin contraseñas), datos e historial en un archivo JSON.</p>
+              <p class="card-text">Descarga todos los negocios, usuarios (sin contraseñas), datos e historial en un archivo JSON.</p>
               <button type="button" class="btn-golden" onclick="Reservalope.exportBackup()"><i data-icon="download"></i>Exportar respaldo</button>
             </section>
           </div>
@@ -301,6 +302,7 @@
     <div class="crm-modal-box" id="crm-modal-content"></div>
   </div>
 
+  <script src="js/core/vocab.js"></script>
   <script src="js/utils/icons.js"></script>
   <script src="js/utils/image-compressor.js"></script>
   <script src="js/vendor/supabase.min.js"></script>
