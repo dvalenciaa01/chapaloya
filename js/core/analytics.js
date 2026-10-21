@@ -1,6 +1,7 @@
 /* ==========================================================================
-   Analytics: métricas por barbería y globales, comparación de períodos,
-   checklist de configuración y alertas de salud (Reservalope)
+   Analytics: métricas por negocio y globales, comparación de períodos,
+   checklist de configuración y alertas de salud (Reservalope). Los textos
+   de un negocio usan sus palabras del rubro (UI.vFor).
    ========================================================================== */
 const Analytics = {
   PRESETS: [
@@ -183,7 +184,10 @@ const Analytics = {
     return { key: 'ok', label: 'Vigente', days };
   },
 
-  /* Checklist de configuración de una barbería */
+  // Texto con las palabras del rubro de ese negocio
+  vt(t, s) { return (typeof UI !== 'undefined' && UI.vFor) ? UI.vFor(t, s) : s; },
+
+  /* Checklist de configuración de un negocio */
   checklist(t) {
     const root = DB.load();
     const s = root.data[t.id] || {};
@@ -194,8 +198,8 @@ const Analytics = {
       { label: 'Logo cargado', ok: !!t.logo, hint: 'Sin logo se muestra el nombre en texto.' },
       { label: 'Paleta de colores válida', ok: TenantBrand.checkPalette(pal).ok, hint: 'Revisa el contraste de la paleta.' },
       { label: 'Dirección y teléfono públicos', ok: !!(t.address && t.phone), hint: 'Se muestran en la web.' },
-      { label: 'Al menos un barbero', ok: (s.barberProfiles || []).length > 0, hint: 'Sin barberos no se puede reservar.' },
-      { label: 'Catálogo de servicios', ok: (s.services || []).length > 0, hint: 'Sin servicios no se puede reservar.' },
+      { label: this.vt(t, 'Al menos {un:staff} {staff}'), ok: (s.barberProfiles || []).length > 0, hint: this.vt(t, 'Sin {staffPlural} no se puede reservar.') },
+      { label: this.vt(t, 'Catálogo de {servicePlural}'), ok: (s.services || []).length > 0, hint: this.vt(t, 'Sin {servicePlural} no se puede reservar.') },
       { label: 'Administrador creado', ok: users.some(u => u.role === 'ADMIN'), hint: 'Crea su administrador en Usuarios.' },
       { label: 'Personal registrado', ok: users.some(u => u.role === 'STAFF'), hint: 'Opcional, recomendado.' },
       { label: 'Contacto del dueño', ok: !!(t.ownerEmail || t.ownerPhone), hint: 'Para cobranza y avisos.' },
@@ -213,15 +217,15 @@ const Analytics = {
 
     root.tenants.forEach(t => {
       const s = root.data[t.id] || {};
-      if (t.status !== 'ACTIVE') { push('info', t, 'Barbería suspendida', 'Su web muestra “no disponible” y su personal no puede ingresar.', 'tenant'); return; }
+      if (t.status !== 'ACTIVE') { push('info', t, 'Negocio suspendido', 'Su web muestra “no disponible” y su personal no puede ingresar.', 'tenant'); return; }
       const sub = this.subscriptionState(t);
       if (sub.key === 'expired') push('critical', t, 'Suscripción vencida', 'Venció el ' + t.subscriptionEnd + ' (plan ' + (DB.PLANS[t.plan] || {}).label + ', S/ ' + t.planFee + ').' +
         (-sub.days > 7 ? ' Su web ya no recibe reservas en línea.' : ' Su web deja de recibir reservas el ' + DB.addDays(t.subscriptionEnd, 8) + '.'), 'edit');
       else if (sub.key === 'soon') push('warning', t, 'Suscripción por vencer', sub.label + ' · ' + t.subscriptionEnd + ' (plan ' + (DB.PLANS[t.plan] || {}).label + ').', 'edit');
 
       const missing = [];
-      if (!(s.barberProfiles || []).length) missing.push('barberos');
-      if (!(s.services || []).length) missing.push('servicios');
+      if (!(s.barberProfiles || []).length) missing.push(this.vt(t, '{staffPlural}'));
+      if (!(s.services || []).length) missing.push(this.vt(t, '{servicePlural}'));
       if (!root.users.some(u => u.tenantId === t.id && u.role === 'ADMIN' && u.active)) missing.push('administrador');
       if (missing.length) push('warning', t, 'Configuración incompleta', 'Falta: ' + missing.join(', ') + '.', 'tenant');
 

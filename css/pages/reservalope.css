@@ -114,3 +114,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 
 /* Listas en grilla: nunca más anchas que su tarjeta (el texto largo se recorta con …) */
 .rl-list, .rl-alerts, .rl-checklist, .rl-activity { grid-template-columns: minmax(0, 1fr); }
+
+/* Rubro de cada negocio en la tabla */
+.rl-rubro { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); min-width: 9.5em; overflow-wrap: normal; }
+.rl-rubro .ic { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--yellow); }

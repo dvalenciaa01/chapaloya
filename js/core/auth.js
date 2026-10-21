@@ -28,13 +28,14 @@ const Auth = {
 
   ROLE_LABEL: { SUPERADMIN: 'Superadministrador', ADMIN: 'Administrador', STAFF: 'Personal' },
 
-  // Módulos que el superadmin puede otorgar o quitar a cada administrador
+  // Módulos que el superadmin puede otorgar o quitar a cada administrador.
+  // label y hint son plantillas del rubro (se pintan con UI.v / UI.vFor).
   GRANTABLE: [
-    { key: 'sales', label: 'Ventas', hint: 'Ingresos, ticket promedio y ventas por barbero.' },
-    { key: 'customers', label: 'Clientes', hint: 'Cartera de clientes y su historial.' },
+    { key: 'sales', label: 'Ventas', hint: 'Ingresos, ticket promedio y ventas por {staff}.' },
+    { key: 'customers', label: '{ClientPlural}', hint: 'Cartera de {clientPlural} y su historial.' },
     { key: 'reports', label: 'Reportes', hint: 'Reportes con filtros, exportables a PDF y Excel.' },
-    { key: 'settings', label: 'Configuración', hint: 'Datos públicos de la barbería y WhatsApp.' },
-    { key: 'audit', label: 'Historial de actividad', hint: 'Registro de acciones de su barbería.' }
+    { key: 'settings', label: 'Configuración', hint: 'Datos públicos {del:business} {business}, rubro y WhatsApp.' },
+    { key: 'audit', label: 'Historial de actividad', hint: 'Registro de acciones de su {business}.' }
   ],
 
   BASE: {
@@ -142,7 +143,7 @@ const Auth = {
     // la barbería al abrir el CRM (requireSession).
     if (!user.mustChangePassword && user.role !== 'SUPERADMIN' && (await this.tenantStatus(user.tenantId)) !== 'ACTIVE') {
       await this.sb().auth.signOut();
-      return { ok: false, error: 'La barbería asociada a tu cuenta está suspendida. Contacta al superadministrador.' };
+      return { ok: false, error: 'El negocio asociado a tu cuenta está suspendido. Contacta al superadministrador.' };
     }
     this.user = user;
     const now = Date.now();

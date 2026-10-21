@@ -791,3 +791,12 @@ body[data-page="crm"]:not(.auth-ok) .crm-header .header-actions { visibility: hi
 .wa-rem-only { display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: var(--fs-xs); cursor: pointer; }
 .appt-hint { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--on-dark-lo); }
 .cust-more-row { justify-content: center; margin-top: var(--space-4); }
+
+/* Rubro del negocio (Configuración) */
+.crm-brand-ic { display: inline-flex; }
+.crm-brand-ic .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rubro-preview { margin-top: 10px; color: var(--on-dark-hi, inherit); overflow-wrap: anywhere; }
+.rubro-custom { margin-top: var(--space-3); }
+.rubro-custom summary { cursor: pointer; font-weight: 600; color: var(--yellow); padding: 6px 0; }
+.rubro-custom .form-grid-2 { margin-top: var(--space-2); }
+.wa-vars span { display: inline; }
