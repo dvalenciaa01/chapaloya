@@ -10,6 +10,10 @@
 //   { action: "reset_password", user_id }
 //   { action: "update", user_id, name?, email?, role?, tenant_id?, barber_id?, active?, grants? }
 // Responde { ok: true, user, temp_password? } o { error }.
+//
+// Contraseña temporal (A3): al crear o restablecer se llama a la RPC
+// perfil_clave_temporal, que marca must_change_password y guarda la huella de
+// la clave; la base solo deja quitar la marca cuando la clave cambió.
 // ==========================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 
@@ -57,6 +61,7 @@ Deno.serve(async (req: Request) => {
     if (whoErr || !who?.user) throw new HttpError(401, 'Sesión no válida. Vuelve a ingresar.');
     const { data: me } = await sb.from('profiles').select('*').eq('id', who.user.id).maybeSingle();
     if (!me || !me.active) throw new HttpError(403, 'Tu usuario no tiene acceso.');
+    if (me.must_change_password) throw new HttpError(403, 'Primero cambia tu contraseña temporal.');
     if (me.role !== 'SUPERADMIN') {
       const { data: t } = await sb.from('tenants').select('status').eq('id', me.tenant_id).maybeSingle();
       if (!t || t.status !== 'ACTIVE') throw new HttpError(403, 'Tu barbería está suspendida.');
@@ -122,11 +127,19 @@ Deno.serve(async (req: Request) => {
         id: created.user.id, email, name, role, tenant_id: tenantId, barber_id: barberId,
         grants: DEFAULT_GRANTS, active: true, must_change_password: true,
       };
-      const { data: prof, error: pErr } = await sb.from('profiles').insert(profile).select().single();
+      const { data: prof0, error: pErr } = await sb.from('profiles').insert(profile).select().single();
       if (pErr) {
         await sb.auth.admin.deleteUser(created.user.id);
         throw new HttpError(400, 'No se pudo crear el perfil: ' + pErr.message);
       }
+      // Huella de la clave temporal (el trigger también la guarda; esto lo asegura)
+      const { error: hErr } = await sb.rpc('perfil_clave_temporal', { p_user_id: created.user.id });
+      if (hErr) {
+        await sb.from('profiles').delete().eq('id', created.user.id);
+        await sb.auth.admin.deleteUser(created.user.id);
+        throw new HttpError(400, 'No se pudo crear el usuario: ' + hErr.message);
+      }
+      const prof = prof0;
       await log('Creó un usuario', name + ' (' + email + ') · ' + role, tenantId);
       return json(200, { ok: true, user: prof, temp_password: temp });
     }
@@ -138,7 +151,9 @@ Deno.serve(async (req: Request) => {
       const temp = tempPassword();
       const { error } = await sb.auth.admin.updateUserById(target.id, { password: temp });
       if (error) throw new HttpError(400, 'No se pudo restablecer: ' + error.message);
-      const { data: prof } = await sb.from('profiles').update({ must_change_password: true }).eq('id', target.id).select().single();
+      const { error: hErr } = await sb.rpc('perfil_clave_temporal', { p_user_id: target.id });
+      if (hErr) throw new HttpError(400, 'No se pudo restablecer: ' + hErr.message);
+      const { data: prof } = await sb.from('profiles').select('*').eq('id', target.id).single();
       await log('Restableció una contraseña', target.name + ' (' + target.email + ')', target.tenant_id);
       return json(200, { ok: true, user: prof, temp_password: temp });
     }
@@ -190,6 +205,10 @@ Deno.serve(async (req: Request) => {
         patch.active = active;
       }
 
+      // Primero el perfil y luego Supabase Auth; si Auth falla, el perfil vuelve
+      // a como estaba, para que el correo y el estado nunca queden distintos.
+      const { data: prof, error: uErr } = await sb.from('profiles').update(patch).eq('id', target.id).select().single();
+      if (uErr) throw new HttpError(400, 'No se pudo guardar el usuario: ' + uErr.message);
       if (patch.email || patch.active !== undefined) {
         const authPatch: Record<string, unknown> = {};
         if (patch.email) { authPatch.email = patch.email; authPatch.email_confirm = true; }
@@ -197,12 +216,14 @@ Deno.serve(async (req: Request) => {
         if (patch.active !== undefined) authPatch.ban_duration = patch.active ? 'none' : '876000h';
         const { error } = await sb.auth.admin.updateUserById(target.id, authPatch);
         if (error) {
-          const msg = /already|registered|exists/i.test(error.message) ? 'Ya existe un usuario con ese correo.' : error.message;
+          const back: Record<string, unknown> = {};
+          Object.keys(patch).forEach((k) => { back[k] = (target as Record<string, unknown>)[k]; });
+          const { error: rbErr } = await sb.from('profiles').update(back).eq('id', target.id);
+          if (rbErr) console.error('No se pudo revertir el perfil', target.id, rbErr.message);
+          const msg = /already|registered|exists/i.test(error.message) ? 'Ya existe un usuario con ese correo.' : 'No se pudo guardar el usuario: ' + error.message;
           throw new HttpError(400, msg);
         }
       }
-      const { data: prof, error: uErr } = await sb.from('profiles').update(patch).eq('id', target.id).select().single();
-      if (uErr) throw new HttpError(400, uErr.message);
       return json(200, { ok: true, user: prof });
     }
 
