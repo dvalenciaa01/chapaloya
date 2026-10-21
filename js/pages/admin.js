@@ -342,7 +342,7 @@ const AdminUI = {
     const u = Auth.findById(id);
     if (!u || u.role !== 'ADMIN' || Auth.user.role !== 'SUPERADMIN') return Guard.deny();
     const g = u.grants || {};
-    const base = ['Panel principal', 'Citas (ver, crear, cambiar estado, eliminar)', 'Walk-in', 'Servicios', 'Barberos y portafolio', 'Usuarios del personal de su barbería'];
+    const base = ['Panel principal', 'Citas (ver, crear, confirmar, reprogramar, completar, cancelar, eliminar)', 'Walk-in', 'Servicios', 'Barberos y portafolio', 'Usuarios del personal de su barbería'];
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">Permisos de administrador</span><h3>' + UI.esc(u.name) + '</h3></div>' +
         '<button type="button" class="btn-dark btn-xs" onclick="ModalComponent.close()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
@@ -389,7 +389,7 @@ const AdminUI = {
       const users = root.users.filter(u => u.tenantId === t.id);
       const active = t.status === 'ACTIVE';
       const isCurrent = DB.tenant && DB.tenant.id === t.id;
-      return '<article class="tenant-card' + (active ? '' : ' is-suspended') + '" style="--t-accent:' + UI.esc(t.accent || '#D79848') + ';">' +
+      return '<article class="tenant-card' + (active ? '' : ' is-suspended') + '" style="--t-accent:' + (/^#[0-9a-fA-F]{6}$/.test(t.accent || '') ? t.accent : '#D79848') + ';">' +
         '<div class="tenant-card-brand">' + TenantBrand.logoHTML(t, 'tenant-logo') + '</div>' +
         '<div class="tenant-card-body">' +
           '<div class="tenant-card-top"><h3>' + UI.esc(t.name) + '</h3>' +
@@ -417,7 +417,8 @@ const AdminUI = {
     if (!Auth.can('tenants.manage')) return Guard.deny();
     const t = editId ? DB.tenantById(editId) : null;
     const v = (k, d) => UI.esc(t && t[k] != null && t[k] !== '' ? t[k] : (d || ''));
-    const pal = t ? TenantBrand.paletteOf(t) : Object.assign({}, TenantBrand.DEFAULT_PALETTE);
+    const pal = Object.assign({}, TenantBrand.DEFAULT_PALETTE);
+    if (t) { const tp = TenantBrand.paletteOf(t); ['primary', 'secondary', 'tertiary'].forEach(k => { if (/^#[0-9a-fA-F]{6}$/.test(tp[k] || '')) pal[k] = tp[k]; }); }
     const plan = t ? t.plan : 'PRO';
     this._tenantLogo = t ? (t.logo || '') : '';
     const colorRow = (key, label, hint) =>
@@ -570,6 +571,9 @@ const AdminUI = {
     if (!slug) { err.textContent = 'Escribe un enlace público válido.'; return; }
     const dup = DB.tenantBySlug(slug);
     if (dup && dup.id !== editId) { err.textContent = 'Ese enlace ya lo usa otra barbería.'; return; }
+    // C1: cada color debe ser exactamente #RRGGBB (la base también lo exige)
+    const badHex = ['primary', 'secondary', 'tertiary'].find(k => !/^#[0-9A-F]{6}$/.test(palette[k]));
+    if (badHex) { err.textContent = 'Cada color debe tener el formato #RRGGBB (por ejemplo #D79848).'; return; }
     const pc = TenantBrand.checkPalette(palette);
     if (!pc.ok) { err.textContent = pc.error; return; }
     const oemail = g('m-tn-oemail');
@@ -592,7 +596,8 @@ const AdminUI = {
       const t = DB.tenantById(editId);
       Object.assign(t, fields);
       if (root.data[t.id]) { root.data[t.id].settings.shopName = t.name; root.data[t.id].settings.currency = t.currency; }
-      await DB.persist();
+      // M10: "actualizada" solo si el servidor aceptó el cambio (si no, ya se avisó el motivo y se recargó)
+      if (!(await DB.persist())) return;
       DB.log('Editó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label + ' · vence ' + t.subscriptionEnd, { tenantId: t.id });
       ModalComponent.close();
       UI.toast('Barbería actualizada.');
@@ -605,8 +610,7 @@ const AdminUI = {
     root.tenants.push(t);
     root.data[t.id] = DB.templateData(t.name);
     root.data[t.id].settings.currency = t.currency;
-    await DB.persist();
-    if (!DB.tenantById(t.id)) return; // el servidor la rechazó (ya se mostró el motivo)
+    if (!(await DB.persist()) || !DB.tenantById(t.id)) return; // el servidor la rechazó (ya se mostró el motivo)
     DB.log('Creó una barbería', t.name + ' (?b=' + t.slug + ') · plan ' + DB.PLANS[t.plan].label, { tenantId: t.id });
     ModalComponent.close();
     this.renderHeader();
@@ -635,10 +639,10 @@ const AdminUI = {
         : 'Su web pública y sus usuarios volverán a funcionar.',
       confirmText: suspending ? 'Suspender' : 'Reactivar',
       danger: suspending
-    }).then(ok => {
+    }).then(async ok => {
       if (!ok) return;
       t.status = suspending ? 'SUSPENDED' : 'ACTIVE';
-      DB.persist();
+      if (!(await DB.persist())) return;
       DB.log(suspending ? 'Suspendió una barbería' : 'Reactivó una barbería', t.name, { tenantId: t.id });
       this.renderHeader();
       this.renderTenants();
@@ -716,7 +720,7 @@ const AdminUI = {
     const rows = [['Fecha', 'Usuario', 'Rol', 'Barbería', 'Acción', 'Detalle']].concat(
       this.auditScope().map(a => [a.ts, a.userName, a.role, a.tenantName, a.action, a.detail])
     );
-    const csv = rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const csv = UI.csv(rows);
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

@@ -16,6 +16,7 @@ const ReportBuilder = {
       root,
       mode: opts.mode || 'crm',
       money: opts.money !== false,
+      customers: opts.customers !== false,
       canExport: opts.canExport || (() => true),
       scope: opts.tenantId || (prev ? prev.scope : 'ALL'),
       filters: prev ? prev.filters : Reports.defaultFilters(),
@@ -44,7 +45,7 @@ const ReportBuilder = {
   isGlobal() { return this.st.mode === 'console' && this.st.scope === 'ALL'; },
 
   buildReport() {
-    return Reports.build({ tenants: this.tenants(), global: this.isGlobal(), filters: this.st.filters, sections: this.st.sections, money: this.st.money });
+    return Reports.build({ tenants: this.tenants(), global: this.isGlobal(), filters: this.st.filters, sections: this.st.sections, money: this.st.money, customers: this.st.customers });
   },
 
   /* ---------------- Render principal ---------------- */
@@ -90,7 +91,7 @@ const ReportBuilder = {
           '<div><label class="field-lbl" for="rp-kind">Tipo</label><select id="rp-kind" class="input-dark" data-rp="kind">' +
             Reports.KINDS.map(k => '<option value="' + k.key + '"' + (f.kind === k.key ? ' selected' : '') + '>' + k.label + '</option>').join('') +
           '</select></div>' +
-          '<div><label class="field-lbl" for="rp-q">Cliente</label><input type="search" id="rp-q" class="input-dark" data-rp="q" placeholder="Nombre o teléfono" value="' + this.esc(f.q) + '" autocomplete="off" /></div>' +
+          '<div><label class="field-lbl" for="rp-q">Cliente</label><input type="search" id="rp-q" class="input-dark" data-rp="q" placeholder="' + (st.customers ? 'Nombre o teléfono' : 'Nombre') + '" value="' + this.esc(f.q) + '" autocomplete="off" /></div>' +
         '</div>' +
       '</section>' +
 
@@ -102,7 +103,7 @@ const ReportBuilder = {
           return '<label class="rp-sec' + (on ? ' is-on' : '') + (locked ? ' is-locked' : '') + '">' +
             '<input type="checkbox" data-rp-sec="' + s.key + '"' + (on ? ' checked' : '') + (locked ? ' disabled' : '') + ' />' +
             '<span class="rp-sec-check" aria-hidden="true">' + ic('check') + '</span>' +
-            '<span class="rp-sec-txt"><strong>' + s.label + '</strong><small>' + (locked ? 'Requiere el permiso de Ventas.' : s.desc) + '</small></span>' +
+            '<span class="rp-sec-txt"><strong>' + (s.key === 'people' && !st.customers ? 'Barberos' : s.label) + '</strong><small>' + (locked ? 'Requiere el permiso de Ventas.' : (s.key === 'people' && !st.customers ? 'Desempeño por barbero (la cartera de clientes requiere el permiso de Clientes).' : s.desc)) + '</small></span>' +
           '</label>';
         }).join('') + '</div>' +
       '</section>' +

@@ -137,7 +137,10 @@ const Auth = {
       await this.sb().auth.signOut();
       return { ok: false, error: 'Tu usuario está desactivado. Contacta a tu administrador.' };
     }
-    if (user.role !== 'SUPERADMIN' && (await this.tenantStatus(user.tenantId)) !== 'ACTIVE') {
+    // Con contraseña temporal la base niega todo salvo leer el propio perfil
+    // (ni siquiera la barbería): primero se cambia la clave y luego se verifica
+    // la barbería al abrir el CRM (requireSession).
+    if (!user.mustChangePassword && user.role !== 'SUPERADMIN' && (await this.tenantStatus(user.tenantId)) !== 'ACTIVE') {
       await this.sb().auth.signOut();
       return { ok: false, error: 'La barbería asociada a tu cuenta está suspendida. Contacta al superadministrador.' };
     }
@@ -145,10 +148,32 @@ const Auth = {
     const now = Date.now();
     this.session = { userId: user.id, tenantId: user.tenantId || this.readSession()?.tenantId || null, loginAt: now, exp: now + this.SESSION_HOURS * 3600000, lastActive: now };
     this.writeSession();
-    this.sb().from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id).then(() => {});
     DB.mode = DB.mode || 'crm';
-    DB.log('Inicio de sesión', 'Acceso al sistema.', { tenantId: user.tenantId });
+    if (!user.mustChangePassword) {
+      this.sb().from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id).then(() => {});
+      DB.log('Inicio de sesión', 'Acceso al sistema.', { tenantId: user.tenantId });
+    }
     return { ok: true, user };
+  },
+
+  /* Avisos del login: solo se envían CÓDIGOS (login.html?msg=código). La
+     página de ingreso traduce cada código a su texto; nunca muestra texto
+     libre de la URL. Códigos: expired · idle · noaccess · temp · suspended ·
+     error · logout. Alias internos: inactive y noprofile → noaccess. */
+  MSG_CODES: ['expired', 'idle', 'noaccess', 'temp', 'suspended', 'error', 'logout'],
+  MSG_ALIAS: { inactive: 'noaccess', noprofile: 'noaccess' },
+  msgCode(code) {
+    const c = this.MSG_ALIAS[code] || code;
+    return this.MSG_CODES.includes(c) ? c : '';
+  },
+  loginUrl(code) {
+    const c = this.msgCode(code);
+    let tab = '';
+    try { tab = new URLSearchParams(window.location.search).get('tab') || ''; } catch (e) { tab = ''; }
+    const q = [];
+    if (c) q.push('msg=' + c);
+    if (tab) q.push('tab=' + encodeURIComponent(tab));
+    return 'login.html' + (q.length ? '?' + q.join('&') : '');
   },
 
   writeSession() {
@@ -158,37 +183,40 @@ const Auth = {
     try { return JSON.parse(localStorage.getItem(this.SESSION_KEY) || 'null'); } catch (e) { return null; }
   },
 
+  // reason: código del aviso (ver MSG_CODES). Sin código = salida manual.
   async logout(reason) {
-    if (this.user) DB.log('Cierre de sesión', reason || 'Salida manual.');
+    const code = this.msgCode(reason) || 'logout';
+    if (this.user && code !== 'expired' && reason !== 'inactive' && reason !== 'noprofile') {
+      DB.log('Cierre de sesión', code === 'idle' ? 'Cierre por inactividad.' : (code === 'logout' ? 'Salida manual.' : 'Sesión cerrada (' + code + ').'));
+    }
     try { await this.sb().auth.signOut(); } catch (e) { /* sin conexión */ }
     try { localStorage.removeItem(this.SESSION_KEY); } catch (e) { /* sin almacenamiento */ }
     this.user = null;
     this.session = null;
-    const q = reason ? '?msg=' + encodeURIComponent(reason) : '';
-    window.location.replace('login.html' + q);
+    window.location.replace(this.loginUrl(code));
   },
 
   /* Verifica la sesión al abrir el CRM o Reservalope. Devuelve el usuario o redirige al login. */
   async requireSession() {
-    const fail = async (msg) => {
+    const fail = async (code) => {
       try { await this.sb().auth.signOut(); } catch (e) { /* sin conexión */ }
       try { localStorage.removeItem(this.SESSION_KEY); } catch (e) { /* sin almacenamiento */ }
-      const tab = new URLSearchParams(window.location.search).get('tab');
-      window.location.replace('login.html?' + (msg ? 'msg=' + encodeURIComponent(msg) + '&' : '') + (tab ? 'tab=' + encodeURIComponent(tab) : ''));
+      window.location.replace(this.loginUrl(code));
       return null;
     };
     const { data } = await this.sb().auth.getSession();
     const s = this.readSession();
-    if (!data || !data.session) return fail('');
+    if (!data || !data.session) return fail(s ? 'expired' : '');
     if (!s || s.userId !== data.session.user.id) return fail('');
-    if (Date.now() > s.exp) return fail('Tu sesión expiró. Vuelve a ingresar.');
-    if (Date.now() - (s.lastActive || 0) > this.IDLE_MINUTES * 60000) return fail('Sesión cerrada por inactividad.');
+    if (Date.now() > s.exp) return fail('expired');
+    if (Date.now() - (s.lastActive || 0) > this.IDLE_MINUTES * 60000) return fail('idle');
     let user;
-    try { user = await this.fetchProfile(s.userId); } catch (e) { return fail(DB.errorText(e)); }
-    if (!user || !user.active) return fail('Tu usuario ya no tiene acceso.');
-    if (user.mustChangePassword) return fail('Debes cambiar tu contraseña temporal.');
+    try { user = await this.fetchProfile(s.userId); } catch (e) { return fail(DB.isAuthError(e) ? 'expired' : 'error'); }
+    if (!user) return fail('noprofile');
+    if (!user.active) return fail('inactive');
+    if (user.mustChangePassword) return fail('temp');
     if (user.role !== 'SUPERADMIN') {
-      if ((await this.tenantStatus(user.tenantId)) !== 'ACTIVE') return fail('La barbería asociada a tu cuenta está suspendida.');
+      if ((await this.tenantStatus(user.tenantId)) !== 'ACTIVE') return fail('suspended');
       s.tenantId = user.tenantId; // un admin/personal nunca puede cambiar de barbería
     }
     this.user = user;
@@ -210,8 +238,8 @@ const Auth = {
     ['click', 'keydown', 'touchstart', 'scroll'].forEach(ev => window.addEventListener(ev, onAct, { passive: true }));
     setInterval(() => {
       const s = this.readSession();
-      if (!s || Date.now() > s.exp) return this.logout('Tu sesión expiró. Vuelve a ingresar.');
-      if (Date.now() - (s.lastActive || 0) > this.IDLE_MINUTES * 60000) this.logout('Sesión cerrada por inactividad.');
+      if (!s || Date.now() > s.exp) return this.logout('expired');
+      if (Date.now() - (s.lastActive || 0) > this.IDLE_MINUTES * 60000) this.logout('idle');
     }, 60000);
   },
 
@@ -245,8 +273,16 @@ const Auth = {
       if (/weak|short|characters/i.test(m)) return { ok: false, error: 'La contraseña es muy débil. Usa al menos 8 caracteres con letras y números.' };
       return { ok: false, error: DB.errorText(error) };
     }
-    const upd = await sb.from('profiles').update({ must_change_password: false }).eq('id', sess.session.user.id);
-    if (upd.error) return { ok: false, error: 'Tu contraseña se cambió, pero no se pudo actualizar tu perfil: ' + DB.errorText(upd.error) };
+    // Solo el servidor puede quitar la marca de "contraseña temporal": la RPC
+    // comprueba que la clave realmente cambió. Hasta entonces la base niega
+    // todo (salvo leer el propio perfil), así que no se sigue sin ella.
+    const wasTemp = !this.user || this.user.mustChangePassword || currentPassword === undefined;
+    if (wasTemp) {
+      const upd = await sb.rpc('perfil_contrasena_cambiada');
+      if (upd.error) {
+        return { ok: false, error: 'Tu contraseña se cambió, pero el sistema aún no habilitó tu cuenta (' + DB.errorText(upd.error) + '). Vuelve a ingresar con la nueva contraseña.' };
+      }
+    }
     if (this.user) this.user.mustChangePassword = false;
     return { ok: true };
   },

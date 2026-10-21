@@ -5,8 +5,9 @@
      o al enfocar con teclado. Se redibujan con el ancho real del contenedor.
    ========================================================================== */
 const Charts = {
+  // La moneda la define cada barbería: se quitan caracteres de HTML (este texto se pinta con innerHTML)
   money(n, cur) {
-    return (cur || 'S/') + ' ' + Math.round(Number(n) || 0).toLocaleString('es-PE');
+    return String(cur || 'S/').replace(/[<>&"'`]/g, '').slice(0, 4) + ' ' + Math.round(Number(n) || 0).toLocaleString('es-PE');
   },
   compact(n) {
     const v = Math.abs(n);

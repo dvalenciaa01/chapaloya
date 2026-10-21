@@ -20,7 +20,7 @@
     (function () {
       try {
         var s = JSON.parse(localStorage.getItem('BARBERSUITE_SESSION') || 'null');
-        if (!s || !s.userId || Date.now() > s.exp) location.replace('login.html');
+        if (!s || !s.userId || Date.now() > s.exp) location.replace('login.html' + (s && s.userId ? '?msg=expired' : ''));
       } catch (e) { location.replace('login.html'); }
     })();
   </script>
@@ -273,7 +273,7 @@
             <div>
               <span class="eyebrow-golden">Sistema</span>
               <h1 class="crm-title">Plataforma</h1>
-              <p class="crm-lead">Almacenamiento, políticas de seguridad, respaldo y datos de demostración.</p>
+              <p class="crm-lead">Almacenamiento, políticas de seguridad y respaldo.</p>
             </div>
           </div>
           <div class="crm-split-2">
@@ -289,14 +289,6 @@
               <div class="card-head"><h3>Respaldo completo</h3></div>
               <p class="card-text">Descarga todas las barberías, usuarios (sin contraseñas), datos e historial en un archivo JSON.</p>
               <button type="button" class="btn-golden" onclick="Reservalope.exportBackup()"><i data-icon="download"></i>Exportar respaldo</button>
-            </section>
-            <section class="crm-section-card">
-              <div class="card-head"><h3>Datos de demostración</h3></div>
-              <p class="card-text" id="rl-demo-text"></p>
-              <div class="btn-row">
-                <button type="button" class="btn-dark" id="rl-demo-clear" onclick="Reservalope.clearDemo()"><i data-icon="trash"></i>Borrar datos de demostración</button>
-              </div>
-
             </section>
           </div>
         </div>
