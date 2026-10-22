@@ -3,44 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Política de privacidad | Barbería</title>
-  <meta name="description" content="Política de privacidad de las reservas en línea: qué datos usamos, para qué y cómo ejercer tus derechos." />
+  <title>Política de privacidad | Reservas en línea</title>
+  <meta name="description" content="Política de privacidad de las reservas en línea: qué datos usamos, para qué y cómo ejercer tus derechos." data-v-attr="content:Política de privacidad de las reservas en línea: qué datos usamos, para qué y cómo ejercer tus derechos." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Política de privacidad" />
   <meta property="og:description" content="Política de privacidad de las reservas en línea: qué datos usamos, para qué y cómo ejercer tus derechos." />
-  <meta name="theme-color" content="#000000" />
-  <link rel="icon" href="assets/icons/logo-blade.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111418" />
+  <link rel="icon" href="assets/icons/favicon-cita.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/pages/publico.css" />
-  </head>
+</head>
 <body data-page="privacidad">
 
   <a class="skip-link" href="#main">Saltar al contenido</a>
 
-  <header class="site-header">
-    <div class="header-inner">
+  <header class="site-header on-brand">
+    <div class="container header-inner">
       <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-        <span class="brand-wordmark" data-brand-slot="1">Barbería</span>
+        <span class="brand-wordmark" data-brand-slot="1">Reservas en línea</span>
       </a>
 
-
       <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
-      <a class="pub-nav-btn" data-pub="servicios" href="servicios.html">Servicios</a>
-      <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Barberos</a>
-      <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
+        <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
+        <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
         <div class="nav-mobile-extra">
-          <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-          <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')"><i data-icon="lock"></i>Acceso staff (CRM)</button>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
-        <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')" title="Panel CRM del barbero"><i data-icon="lock"></i><span>Staff</span></button>
-        <a class="btn-golden header-cta" href="reservar.html"><span class="cta-long">Reservar cita</span><span class="cta-short">Reservar</span></a>
+        <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -48,27 +46,27 @@
 
   <main id="main" tabindex="-1">
     <section id="pub-privacidad" class="page-view">
-    <section class="page-hero">
-      <div class="container">
-        <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Privacidad</span></nav>
-        <span class="eyebrow-golden">Tus datos</span>
-        <h1>Política de privacidad</h1>
-        <p>Cómo tratamos los datos que nos das al reservar una cita en línea, conforme a la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su reglamento.</p>
-      </div>
-    </section>
+      <section class="page-hero on-brand">
+        <div class="container">
+          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Privacidad</span></nav>
+          <span class="eyebrow">Tus datos</span>
+          <h1>Política de privacidad</h1>
+          <p>Cómo tratamos los datos que nos das al reservar una cita en línea, conforme a la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su reglamento.</p>
+        </div>
+      </section>
 
       <div class="legal-section">
         <div class="container">
-          <article class="legal-card surface-light">
+          <article class="legal-card">
             <h2>1. Quién es responsable de tus datos</h2>
-            <p>El responsable del tratamiento es la barbería <strong data-t="name">esta barbería</strong><span data-t-row>, ubicada en <span data-t="address"></span></span>. Ella decide para qué se usan tus datos y es a quien debes dirigirte para cualquier consulta.</p>
-            <p>La barbería usa <strong>Reservalope</strong>, una plataforma de reservas en línea, que actúa como <strong>encargado del tratamiento</strong>: guarda y procesa los datos solo por cuenta de la barbería, siguiendo sus instrucciones, y no los usa para fines propios.</p>
+            <p>El responsable del tratamiento es <strong data-t="name">el negocio donde reservas</strong><span data-t-row>, ubicado en <span data-t="address"></span></span>. Es quien decide para qué se usan tus datos y a quien debes dirigirte para cualquier consulta.</p>
+            <p>El negocio usa <strong>Reservalope</strong>, una plataforma de reservas en línea, que actúa como <strong>encargado del tratamiento</strong>: guarda y procesa los datos solo por cuenta del negocio, siguiendo sus instrucciones, y no los usa para fines propios.</p>
 
             <h2>2. Qué datos recogemos</h2>
             <ul>
               <li><strong>Nombre</strong> y <strong>número de celular</strong>.</li>
-              <li><strong>Notas</strong> que escribas de forma opcional (por ejemplo, tus preferencias de corte).</li>
-              <li>Los datos de tu cita: servicio, barbero, fecha, hora, estado y código de reserva.</li>
+              <li><strong>Notas</strong> que escribas de forma opcional (por ejemplo, tus preferencias).</li>
+              <li data-v-fmt="Los datos de tu {appointment}: {service}, {staff}, fecha, hora, estado y código de reserva.">Los datos de tu cita: servicio, profesional, fecha, hora, estado y código de reserva.</li>
             </ul>
             <p>No pedimos datos sensibles. Te pedimos no escribir en las notas información de salud u otra información sensible.</p>
 
@@ -81,17 +79,17 @@
             <p>No usamos tus datos para publicidad ni los vendemos o cedemos a terceros para sus propios fines.</p>
 
             <h2>4. Base legal y conservación</h2>
-            <p>Tratamos tus datos porque son necesarios para atender la cita que solicitas y, en el caso de los avisos por WhatsApp, por tu consentimiento. Los conservamos mientras sean necesarios para gestionar tus citas y el historial de atención con la barbería, o hasta que pidas su eliminación, salvo que una norma obligue a conservarlos por más tiempo.</p>
+            <p>Tratamos tus datos porque son necesarios para atender la cita que solicitas y, en el caso de los avisos por WhatsApp, por tu consentimiento. Los conservamos mientras sean necesarios para gestionar tus citas y tu historial de atención con el negocio, o hasta que pidas su eliminación, salvo que una norma obligue a conservarlos por más tiempo.</p>
 
             <h2>5. Con quién se comparten</h2>
-            <p>Solo con los proveedores tecnológicos que hacen posible el servicio, que actúan por cuenta de la barbería: el alojamiento de la base de datos en la nube (sus servidores pueden estar fuera del Perú, con medidas de seguridad equivalentes), la verificación contra robots del formulario<span data-wa-only> y WhatsApp, si aceptas recibir avisos</span>.</p>
+            <p>Solo con los proveedores tecnológicos que hacen posible el servicio, que actúan por cuenta del negocio: el alojamiento de la base de datos en la nube (sus servidores pueden estar fuera del Perú, con medidas de seguridad equivalentes), la verificación contra robots del formulario<span data-wa-only> y WhatsApp, si aceptas recibir avisos</span>.</p>
 
             <h2>6. Tus derechos (ARCO)</h2>
-            <p>Puedes ejercer tus derechos de <strong>acceso, rectificación, cancelación y oposición</strong>, y revocar tu consentimiento, comunicándote con la barbería<span data-t-row> al <a data-t="phone" href="#"></a></span> o en su local. Te pediremos verificar que eres el titular del celular. Atenderemos tu solicitud en los plazos que establece la ley.</p>
+            <p>Puedes ejercer tus derechos de <strong>acceso, rectificación, cancelación y oposición</strong>, y revocar tu consentimiento, comunicándote con el negocio<span data-t-row> al <a data-t="phone" href="#"></a></span> o en su local. Te pediremos verificar que eres el titular del celular. Atenderemos tu solicitud en los plazos que establece la ley.</p>
             <p>Si consideras que no se atendió tu solicitud, puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos Personales del Ministerio de Justicia y Derechos Humanos.</p>
 
             <h2>7. Seguridad</h2>
-            <p>Los datos viajan cifrados y solo el personal autorizado de la barbería puede verlos. La consulta pública de una cita exige tu celular y tu código de reserva.</p>
+            <p>Los datos viajan cifrados y solo el personal autorizado del negocio puede verlos. La consulta pública de una cita exige tu celular y tu código de reserva.</p>
 
             <p class="legal-updated">Última actualización: octubre de 2026.</p>
           </article>
@@ -100,26 +98,26 @@
     </section>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer on-brand">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-            <span class="brand-wordmark is-lg" data-brand-slot="1">Barbería</span>
+            <span class="brand-wordmark is-lg" data-brand-slot="1">Reservas en línea</span>
           </a>
-          <p>Barbería profesional con maestros barberos. Estilo impecable, cita tras cita.</p>
+          <p data-v-fmt="Reserva tu {appointment} en línea cuando quieras: elige {service}, {staff} y horario.">Reserva tu cita en línea cuando quieras: elige servicio, profesional y horario.</p>
         </div>
-        <div>
-          <h2 class="footer-title">Navegación</h2>
+        <nav aria-label="Enlaces del sitio">
+          <h2 class="footer-title">Explorar</h2>
           <ul class="footer-list">
             <li><a href="index.html">Inicio</a></li>
-            <li><a href="servicios.html">Servicios</a></li>
-            <li><a href="barberos.html">Barberos y trabajos</a></li>
+            <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
+            <li><a href="barberos.html">Equipo</a></li>
             <li><a href="reservar.html">Reservar cita</a></li>
             <li><a href="consultar-cita.html">Consultar mi cita</a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
-        </div>
+        </nav>
         <div>
           <h2 class="footer-title">Contacto</h2>
           <ul class="footer-list">
@@ -129,28 +127,28 @@
           </ul>
         </div>
         <div>
-          <h2 class="footer-title">Equipo</h2>
+          <h2 class="footer-title">Para el equipo</h2>
           <ul class="footer-list">
-            <li><button type="button" onclick="AppRouter.openCRM('dashboard')">Panel CRM</button></li>
+            <li><a href="crm.html"><i data-icon="lock"></i>Acceso al panel</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© <span data-t="year">2026</span> <span data-t="name">Barbería</span>. Todos los derechos reservados.</span>
+        <span>© <span data-t="year">2026</span> <span data-t="name">Reservas en línea</span>. Todos los derechos reservados.</span>
         <span data-t-row><span data-t="city"></span></span>
       </div>
     </div>
   </footer>
 
-
-
   <script src="js/utils/icons.js"></script>
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
+  <script src="js/core/vocab.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>
+  <script src="js/pages/public-booking.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

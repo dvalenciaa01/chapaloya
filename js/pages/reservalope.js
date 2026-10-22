@@ -1,7 +1,9 @@
 /* ==========================================================================
    Reservalope · Consola del superadministrador
-   Dashboard global, cartera de barberías, ficha individual, alertas,
-   usuarios, historial y plataforma.
+   Dashboard global, cartera de negocios (de cualquier rubro), ficha
+   individual, alertas, usuarios, historial y plataforma. La consola habla de
+   "negocios" y usa palabras genéricas (profesional, cliente); la ficha de un
+   negocio usa las palabras de su rubro (UI.vFor).
    ========================================================================== */
 var Guard = window.Guard || { deny(msg) { UI.toast(msg || 'No tienes permiso para realizar esta acción.', 'error'); } };
 
@@ -30,10 +32,13 @@ const Reservalope = {
     }
     DB.onReload = () => { AdminUI.renderHeader(); this.refresh(); };
     TenantBrand.applyPalette(this.PALETTE);
+    // Vocabulario genérico de plataforma (cada ficha usa el de su negocio)
+    if (window.Vocab) Vocab.set({ businessType: 'otro' });
+    UI.applyVocab(document);
 
     AdminUI.init();
     AdminUI.renderHeader();
-    // Al crear/editar/suspender una barbería desde los modales compartidos, refrescar la consola
+    // Al crear/editar/suspender un negocio desde los modales compartidos, refrescar la consola
     AdminUI.renderTenants = () => this.refresh();
 
     try {
@@ -45,6 +50,7 @@ const Reservalope = {
     if (d) d.textContent = Charts.dateLong(DB.todayISO());
     this.mountPeriod();
     this.fillPlanFilter();
+    this.fillRubroFilter();
     window.addEventListener('hashchange', () => this.fromHash());
     this.fromHash();
     document.body.classList.add('auth-ok');
@@ -57,10 +63,10 @@ const Reservalope = {
     } catch (e) {}
   },
 
-  /* ---------------- Navegación (con enlaces directos #pane / #barberia/id) ---------------- */
+  /* ---------------- Navegación (con enlaces directos #pane / #negocio/id; #barberia/id sigue funcionando) ---------------- */
   fromHash() {
     const h = (window.location.hash || '').replace('#', '');
-    if (h.indexOf('barberia/') === 0) {
+    if (h.indexOf('negocio/') === 0 || h.indexOf('barberia/') === 0) {
       const id = h.split('/')[1];
       if (DB.tenantById(id)) return this.show('detail', id);
     }
@@ -73,7 +79,7 @@ const Reservalope = {
   },
 
   go(pane, id) {
-    const target = pane === 'detail' ? 'barberia/' + id
+    const target = pane === 'detail' ? 'negocio/' + id
       : pane === 'reports' ? 'reportes' + (id && id !== 'ALL' ? '/' + id : '')
       : pane;
     if (window.location.hash.replace('#', '') === target) this.show(pane, id);
@@ -113,7 +119,7 @@ const Reservalope = {
     else if (this.pane === 'reports') this.renderReports();
   },
 
-  /* ---------------- Reportes (por barbería o comparativo) ---------------- */
+  /* ---------------- Reportes (por negocio o comparativo) ---------------- */
   renderReports() {
     ReportBuilder.mount(document.getElementById('rl-reports-root'), {
       mode: 'console',
@@ -123,7 +129,7 @@ const Reservalope = {
     });
   },
 
-  // El selector de barbería del reporte actualiza el enlace sin recargar la vista
+  // El selector de negocio del reporte actualiza el enlace sin recargar la vista
   setReportHash(scope) {
     this.reportScope = scope;
     const target = '#reportes' + (scope && scope !== 'ALL' ? '/' + scope : '');
@@ -227,14 +233,14 @@ const Reservalope = {
     '</div>';
   },
 
-  kpiGrid(cur, prev, cs) {
+  kpiGrid(cur, prev, cs, t) {
     const D = Analytics.delta.bind(Analytics);
     const rateD = (a, b) => (a == null || b == null) ? null : a - b;
     return [
       this.kpi({ hero: true, label: 'Ingresos del período', value: Charts.money(cur.revenue, cs), delta: D(cur.revenue, prev.revenue), sub: 'vs ' + Charts.money(prev.revenue, cs) + ' antes' }),
       this.kpi({ label: 'Citas', value: cur.appts.toLocaleString('es-PE'), delta: D(cur.appts, prev.appts), sub: cur.pending ? cur.pending + ' pendientes' : '' }),
       this.kpi({ label: 'Ticket promedio', value: Charts.money(cur.avgTicket, cs), delta: D(cur.avgTicket, prev.avgTicket) }),
-      this.kpi({ label: 'Clientes únicos', value: cur.clients.toLocaleString('es-PE'), delta: D(cur.clients, prev.clients) }),
+      this.kpi({ label: UI.vFor(t || null, '{ClientPlural} únicos'), value: cur.clients.toLocaleString('es-PE'), delta: D(cur.clients, prev.clients) }),
       this.kpi({ label: 'Citas completadas', value: Charts.pct(cur.completionRate), delta: rateD(cur.completionRate, prev.completionRate), pp: true, sub: cur.completed + ' atendidas' }),
       this.kpi({ label: 'Cancelaciones', value: Charts.pct(cur.cancelRate), delta: rateD(cur.cancelRate, prev.cancelRate), pp: true, goodUp: false, sub: cur.cancelled + ' citas' }),
       this.kpi({ label: 'No asistió', value: Charts.pct(cur.noShowRate), delta: rateD(cur.noShowRate, prev.noShowRate), pp: true, goodUp: false, sub: cur.noShow + ' citas' }),
@@ -286,13 +292,13 @@ const Reservalope = {
     const currencies = Array.from(new Set(tenants.map(t => t.currency || 'S/')));
     const cs = currencies.length === 1 ? currencies[0] : 'S/';
     document.getElementById('rl-dash-compare').innerHTML = UI.esc(this.periodText(r, p)) +
-      (currencies.length > 1 ? '<br/><span class="text-warn">' + ic('alert') + ' Hay barberías con distinta moneda (' + UI.esc(currencies.join(', ')) + '); los totales globales suman montos sin convertir.</span>' : '');
+      (currencies.length > 1 ? '<br/><span class="text-warn">' + ic('alert') + ' Hay negocios con distinta moneda (' + UI.esc(currencies.join(', ')) + '); los totales globales suman montos sin convertir.</span>' : '');
 
     document.getElementById('rl-dash-kpis').innerHTML = this.kpiGrid(cur, prev, cs);
 
     const pf = Analytics.platform();
     document.getElementById('rl-dash-platform').innerHTML =
-      '<div class="rl-pf-item"><span>Barberías activas</span><strong>' + pf.active + ' <small>de ' + pf.tenants + '</small></strong></div>' +
+      '<div class="rl-pf-item"><span>Negocios activos</span><strong>' + pf.active + ' <small>de ' + pf.tenants + '</small></strong></div>' +
       '<div class="rl-pf-item"><span>Ingreso mensual por suscripciones</span><strong>' + Charts.money(pf.mrr, 'S/') + '</strong></div>' +
       '<div class="rl-pf-item"><span>Planes</span><strong class="rl-plans">' + pf.byPlan.map(x => '<em>' + x.label + ' ' + x.count + '</em>').join('') + '</strong></div>' +
       '<div class="rl-pf-item' + (pf.expiring + pf.expired ? ' is-warn' : '') + '"><span>Suscripciones por vencer / vencidas</span><strong>' + pf.expiring + ' / ' + pf.expired + '</strong></div>' +
@@ -304,7 +310,7 @@ const Reservalope = {
     const rank = cur.per.slice().sort((a, b) => b.revenue - a.revenue).map(m => {
       const d = Analytics.delta(m.revenue, (prevBy[m.tenant.id] || {}).revenue || 0);
       return {
-        label: m.tenant.name, value: m.revenue, sub: m.appts + ' citas · ' + m.walkins + ' walk-in' + (m.tenant.status !== 'ACTIVE' ? ' · suspendida' : ''),
+        label: m.tenant.name, value: m.revenue, sub: m.appts + ' citas · ' + m.walkins + ' walk-in' + (m.tenant.status !== 'ACTIVE' ? ' · suspendido' : ''),
         display: Charts.money(m.revenue, m.tenant.currency),
         tip: '<strong>' + UI.esc(m.tenant.name) + '</strong><br/>' + Charts.money(m.revenue, m.tenant.currency) + (d != null ? ' · ' + (d >= 0 ? '▲ ' : '▼ ') + Math.abs(d * 100).toFixed(0) + '% vs anterior' : '')
       };
@@ -326,13 +332,24 @@ const Reservalope = {
     document.getElementById('rl-dash-alerts').innerHTML = this.alertsHTML(Analytics.alerts().slice(0, 4), true);
   },
 
-  /* ---------------- Barberías ---------------- */
+  /* ---------------- Negocios ---------------- */
+  fillRubroFilter() {
+    const sel = document.getElementById('rl-t-rubro');
+    if (sel && window.Vocab) sel.innerHTML = '<option value="ALL">Todos</option>' + (Vocab.TYPES || Object.keys(Vocab.PRESETS)).map(k => '<option value="' + UI.esc(k) + '">' + UI.esc(Vocab.PRESETS[k].label) + '</option>').join('');
+  },
+
+  // Rubro legible ("Consultorio médico", "Barbería · palabras propias")
+  rubroLabel(t) {
+    if (!window.Vocab) return '';
+    return Vocab.label(t.businessType || 'barberia') + (t.labels && Object.keys(t.labels).length ? ' · palabras propias' : '');
+  },
+
   fillPlanFilter() {
     const sel = document.getElementById('rl-t-plan');
     if (sel) sel.innerHTML = '<option value="ALL">Todos</option>' + Object.keys(DB.PLANS).map(k => '<option value="' + k + '">' + DB.PLANS[k].label + '</option>').join('');
   },
 
-  /* C1: la paleta la puede escribir el administrador de la barbería (por API).
+  /* C1: la paleta la puede escribir el administrador del negocio (por API).
      Aquí solo se aceptan colores #RRGGBB; cualquier otra cosa se reemplaza por
      el color por defecto, y aun así todo se escapa al pintarlo. */
   HEX: /^#[0-9a-fA-F]{6}$/,
@@ -379,19 +396,21 @@ const Reservalope = {
     const q = (document.getElementById('rl-t-search').value || '').trim().toLowerCase();
     const st = document.getElementById('rl-t-status').value;
     const pl = document.getElementById('rl-t-plan').value;
+    const ru = (document.getElementById('rl-t-rubro') || {}).value || 'ALL';
     const list = DB.load().tenants.filter(t =>
-      (st === 'ALL' || t.status === st) && (pl === 'ALL' || t.plan === pl) &&
+      (st === 'ALL' || t.status === st) && (pl === 'ALL' || t.plan === pl) && (ru === 'ALL' || (t.businessType || 'barberia') === ru) &&
       (!q || (t.name + ' ' + t.slug).toLowerCase().includes(q)));
     if (!list.length) {
-      tbody.innerHTML = '<tr class="is-empty"><td colspan="9"><div class="empty-state">' + ic('store') + '<strong>Sin barberías</strong>No hay barberías con esos filtros.</div></td></tr>';
+      tbody.innerHTML = '<tr class="is-empty"><td colspan="10"><div class="empty-state">' + ic('store') + '<strong>Sin negocios</strong>No hay negocios con esos filtros.</div></td></tr>';
       return;
     }
     tbody.innerHTML = list.map(t => {
       const m = Analytics.tenantMetrics(t, r), pm = Analytics.tenantMetrics(t, p);
       const lost = m.appts ? (m.cancelled + m.noShow) / m.appts : null;
       return '<tr>' +
-        '<td data-label="Barbería"><div class="rl-tenant-cell">' + this.swatches(t) + '<div><strong>' + UI.esc(t.name) + '</strong><br/><a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">?b=' + UI.esc(t.slug) + '</a></div></div></td>' +
-        '<td data-label="Estado">' + (t.status === 'ACTIVE' ? '<span class="st-badge st-COMPLETADA">Activa</span>' : '<span class="st-badge st-CANCELADA">Suspendida</span>') + '</td>' +
+        '<td data-label="Negocio"><div class="rl-tenant-cell">' + this.swatches(t) + '<div><strong>' + UI.esc(t.name) + '</strong><br/><a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">?b=' + UI.esc(t.slug) + '</a></div></div></td>' +
+        '<td data-label="Rubro"><span class="rl-rubro">' + (window.Vocab ? Vocab.icon('', t.businessType || 'barberia') : '') + UI.esc(this.rubroLabel(t)) + '</span></td>' +
+        '<td data-label="Estado">' + (t.status === 'ACTIVE' ? '<span class="st-badge st-COMPLETADA">Activo</span>' : '<span class="st-badge st-CANCELADA">Suspendido</span>') + '</td>' +
         '<td data-label="Plan"><strong>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + '</strong><br/><span class="text-grey" style="font-size:0.8rem;">S/ ' + UI.esc(t.planFee) + '/mes</span></td>' +
         '<td data-label="Suscripción">' + this.subBadge(t) + '<br/><span class="text-grey" style="font-size:0.8rem;">' + UI.esc(t.subscriptionEnd) + '</span>' + this.subNote(t) + '</td>' +
         '<td data-label="Ingresos"><strong>' + Charts.money(m.revenue, t.currency) + '</strong><br/>' + this.deltaHTML(Analytics.delta(m.revenue, pm.revenue), true) + '</td>' +
@@ -423,8 +442,9 @@ const Reservalope = {
         '</div>' +
         '<div class="rl-head-info">' +
           '<div class="rl-head-top"><h1 class="crm-title">' + UI.esc(t.name) + '</h1>' +
-            (active ? '<span class="st-badge st-COMPLETADA">Activa</span>' : '<span class="st-badge st-CANCELADA">Suspendida</span>') + '</div>' +
+            (active ? '<span class="st-badge st-COMPLETADA">Activo</span>' : '<span class="st-badge st-CANCELADA">Suspendido</span>') + '</div>' +
           '<dl class="rl-facts">' +
+            '<div><dt>Rubro</dt><dd>' + UI.esc(this.rubroLabel(t)) + '</dd></div>' +
             '<div><dt>Plan</dt><dd>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + ' · S/ ' + UI.esc(t.planFee) + '/mes</dd></div>' +
             '<div><dt>Suscripción</dt><dd>' + this.subBadge(t) + ' <span class="text-grey">' + UI.esc(t.subscriptionEnd) + '</span>' + this.subNote(t) + '</dd></div>' +
             '<div><dt>Dueño</dt><dd>' + UI.esc(t.ownerName || '—') + (t.ownerEmail ? ' · <a class="inline-link" href="mailto:' + UI.esc(t.ownerEmail) + '">' + UI.esc(t.ownerEmail) + '</a>' : '') + (t.ownerPhone ? ' · ' + UI.esc(t.ownerPhone) : '') + '</dd></div>' +
@@ -442,15 +462,21 @@ const Reservalope = {
         '</div>' +
       '</section>';
 
-    document.getElementById('rl-detail-kpis').innerHTML = this.kpiGrid(cur, prev, cs);
+    document.getElementById('rl-detail-kpis').innerHTML = this.kpiGrid(cur, prev, cs, t);
+    const vf = (s) => UI.vFor(t, s);
+    const stTitle = document.getElementById('rl-detail-staff-title');
+    if (stTitle) stTitle.textContent = vf('Rendimiento por {staff}');
+    const stTh = document.getElementById('rl-detail-staff-th');
+    if (stTh) stTh.textContent = vf('{Staff}');
+    const staffLbl = UI.esc(vf('{Staff}'));
     this.lineFor('rl-detail-line', 'rl-detail-line-legend', cur, prev, r, p, cs);
 
     const barbers = Object.entries(cur.byBarber).sort((a, b) => b[1].revenue - a[1].revenue);
     document.getElementById('rl-detail-barbers').innerHTML = barbers.length ? barbers.map(([name, b]) =>
-      '<tr><td data-label="Barbero"><strong>' + UI.esc(name) + '</strong></td><td data-label="Citas">' + b.appts + '</td><td data-label="Completadas">' + b.completed + '</td>' +
+      '<tr><td data-label="' + staffLbl + '"><strong>' + UI.esc(name) + '</strong></td><td data-label="Citas">' + b.appts + '</td><td data-label="Completadas">' + b.completed + '</td>' +
       '<td data-label="Walk-in">' + b.walkins + '</td><td data-label="Ingresos"><strong>' + Charts.money(b.revenue, cs) + '</strong></td>' +
       '<td data-label="Ocupación"><div class="meter" role="img" aria-label="Ocupación ' + Charts.pct(b.occupancy) + '"><span style="width:' + Math.round(b.occupancy * 100) + '%;"></span></div><span class="meter-val">' + Charts.pct(b.occupancy) + '</span></td></tr>'
-    ).join('') : '<tr class="is-empty"><td colspan="6"><div class="empty-state">' + ic('users') + '<strong>Sin barberos</strong>Esta barbería aún no registra barberos.</div></td></tr>';
+    ).join('') : '<tr class="is-empty"><td colspan="6"><div class="empty-state">' + ic('users') + '<strong>' + UI.esc(vf('Sin {staffPlural}')) + '</strong>' + UI.esc(vf('{Este:business} {business} aún no registra {staffPlural}.')) + '</div></td></tr>';
 
     document.getElementById('rl-detail-services').innerHTML = this.servicesChart(cur, cs);
     document.getElementById('rl-detail-status').innerHTML = this.statusChart(cur);
@@ -532,7 +558,7 @@ const Reservalope = {
     document.getElementById('rl-storage').innerHTML =
       '<div class="rl-storage-top"><strong>' + pct.toFixed(1) + '%</strong><span>' + Math.round(st.used / 1024).toLocaleString('es-PE') + ' KB de ~' + Math.round(st.limit / 1024).toLocaleString('es-PE') + ' KB</span></div>' +
       '<div class="meter is-lg ' + lvl + '" role="img" aria-label="Almacenamiento usado ' + pct.toFixed(0) + '%"><span style="width:' + pct + '%;"></span></div>' +
-      '<p class="card-text" style="margin-top:12px;">Base de datos de Supabase (plan gratis: 500 MB). Las fotos se guardan aparte, en Storage. Abajo, el volumen de datos de cada barbería.</p>' +
+      '<p class="card-text" style="margin-top:12px;">Base de datos de Supabase (plan gratis: 500 MB). Las fotos se guardan aparte, en Storage. Abajo, el volumen de datos de cada negocio.</p>' +
       Charts.hbars(sizes.map(x => ({ label: x.t.name, value: x.size, display: Math.round(x.size / 1024) + ' KB' })));
 
     document.getElementById('rl-policy').innerHTML = [
@@ -553,7 +579,7 @@ const Reservalope = {
     a.href = URL.createObjectURL(blob);
     a.download = 'reservalope-respaldo-' + DB.todayISO() + '.json';
     a.click();
-    DB.log('Exportó un respaldo completo', root.tenants.length + ' barberías · ' + root.users.length + ' usuarios', { tenantId: null });
+    DB.log('Exportó un respaldo completo', root.tenants.length + ' negocios · ' + root.users.length + ' usuarios', { tenantId: null });
   },
 
   // En producción no existe "borrar todo": los datos viven en Supabase y tienen respaldo.
@@ -564,11 +590,11 @@ const Reservalope = {
   /* ---------------- CSV comparativo ---------------- */
   exportCSV() {
     const r = this.range(), p = Analytics.previous(r);
-    const head = ['Barbería', 'Enlace', 'Estado', 'Plan', 'Monto mensual', 'Vence', 'Moneda', 'Ingresos', 'Ingresos período anterior', 'Variación %', 'Citas', 'Completadas', 'Canceladas', 'No asistió', '% Cancelación', 'Walk-in', 'Ticket promedio', 'Clientes únicos', '% Reservas web', 'Última actividad'];
+    const head = ['Negocio', 'Rubro', 'Enlace', 'Estado', 'Plan', 'Monto mensual', 'Vence', 'Moneda', 'Ingresos', 'Ingresos período anterior', 'Variación %', 'Citas', 'Completadas', 'Canceladas', 'No asistió', '% Cancelación', 'Walk-in', 'Ticket promedio', 'Clientes únicos', '% Reservas web', 'Última actividad'];
     const rows = DB.load().tenants.map(t => {
       const m = Analytics.tenantMetrics(t, r), pm = Analytics.tenantMetrics(t, p);
       const d = Analytics.delta(m.revenue, pm.revenue);
-      return [t.name, t.slug, t.status === 'ACTIVE' ? 'Activa' : 'Suspendida', (DB.PLANS[t.plan] || {}).label, t.planFee, t.subscriptionEnd, t.currency,
+      return [t.name, this.rubroLabel(t), t.slug, t.status === 'ACTIVE' ? 'Activo' : 'Suspendido', (DB.PLANS[t.plan] || {}).label, t.planFee, t.subscriptionEnd, t.currency,
         Math.round(m.revenue), Math.round(pm.revenue), d == null ? '' : (d * 100).toFixed(1), m.appts, m.completed, m.cancelled, m.noShow,
         m.appts ? ((m.cancelled / m.appts) * 100).toFixed(1) : '', m.walkins, Math.round(m.avgTicket), m.clients,
         m.webShare == null ? '' : (m.webShare * 100).toFixed(1), Analytics.lastActivity(t) || ''];
@@ -580,7 +606,7 @@ const Reservalope = {
     a.href = URL.createObjectURL(blob);
     a.download = 'reservalope-comparativo-' + r.from + '_' + r.to + '.csv';
     a.click();
-    DB.log('Exportó CSV comparativo', rows.length + ' barberías · ' + r.from + ' a ' + r.to, { tenantId: null });
+    DB.log('Exportó CSV comparativo', rows.length + ' negocios · ' + r.from + ' a ' + r.to, { tenantId: null });
     UI.toast('CSV descargado.');
   }
 };

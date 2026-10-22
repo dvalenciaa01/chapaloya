@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ingresar al CRM</title>
   <meta name="robots" content="noindex" />
-  <meta name="theme-color" content="#000000" />
-  <link rel="icon" href="assets/icons/logo-blade.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#111418" />
+  <link rel="icon" href="assets/icons/favicon-cita.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/pages/login.css" />
 </head>
@@ -19,11 +19,11 @@
     <section class="login-brand" aria-hidden="true">
       <div class="login-brand-inner">
         <div class="login-logo" id="login-logo">
-          <span class="login-mark"><i data-icon="scissors"></i></span>
+          <span class="login-mark" data-v-icon><i data-icon="calendar"></i></span>
         </div>
-        <h1 class="login-brand-title">Panel de gestión<br/><span class="hl">para barberías</span></h1>
+        <h1 class="login-brand-title">Panel de gestión<br/><span class="hl">de citas</span></h1>
         <ul class="login-points">
-          <li><i data-icon="calendar"></i>Citas, walk-in y agenda de cada barbero</li>
+          <li><i data-icon="calendar"></i><span data-v-fmt="Citas, atención sin cita y agenda de cada {staff}">Citas, atención sin cita y agenda de cada profesional</span></li>
           <li><i data-icon="message"></i>Confirmaciones y recordatorios por WhatsApp</li>
           <li><i data-icon="shield"></i>Accesos por rol: superadministrador, administrador y personal</li>
         </ul>
@@ -43,7 +43,7 @@
 
           <div class="field">
             <label class="field-lbl" for="login-email">Correo</label>
-            <input type="email" id="login-email" class="input-dark" autocomplete="username" inputmode="email" placeholder="nombre@barberia.pe" required />
+            <input type="email" id="login-email" class="input-dark" autocomplete="username" inputmode="email" placeholder="nombre@tunegocio.pe" required />
           </div>
 
           <div class="field" style="margin-top:16px;">
@@ -108,6 +108,7 @@
   <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
   <script src="js/core/auth.js"></script>
+  <script src="js/core/vocab.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/pages/login.js"></script>
 </body>

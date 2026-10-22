@@ -1,7 +1,10 @@
 /* ==========================================================================
-   CRM de la barbería
+   CRM del negocio
    --------------------------------------------------------------------------
    Reglas de esta pantalla:
+     - Las palabras del rubro (barbero/doctor, cliente/paciente, servicio/
+       consulta…) salen de Vocab (js/core/vocab.js) con UI.v(); los nombres
+       internos (barbers, barberId, EN_SILLON) no cambian.
      - Todo texto que viene de la base (nombres, notas, servicios…) se pinta
        con UI.esc(). Los onclick solo llevan ids (UUID), nunca nombres.
      - Barberos y servicios se eligen y comparan por id (barberId/serviceId);
@@ -24,6 +27,8 @@ const CRM = {
   waDirty: false,
 
   esc(v) { return UI.esc(v); },
+  // Texto del rubro ya escapado para pegar en HTML
+  vx(s) { return UI.esc(UI.v(s)); },
   cur() { return UI.esc(DB.state.settings.currency || 'S/'); },
   photo(src) { return UI.esc(src || this.PHOTO_PLACEHOLDER); },
 
@@ -44,6 +49,7 @@ const CRM = {
 
   renderAll() {
     if (!DB.tenant || !DB.state) return;
+    this.applyVocab();
     this.bindDirtyGuards();
     const today = DB.todayISO();
     const dateLbl = document.getElementById('crm-current-date-label');
@@ -71,6 +77,12 @@ const CRM = {
     this.renderReports();
     this.renderSettings();
     if (typeof AdminUI !== 'undefined') AdminUI.renderAll();
+  },
+
+  /* ---------- Rubro: fija las palabras del negocio activo y repinta las marcadas ---------- */
+  applyVocab() {
+    if (window.Vocab && DB.tenant) Vocab.set(DB.tenant);
+    UI.applyVocab(document);
   },
 
   /* ---------- M17: aviso de suscripción vencida o por vencer ---------- */
@@ -133,9 +145,9 @@ const CRM = {
             '<img src="' + this.photo(bp.photo) + '" alt="' + E(bp.name) + '" style="width:74px; height:74px; object-fit:cover; border:2px solid var(--golden); flex-shrink:0;" />' +
             '<div style="flex:1; min-width:0;">' +
               '<h3 style="font-size:1.3rem; overflow-wrap:anywhere;">' + E(bp.name) + '</h3>' +
-              '<div style="font-size:0.78rem; color:var(--text-grey); margin-bottom:8px;">' + E(bp.role || 'Barbero') + '</div>' +
+              '<div style="font-size:0.78rem; color:var(--text-grey); margin-bottom:8px;">' + E(bp.role || Vocab.T('staff')) + '</div>' +
               '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
-                '<button class="btn-golden btn-xs" onclick="CRM.openAddHaircutPhotoModal(\'' + E(bp.id) + '\')">' + ic('camera') + 'Subir foto de corte</button>' +
+                '<button class="btn-golden btn-xs" onclick="CRM.openAddHaircutPhotoModal(\'' + E(bp.id) + '\')">' + ic('camera') + 'Subir foto de trabajo</button>' +
                 '<button class="btn-dark btn-xs" onclick="CRM.openBarberProfileModal(\'' + E(bp.id) + '\')">' + ic('edit') + 'Editar perfil</button>' +
                 '<button class="btn-danger btn-xs" onclick="CRM.deleteBarberProfile(\'' + E(bp.id) + '\')" aria-label="Eliminar">' + ic('trash') + '</button>' +
               '</div>' +
@@ -146,7 +158,7 @@ const CRM = {
             '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">' + specs + '</div>' +
           '</div>' +
           '<div>' +
-            '<span class="field-lbl" style="font-size:0.68rem; color:var(--golden);">FOTOS DE CORTES REALIZADOS (' + (bp.works || []).length + '):</span>' +
+            '<span class="field-lbl" style="font-size:0.68rem; color:var(--golden);">FOTOS DE TRABAJOS REALIZADOS (' + (bp.works || []).length + '):</span>' +
             '<div class="crm-work-thumbs">' + thumbs + '</div>' +
           '</div>' +
         '</div>' +
@@ -157,9 +169,10 @@ const CRM = {
   openBarberProfileModal(editId = null) {
     const bp = editId ? DB.state.barberProfiles.find(x => x.id === editId) : null;
     const E = (v) => UI.esc(v);
-    const modalTitle = bp ? 'EDITAR BARBERO' : 'NUEVO BARBERO';
+    const modalTitle = this.vx(bp ? 'Editar {staff}' : 'Nuev{o:staff} {staff}').toUpperCase();
     const bName = bp ? bp.name : '';
-    const bRole = bp ? bp.role : 'Barbero';
+    const bRole = bp ? bp.role : Vocab.T('staff');
+    const barberia = Vocab.type() === 'barberia';
     const bSpecs = bp ? (bp.specialties || []).join(', ') : '';
     const bPhoto = bp ? bp.photo : '';
     const bSchedule = bp ? bp.schedule : null;
@@ -169,38 +182,38 @@ const CRM = {
       '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">' + modalTitle + '</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveBarberProfileModal(event, \'' + E(editId || '') + '\')">' +
         '<div class="form-grid-2" style="margin-bottom:12px;">' +
-          '<div><label class="field-lbl" for="m-bp-name">NOMBRE DEL BARBERO *</label><input type="text" id="m-bp-name" class="input-dark" value="' + E(bName) + '" maxlength="60" required /></div>' +
+          '<div><label class="field-lbl" for="m-bp-name">' + this.vx('Nombre {del:staff} {staff} *').toUpperCase() + '</label><input type="text" id="m-bp-name" class="input-dark" value="' + E(bName) + '" maxlength="60" required /></div>' +
           '<div><label class="field-lbl" for="m-bp-role">CARGO / TÍTULO</label><input type="text" id="m-bp-role" class="input-dark" value="' + E(bRole) + '" maxlength="60" /></div>' +
         '</div>' +
         '<div style="margin-bottom:12px;">' +
           '<label class="field-lbl" for="m-bp-specs">ESPECIALIDADES (SEPARADAS POR COMA)</label>' +
-          '<input type="text" id="m-bp-specs" class="input-dark" value="' + E(bSpecs) + '" placeholder="Ej. Skin fade, Perfilado de barba" />' +
+          '<input type="text" id="m-bp-specs" class="input-dark" value="' + E(bSpecs) + '" placeholder="' + (barberia ? 'Ej. Skin fade, Perfilado de barba' : this.vx('Ej. {Service} general, Primera {appointment}')) + '" />' +
         '</div>' +
         '<div style="margin-bottom:12px;">' +
-          '<label class="field-lbl">FOTO DEL BARBERO</label>' +
+          '<label class="field-lbl">' + this.vx('Foto {del:staff} {staff}').toUpperCase() + '</label>' +
           '<div class="upload-dropzone" onclick="document.getElementById(\'m-bp-file\').click()">' +
-            '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.82rem;">' + ic('upload') + ' Seleccionar foto del barbero</span>' +
+            '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.82rem;">' + ic('upload') + ' ' + this.vx('Seleccionar foto {del:staff} {staff}') + '</span>' +
             '<input type="file" id="m-bp-file" accept="image/*" style="display:none;" onchange="CRM.previewUploadedImage(this, \'m-bp-preview\')" />' +
           '</div>' +
         '</div>' +
         '<div style="margin-bottom:16px;">' +
-          '<img id="m-bp-preview" src="' + this.photo(bPhoto) + '" data-current="' + E(bPhoto) + '" alt="Foto del barbero" style="width:68px; height:68px; object-fit:cover; border:1px solid var(--golden);" />' +
+          '<img id="m-bp-preview" src="' + this.photo(bPhoto) + '" data-current="' + E(bPhoto) + '" alt="' + this.vx('Foto {del:staff} {staff}') + '" style="width:68px; height:68px; object-fit:cover; border:1px solid var(--golden);" />' +
         '</div>' +
         '<div style="margin-bottom:16px;">' +
           '<label class="field-lbl" for="m-bp-sch-mode">DÍAS Y HORAS DE TRABAJO</label>' +
           '<select id="m-bp-sch-mode" class="input-dark sch-mode" onchange="document.getElementById(\'m-bp-sch-box\').hidden = this.value !== \'custom\'">' +
-            '<option value="shop"' + (bSchedule ? '' : ' selected') + '>Igual que el horario de la barbería</option>' +
+            '<option value="shop"' + (bSchedule ? '' : ' selected') + '>' + this.vx('Igual que el horario {del:business} {business}') + '</option>' +
             '<option value="custom"' + (bSchedule ? ' selected' : '') + '>Personalizado</option>' +
           '</select>' +
           '<div id="m-bp-sch-box"' + (bSchedule ? '' : ' hidden') + '>' +
             ScheduleEditor.html('m-bp-sch', (bSchedule || shopSchedule).week) +
-            '<p class="sch-help">Solo se ofrecen las horas que también estén dentro del horario de la barbería (' + E(ScheduleEditor.summary(shopSchedule.week)) + ').</p>' +
+            '<p class="sch-help">' + this.vx('Solo se ofrecen las horas que también estén dentro del horario {del:business} {business}') + ' (' + E(ScheduleEditor.summary(shopSchedule.week)) + ').</p>' +
           '</div>' +
           '<p class="form-error" id="m-bp-error" role="alert"></p>' +
         '</div>' +
         '<div class="modal-actions">' +
           '<button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button>' +
-          '<button type="submit" class="btn-golden">Guardar barbero</button>' +
+          '<button type="submit" class="btn-golden">' + this.vx('Guardar {staff}') + '</button>' +
         '</div>' +
       '</form>'
     );
@@ -225,9 +238,9 @@ const CRM = {
     const specialties = document.getElementById('m-bp-specs').value.split(',').map(s => s.trim()).filter(Boolean);
     const previewEl = document.getElementById('m-bp-preview');
     const finalPhoto = previewEl.getAttribute('data-uploaded') || previewEl.getAttribute('data-current') || '';
-    if (!name) { errEl.textContent = 'Escribe el nombre del barbero.'; return false; }
+    if (!name) { errEl.textContent = UI.v('Escribe el nombre {del:staff} {staff}.'); return false; }
     const dup = DB.state.barberProfiles.find(b => b.name.trim().toLowerCase() === name.toLowerCase() && b.id !== editId);
-    if (dup) { errEl.textContent = 'Ya hay un barbero con ese nombre. Usa un nombre distinto (por ejemplo, con su apellido).'; return false; }
+    if (dup) { errEl.textContent = UI.v('Ya hay {un:staff} {staff} con ese nombre. Usa un nombre distinto (por ejemplo, con su apellido).'); return false; }
     let schedule = null;
     if (document.getElementById('m-bp-sch-mode').value === 'custom') {
       const res = ScheduleEditor.read('m-bp-sch');
@@ -245,7 +258,7 @@ const CRM = {
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();
-    if (ok) UI.toast(editId ? 'Barbero actualizado.' : 'Barbero agregado.');
+    if (ok) UI.toast(UI.v(editId ? '{Staff} actualizad{o:staff}.' : '{Staff} agregad{o:staff}.'));
     return ok;
   },
 
@@ -253,18 +266,18 @@ const CRM = {
     const bp = DB.state.barberProfiles.find(x => x.id === barberId);
     if (!bp) return;
     ModalComponent.open(
-      '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">SUBIR CORTE REALIZADO POR ' + UI.esc(bp.name.toUpperCase()) + '</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+      '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">SUBIR TRABAJO REALIZADO POR ' + UI.esc(bp.name.toUpperCase()) + '</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveHaircutPhotoModal(event, \'' + UI.esc(bp.id) + '\')">' +
-        '<div style="margin-bottom:14px;"><label class="field-lbl" for="m-wkphoto-title">NOMBRE DEL CORTE *</label><input type="text" id="m-wkphoto-title" class="input-dark" placeholder="Ej. Mid Fade + Barba Conectada" maxlength="60" required /></div>' +
+        '<div style="margin-bottom:14px;"><label class="field-lbl" for="m-wkphoto-title">TÍTULO DEL TRABAJO *</label><input type="text" id="m-wkphoto-title" class="input-dark" placeholder="' + (Vocab.type() === 'barberia' ? 'Ej. Mid Fade + Barba Conectada' : 'Ej. Antes y después') + '" maxlength="60" required /></div>' +
         '<div style="margin-bottom:14px;">' +
           '<div class="upload-dropzone" onclick="document.getElementById(\'m-wkphoto-file\').click()">' +
-            '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.84rem;">' + ic('camera') + ' Seleccionar fotografía del corte</span>' +
+            '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.84rem;">' + ic('camera') + ' Seleccionar fotografía del trabajo</span>' +
             '<input type="file" id="m-wkphoto-file" accept="image/*" style="display:none;" onchange="CRM.previewUploadedImage(this, \'m-wkphoto-preview\')" />' +
           '</div>' +
         '</div>' +
         '<div style="margin-bottom:16px;"><img id="m-wkphoto-preview" src="' + this.photo('') + '" alt="Vista previa" style="width:90px; height:90px; object-fit:cover; border:1px solid var(--golden);" /></div>' +
         '<p class="form-error" id="m-wkphoto-error" role="alert"></p>' +
-        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">Publicar corte</button></div>' +
+        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">Publicar foto</button></div>' +
       '</form>'
     );
   },
@@ -275,7 +288,7 @@ const CRM = {
     if (!bp) return false;
     const title = document.getElementById('m-wkphoto-title').value.trim();
     const finalImg = document.getElementById('m-wkphoto-preview').getAttribute('data-uploaded');
-    if (!finalImg) { document.getElementById('m-wkphoto-error').textContent = 'Selecciona la foto del corte.'; return false; }
+    if (!finalImg) { document.getElementById('m-wkphoto-error').textContent = 'Selecciona la foto del trabajo.'; return false; }
     bp.works.unshift({ id: DB.uid(), title, image: finalImg });
     this.closeModal();
     const ok = await DB.save();
@@ -297,18 +310,18 @@ const CRM = {
 
   async deleteBarberProfile(barberId) {
     if (DB.state.barberProfiles.length <= 1) {
-      UI.toast('Debe quedar al menos un barbero en la barbería.', 'error');
+      UI.toast(UI.v('Debe quedar al menos {un:staff} {staff} en {el:business} {business}.'), 'error');
       return false;
     }
     DB.state.barberProfiles = DB.state.barberProfiles.filter(x => x.id !== barberId);
     DB.markDeleted('barbers', barberId);
     const ok = await DB.save();
     this.renderAll();
-    if (ok) UI.toast('Barbero eliminado.');
+    if (ok) UI.toast(UI.v('{Staff} eliminad{o:staff}.'));
     return ok;
   },
 
-  /* ---------- Walk-in de hoy (M18: los de otros días no cuentan "en sillón") ---------- */
+  /* ---------- Walk-in de hoy (M18: los de otros días no cuentan "en atención") ---------- */
   todayQueue() {
     const today = DB.todayISO();
     return DB.state.walkIns.filter(w => w.status !== 'FINALIZADO' && (w.date || today) === today);
@@ -369,10 +382,10 @@ const CRM = {
       const own = DB.linkedBarberName();
       const pending = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP').length;
       kpi1.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + (own ? 'MIS CITAS DE HOY' : 'CITAS DE HOY') + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">' + (own ? 'Asignadas a ' + E(own) : 'De toda la barbería') + '</div></div>' +
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + (own ? 'MIS CITAS DE HOY' : 'CITAS DE HOY') + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">' + (own ? 'Asignadas a ' + E(own) : this.vx('De tod{o:business} {el:business} {business}')) + '</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">PENDIENTES HOY</div><div class="crm-kpi-val">' + pending + '</div><div class="crm-kpi-sub">Programadas o confirmadas</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">EN ESPERA</div><div class="crm-kpi-val">' + queue.filter(w => w.status === 'ESPERANDO').length + '</div><div class="crm-kpi-sub">Walk-in en cola hoy</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">EN SILLÓN</div><div class="crm-kpi-val" style="color:var(--golden);">' + queue.filter(w => w.status === 'EN_SILLON').length + '</div><div class="crm-kpi-sub">Atendiéndose ahora</div></div>';
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{InServiceShort}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + queue.filter(w => w.status === 'EN_SILLON').length + '</div><div class="crm-kpi-sub">Atendiéndose ahora</div></div>';
       const kpi2h = document.getElementById('dashboard-kpis-row2');
       if (kpi2h) kpi2h.innerHTML = '';
     }
@@ -380,7 +393,7 @@ const CRM = {
       kpi1.innerHTML =
         '<div class="crm-kpi-card"><div class="crm-kpi-label">CITAS DE HOY</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">Sincronizadas con la web</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">VENTAS COMPLETADAS</div><div class="crm-kpi-val">' + cur + totalRevAll + '</div><div class="crm-kpi-sub">' + totalDone + ' completadas (acumulado)</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">COLA WALK-IN</div><div class="crm-kpi-val">' + queue.length + '</div><div class="crm-kpi-sub">En espera y en sillón hoy</div></div>' +
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">COLA WALK-IN</div><div class="crm-kpi-val">' + queue.length + '</div><div class="crm-kpi-sub">' + this.vx('En espera y {inServiceShort} hoy') + '</div></div>' +
         '<div class="crm-kpi-card"><div class="crm-kpi-label">TICKET PROMEDIO</div><div class="crm-kpi-val" style="color:var(--golden);">' + cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0) + '</div><div class="crm-kpi-sub">Por venta completada</div></div>';
     }
 
@@ -391,13 +404,13 @@ const CRM = {
       const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
       // M11: el total de clientes solo con el módulo Clientes
       const custCard = Auth.can('customers.view')
-        ? '<div class="crm-kpi-card"><div class="crm-kpi-label">TOTAL CLIENTES</div><div class="crm-kpi-val">' + DB.state.customers.length + '</div><div class="crm-kpi-sub">En cartera CRM</div></div>'
+        ? '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('Total {clientPlural}').toUpperCase() + '</div><div class="crm-kpi-val">' + DB.state.customers.length + '</div><div class="crm-kpi-sub">En cartera CRM</div></div>'
         : '<div class="crm-kpi-card"><div class="crm-kpi-label">WALK-IN ATENDIDOS</div><div class="crm-kpi-val">' + finishedWalkIns.length + '</div><div class="crm-kpi-sub">Acumulado</div></div>';
       kpi2.innerHTML =
         '<div class="crm-kpi-card"><div class="crm-kpi-label">INGRESOS 7 DÍAS</div><div class="crm-kpi-val">' + cur + weekRev + '</div><div class="crm-kpi-sub">Citas + walk-in de la última semana</div></div>' +
         custCard +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">SERVICIO MÁS PEDIDO</div><div class="crm-kpi-val" style="font-size:1.25rem;">' + E(topService ? topService[0] : '—') + '</div><div class="crm-kpi-sub">' + (topService ? topService[1] + ' citas' : 'Sin citas aún') + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">BARBEROS ACTIVOS</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.barberProfiles.length + '</div><div class="crm-kpi-sub">Con portafolio activo</div></div>';
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{Service} más pedid{o:service}').toUpperCase() + '</div><div class="crm-kpi-val" style="font-size:1.25rem;">' + E(topService ? topService[0] : '—') + '</div><div class="crm-kpi-sub">' + (topService ? topService[1] + ' citas' : 'Sin citas aún') + '</div></div>' +
+        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{StaffPlural} activ{os:staff}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.barberProfiles.length + '</div><div class="crm-kpi-sub">Con portafolio activo</div></div>';
     }
 
     const upcomingToday = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP')
@@ -439,14 +452,14 @@ const CRM = {
     const bSel = document.getElementById('flt-appt-barber');
     if (bSel) {
       const curB = bSel.value || 'ALL';
-      bSel.innerHTML = '<option value="ALL">' + (DB.linkedBarberId() ? 'Mis citas' : 'Todos los barberos') + '</option>' +
+      bSel.innerHTML = '<option value="ALL">' + (DB.linkedBarberId() ? 'Mis citas' : this.vx('Tod{os:staff} l{os:staff} {staffPlural}')) + '</option>' +
         DB.assignableBarbers().map(b => '<option value="' + UI.esc(b.id) + '">' + UI.esc(b.name) + '</option>').join('');
       bSel.value = bSel.querySelector('option[value="' + curB + '"]') ? curB : 'ALL';
     }
     const sSel = document.getElementById('flt-appt-service');
     if (sSel) {
       const curS = sSel.value || 'ALL';
-      sSel.innerHTML = '<option value="ALL">Todos los servicios</option>' +
+      sSel.innerHTML = '<option value="ALL">' + this.vx('Tod{os:service} l{os:service} {servicePlural}') + '</option>' +
         DB.state.services.map(s => '<option value="' + UI.esc(s.id) + '">' + UI.esc(s.name) + '</option>').join('');
       sSel.value = sSel.querySelector('option[value="' + curS + '"]') ? curS : 'ALL';
     }
@@ -546,6 +559,7 @@ const CRM = {
       tbody.innerHTML = '<tr class="is-empty"><td colspan="8"><div class="empty-state">' + ic('calendar') + '<strong>Sin citas para este filtro</strong>Prueba con otra pestaña o limpia los filtros.</div></td></tr>';
       return;
     }
+    const L = { client: E(Vocab.T('client')), service: E(Vocab.T('service')), staff: E(Vocab.T('staff')) };
     tbody.innerHTML = list.map(a => {
       const acts = this.apptActions(a).map(x => x.key === 'RESCHEDULE'
         ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.openRescheduleModal(\'' + E(a.id) + '\')">' + ic('calendar') + 'Reprogramar</button>'
@@ -553,9 +567,9 @@ const CRM = {
       ).join('');
       const hint = this.isVigente(a) && !this.hasStarted(a) ? '<span class="appt-hint">Completar / No asistió: desde la hora de la cita</span>' : '';
       return '<tr data-appt="' + E(a.id) + '">' +
-        '<td data-label="Cliente"><strong>' + E(a.customerName) + '</strong><br/><span style="font-size:0.76rem; color:var(--text-grey);">' + E(a.phone || '—') + (a.code ? ' · ' + E(a.code) : '') + '</span></td>' +
-        '<td data-label="Servicio">' + E(a.service) + '</td>' +
-        '<td data-label="Barbero">' + E(a.barber) + '</td>' +
+        '<td data-label="' + L.client + '"><strong>' + E(a.customerName) + '</strong><br/><span style="font-size:0.76rem; color:var(--text-grey);">' + E(a.phone || '—') + (a.code ? ' · ' + E(a.code) : '') + '</span></td>' +
+        '<td data-label="' + L.service + '">' + E(a.service) + '</td>' +
+        '<td data-label="' + L.staff + '">' + E(a.barber) + '</td>' +
         '<td data-label="Fecha">' + E(a.date) + '</td>' +
         '<td data-label="Hora"><strong>' + E(a.time) + '</strong></td>' +
         '<td data-label="Precio"><strong>' + cur + E(a.price) + '</strong></td>' +
@@ -618,11 +632,11 @@ const CRM = {
       '<p class="form-note">' + E(a.customerName) + ' · ' + E(a.service) + ' · ahora: ' + E(a.date) + ' ' + E(a.time) + ' con ' + E(a.barber) + '</p>' +
       '<form onsubmit="CRM.saveReschedule(event, \'' + E(a.id) + '\')" novalidate>' +
         '<div class="form-grid-2">' +
-          '<div><label class="field-lbl" for="m-rp-barber">Barbero</label><select id="m-rp-barber" class="input-dark" onchange="CRM.refreshRescheduleSlots(\'' + E(a.id) + '\')"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
+          '<div><label class="field-lbl" for="m-rp-barber">' + E(Vocab.T('staff')) + '</label><select id="m-rp-barber" class="input-dark" onchange="CRM.refreshRescheduleSlots(\'' + E(a.id) + '\')"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
           '<div><label class="field-lbl" for="m-rp-date">Fecha</label><input type="date" id="m-rp-date" class="input-dark" min="' + DB.todayISO() + '" max="' + DB.maxBookDate() + '" value="' + E(a.date < DB.todayISO() ? DB.todayISO() : a.date) + '" onchange="CRM.refreshRescheduleSlots(\'' + E(a.id) + '\')" required /></div>' +
           '<div><label class="field-lbl" for="m-rp-time">Hora</label><select id="m-rp-time" class="input-dark" required></select></div>' +
         '</div>' +
-        (a.status === 'CONFIRMADA_WSP' ? '<p class="field-hint">Al reprogramarla vuelve a "Programada": el cliente tendrá que confirmar de nuevo.</p>' : '') +
+        (a.status === 'CONFIRMADA_WSP' ? '<p class="field-hint">' + this.vx('Al reprogramarla vuelve a "Programada": el {client} tendrá que confirmar de nuevo.') + '</p>' : '') +
         '<p class="field-hint" id="m-rp-note"></p>' +
         '<div class="form-error" id="m-rp-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + 'Guardar cambio</button></div>' +
@@ -652,7 +666,7 @@ const CRM = {
     const po = prev && timeSel.querySelector('option[value="' + prev + '"]');
     timeSel.value = (po && !po.disabled) ? prev : (first || '');
     const note = document.getElementById('m-rp-note');
-    if (note) note.textContent = !slots.length ? (name || 'La barbería') + ' no atiende ese día. Elige otra fecha.' : (!first ? 'No quedan horarios libres ese día.' : '');
+    if (note) note.textContent = !slots.length ? (name || UI.v('{El:business} {business}')) + ' no atiende ese día. Elige otra fecha.' : (!first ? 'No quedan horarios libres ese día.' : '');
   },
 
   async saveReschedule(e, id) {
@@ -663,8 +677,8 @@ const CRM = {
     const b = DB.barberById(document.getElementById('m-rp-barber').value);
     const date = document.getElementById('m-rp-date').value;
     const time = document.getElementById('m-rp-time').value;
-    if (!b) { err.textContent = 'Elige un barbero.'; return false; }
-    if (b.id === a.barberId && date === a.date && time === a.time) { err.textContent = 'Elige otra fecha, hora o barbero.'; return false; }
+    if (!b) { err.textContent = UI.v('Elige {un:staff} {staff}.'); return false; }
+    if (b.id === a.barberId && date === a.date && time === a.time) { err.textContent = UI.v('Elige otra fecha, hora o {staff}.'); return false; }
     const rsvc = DB.serviceById(a.serviceId);
     const slotError = DB.validateBooking(date, time, b.name, a.id, rsvc ? rsvc.duration : undefined);
     if (slotError) { err.textContent = slotError; this.refreshRescheduleSlots(id); return false; }
@@ -688,10 +702,10 @@ const CRM = {
     const finished = DB.state.walkIns.filter(w => w.status === 'FINALIZADO' && w.date === today);
 
     activeGrid.innerHTML = active.map(w => {
-      const stLabel = w.status === 'EN_SILLON' ? 'En sillón' : 'En espera';
+      const stLabel = w.status === 'EN_SILLON' ? this.vx('{InServiceShort}') : 'En espera';
       const old = (w.date || today) !== today;
       const chairBtn = w.status === 'ESPERANDO' && !old
-        ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.setWalkInStatus(\'' + E(w.id) + '\',\'EN_SILLON\')">En sillón</button>'
+        ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.setWalkInStatus(\'' + E(w.id) + '\',\'EN_SILLON\')">' + this.vx('{InServiceShort}') + '</button>'
         : '';
       return '<div class="crm-item-card">' +
         '<div>' +
@@ -700,7 +714,7 @@ const CRM = {
           (old ? '<p class="text-warn" style="font-size:0.78rem;">Quedó abierto del ' + E(w.date) + ': finalízalo.</p>' : '') +
           '<p style="font-size:0.83rem; line-height:1.65; color:var(--text-light); margin-bottom:14px;">' +
             E(w.service) + ' - <strong>' + cur + E(w.price) + '</strong><br/>' +
-            'Barbero: <strong>' + E(w.barber) + '</strong> • Agregado: ' + E(w.addedAt) +
+            E(Vocab.T('staff')) + ': <strong>' + E(w.barber) + '</strong> • Agregado: ' + E(w.addedAt) +
           '</p>' +
         '</div>' +
         '<div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border-subtle); padding-top:12px;">' +
@@ -748,7 +762,7 @@ const CRM = {
 
     salesKpis.innerHTML =
       '<div class="crm-kpi-card"><div class="crm-kpi-label">INGRESOS ACUMULADOS</div><div class="crm-kpi-val">' + cur + totalRev + '</div><div class="crm-kpi-sub">Desde el inicio · por periodo en Reportes</div></div>' +
-      '<div class="crm-kpi-card"><div class="crm-kpi-label">CLIENTES ATENDIDOS</div><div class="crm-kpi-val">' + allSales.length + '</div><div class="crm-kpi-sub">Citas + Walk-ins</div></div>' +
+      '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{ClientPlural} atendidos').toUpperCase() + '</div><div class="crm-kpi-val">' + allSales.length + '</div><div class="crm-kpi-sub">Citas + Walk-ins</div></div>' +
       '<div class="crm-kpi-card"><div class="crm-kpi-label">TICKET PROMEDIO</div><div class="crm-kpi-val">' + cur + avgTicket + '</div><div class="crm-kpi-sub">Por atención</div></div>';
 
     const byBarber = {};
@@ -767,8 +781,9 @@ const CRM = {
     document.getElementById('sales-by-service-bars').innerHTML = bars(byService);
 
     allSales.sort((x, y) => ((y.date + ' ' + y.time) > (x.date + ' ' + x.time) ? 1 : -1));
+    const L = { client: E(Vocab.T('client')), service: E(Vocab.T('service')), staff: E(Vocab.T('staff')) };
     document.getElementById('sales-recent-tbody').innerHTML = allSales.slice(0, 60).map(s =>
-      '<tr><td data-label="Fecha">' + E(s.date) + (s.time ? ' ' + E(s.time) : '') + '</td><td data-label="Cliente"><strong>' + E(s.customer) + '</strong></td><td data-label="Servicio">' + E(s.service) + '</td><td data-label="Barbero">' + E(s.barber) + '</td><td data-label="Origen"><span class="st-badge st-EN_SILLON">' + E(s.source) + '</span></td><td data-label="Ingreso"><strong style="color:var(--golden);">' + cur + s.price + '</strong></td></tr>'
+      '<tr><td data-label="Fecha">' + E(s.date) + (s.time ? ' ' + E(s.time) : '') + '</td><td data-label="' + L.client + '"><strong>' + E(s.customer) + '</strong></td><td data-label="' + L.service + '">' + E(s.service) + '</td><td data-label="' + L.staff + '">' + E(s.barber) + '</td><td data-label="Origen"><span class="st-badge st-EN_SILLON">' + E(s.source) + '</span></td><td data-label="Ingreso"><strong style="color:var(--golden);">' + cur + s.price + '</strong></td></tr>'
     ).join('');
   },
 
@@ -791,14 +806,14 @@ const CRM = {
           '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + E(c.notes || 'Sin observaciones') + '</p>' +
         '</div>' +
       '</div>'
-    ).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>Sin clientes</strong>' + (q ? 'Nadie coincide con la búsqueda.' : 'Se agregan al registrar citas con celular.') + '</div>';
+    ).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>' + this.vx('Sin {clientPlural}') + '</strong>' + (q ? 'Nadie coincide con la búsqueda.' : 'Se agregan al registrar citas con celular.') + '</div>';
     const more = document.getElementById('cust-more');
     if (more) {
       more.hidden = list.length <= this.custLimit;
       more.textContent = 'Ver más (' + Math.max(0, list.length - this.custLimit) + ' restantes)';
     }
     const count = document.getElementById('cust-count');
-    if (count) count.textContent = list.length + (list.length === 1 ? ' cliente' : ' clientes');
+    if (count) count.textContent = list.length + ' ' + Vocab.t(list.length === 1 ? 'client' : 'clientPlural');
   },
 
   showMoreCustomers() {
@@ -812,7 +827,7 @@ const CRM = {
     if (!srvGrid) return;
     const cur = this.cur();
     if (!DB.state.services.length) {
-      srvGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">' + ic('tag') + '<strong>Sin servicios</strong>Agrega el primero con “Agregar servicio”.</div>';
+      srvGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">' + ic('tag') + '<strong>' + this.vx('Sin {servicePlural}') + '</strong>' + this.vx('Agrega {el:service} primer{o:service} con “Agregar {service}”.') + '</div>';
       return;
     }
     srvGrid.innerHTML = DB.state.services.map(s =>
@@ -839,11 +854,11 @@ const CRM = {
     const durations = [15, 20, 30, 45, 60, 75, 90, 120];
     const v = (k, d) => UI.esc(s && s[k] != null ? s[k] : d);
     ModalComponent.open(
-      '<div class="crm-modal-header"><div><span class="card-kicker">Catálogo</span><h3>' + (s ? 'Editar servicio' : 'Agregar servicio') + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+      '<div class="crm-modal-header"><div><span class="card-kicker">Catálogo</span><h3>' + this.vx(s ? 'Editar {service}' : 'Agregar {service}') + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveServiceModal(event' + (s ? ', \'' + UI.esc(s.id) + '\'' : '') + ')" novalidate>' +
         '<div class="form-grid-2">' +
-          '<div style="grid-column:1/-1;"><label class="field-lbl" for="m-sv-name">Nombre del servicio <span class="req">*</span></label><input type="text" id="m-sv-name" class="input-dark" value="' + v('name', '') + '" maxlength="60" required /></div>' +
-          '<div><label class="field-lbl" for="m-sv-cat">Categoría</label><input type="text" id="m-sv-cat" class="input-dark" list="m-sv-cats" value="' + v('category', 'Cortes') + '" maxlength="30" />' +
+          '<div style="grid-column:1/-1;"><label class="field-lbl" for="m-sv-name">' + this.vx('Nombre {del:service} {service}') + ' <span class="req">*</span></label><input type="text" id="m-sv-name" class="input-dark" value="' + v('name', '') + '" maxlength="60" required /></div>' +
+          '<div><label class="field-lbl" for="m-sv-cat">Categoría</label><input type="text" id="m-sv-cat" class="input-dark" list="m-sv-cats" value="' + v('category', Vocab.type() === 'barberia' ? 'Cortes' : 'General') + '" maxlength="30" />' +
             '<datalist id="m-sv-cats">' + cats.map(c => '<option value="' + UI.esc(c) + '"></option>').join('') + '</datalist></div>' +
           '<div><label class="field-lbl" for="m-sv-price">Precio (' + this.cur() + ') <span class="req">*</span></label><input type="number" id="m-sv-price" class="input-dark" min="0" step="1" inputmode="numeric" value="' + v('price', '45') + '" required /></div>' +
           '<div><label class="field-lbl" for="m-sv-duration">Duración</label><select id="m-sv-duration" class="input-dark">' +
@@ -852,7 +867,7 @@ const CRM = {
         '</div>' +
         (s ? '<p class="form-note">' + ic('alert') + 'Si cambias el nombre o el precio, se actualizarán las citas futuras pendientes. Las citas pasadas conservan sus datos originales.</p>' : '') +
         '<div class="form-error" id="m-sv-error" role="alert"></div>' +
-        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (s ? 'Guardar cambios' : 'Agregar servicio') + '</button></div>' +
+        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (s ? 'Guardar cambios' : this.vx('Agregar {service}')) + '</button></div>' +
       '</form>'
     );
   },
@@ -865,10 +880,10 @@ const CRM = {
     const price = Number(document.getElementById('m-sv-price').value);
     const duration = Number(document.getElementById('m-sv-duration').value) || 45;
     const desc = document.getElementById('m-sv-desc').value.trim();
-    if (!name) { err.textContent = 'Escribe el nombre del servicio.'; return false; }
+    if (!name) { err.textContent = UI.v('Escribe el nombre {del:service} {service}.'); return false; }
     if (!isFinite(price) || price < 0) { err.textContent = 'Escribe un precio válido (0 o más).'; return false; }
     const dup = DB.state.services.find(x => x.name.toLowerCase() === name.toLowerCase() && x.id !== editId);
-    if (dup) { err.textContent = 'Ya existe un servicio con ese nombre.'; return false; }
+    if (dup) { err.textContent = UI.v('Ya existe {un:service} {service} con ese nombre.'); return false; }
 
     if (editId) {
       const s = DB.state.services.find(x => x.id === editId);
@@ -884,26 +899,26 @@ const CRM = {
       this.closeModal();
       const ok = await DB.save();
       this.renderAll();
-      if (ok) UI.toast('Servicio actualizado' + (updated ? ' (' + updated + ' cita' + (updated === 1 ? '' : 's') + ' futura' + (updated === 1 ? '' : 's') + ' ajustada' + (updated === 1 ? '' : 's') + ').' : '.'));
+      if (ok) UI.toast(UI.v('{Service} actualizad{o:service}') + (updated ? ' (' + updated + ' cita' + (updated === 1 ? '' : 's') + ' futura' + (updated === 1 ? '' : 's') + ' ajustada' + (updated === 1 ? '' : 's') + ').' : '.'));
       return ok;
     }
     DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '' });
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();
-    if (ok) UI.toast('Servicio agregado al catálogo.');
+    if (ok) UI.toast(UI.v('{Service} agregad{o:service} al catálogo.'));
     return ok;
   },
 
   deleteService(id) {
     const s = DB.state.services.find(x => x.id === id);
     if (!s) return;
-    if (DB.state.services.length <= 1) { UI.toast('Debe quedar al menos un servicio en el catálogo.', 'error'); return; }
+    if (DB.state.services.length <= 1) { UI.toast(UI.v('Debe quedar al menos {un:service} {service} en el catálogo.'), 'error'); return; }
     const today = DB.todayISO();
     const future = DB.state.appointments.filter(a => a.serviceId === s.id && a.date >= today && this.isVigente(a)).length;
     UI.confirm({
-      title: 'Eliminar servicio',
-      message: '“' + s.name + '” dejará de mostrarse en la web y en el CRM.' + (future ? ' Ojo: tiene ' + future + ' cita(s) futura(s); se mantendrán con su precio actual, pero el servicio ya no podrá elegirse en nuevas reservas.' : '') + ' El historial de ventas se conserva.',
+      title: UI.v('Eliminar {service}'),
+      message: '“' + s.name + '” dejará de mostrarse en la web y en el CRM.' + (future ? ' Ojo: tiene ' + future + ' cita(s) futura(s); ' + UI.v('se mantendrán con su precio actual, pero {el:service} {service} ya no podrá elegirse en nuevas reservas.') : '') + ' El historial de ventas se conserva.',
       confirmText: 'Eliminar', danger: true
     }).then(async ok => {
       if (!ok) return;
@@ -912,8 +927,8 @@ const CRM = {
       const saved = await DB.save();
       this.renderAll();
       if (!saved) return;
-      DB.log('Eliminó un servicio', s.name + ' · ' + DB.state.settings.currency + ' ' + s.price + (future ? ' · ' + future + ' cita(s) futura(s) conservadas' : ''));
-      UI.toast('Servicio eliminado.');
+      DB.log(UI.v('Eliminó {un:service} {service}'), s.name + ' · ' + DB.state.settings.currency + ' ' + s.price + (future ? ' · ' + future + ' cita(s) futura(s) conservadas' : ''));
+      UI.toast(UI.v('{Service} eliminad{o:service}.'));
     });
   },
 
@@ -949,9 +964,99 @@ const CRM = {
     if (nameEl) nameEl.textContent = t.name;
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = 'index.html?b=' + encodeURIComponent(t.slug); linkEl.textContent = 'index.html?b=' + t.slug; }
+    this.renderRubro();
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();
+  },
+
+  /* ---------- Rubro del negocio y palabras personalizadas ----------
+     Se guarda en tenants.business_type y tenants.labels (solo las palabras
+     que el negocio cambió; vacío = la del rubro). */
+  LABEL_FIELDS: [
+    ['staff', 'Quien atiende (singular)'], ['staffPlural', 'Quien atiende (plural)'],
+    ['client', 'Quien reserva (singular)'], ['clientPlural', 'Quien reserva (plural)'],
+    ['service', 'Lo que se ofrece (singular)'], ['servicePlural', 'Lo que se ofrece (plural)'],
+    ['inService', 'Estado de atención sin cita']
+  ],
+
+  renderRubro() {
+    const sel = document.getElementById('set-rubro');
+    if (!sel || !window.Vocab || !DB.tenant) return;
+    if (this.rubroTenant !== DB.tenant.id) { this.rubroTenant = DB.tenant.id; this.rubroDirty = false; }
+    if (this.rubroDirty) return;   // cambios sin guardar: no se repinta
+    const t = DB.tenant;
+    const type = Vocab.PRESETS[t.businessType] ? t.businessType : Vocab.DEFAULT_TYPE;
+    sel.innerHTML = (Vocab.TYPES || Object.keys(Vocab.PRESETS)).map(k =>
+      '<option value="' + UI.esc(k) + '"' + (k === type ? ' selected' : '') + '>' + UI.esc(Vocab.PRESETS[k].label) + '</option>').join('');
+    const labels = t.labels || {};
+    const grid = document.getElementById('set-labels-grid');
+    if (grid) {
+      grid.innerHTML = this.LABEL_FIELDS.map(([k, lbl]) =>
+        '<div><label class="field-lbl" for="set-lbl-' + k + '">' + UI.esc(lbl) + '</label>' +
+        '<input type="text" id="set-lbl-' + k + '" class="input-dark" maxlength="40" value="' + UI.esc(labels[k] || '') + '" oninput="CRM.onRubroChange()" /></div>').join('');
+    }
+    const box = document.getElementById('set-labels-box');
+    if (box && Object.keys(labels).length) box.open = true;
+    const err = document.getElementById('set-rubro-error');
+    if (err) err.textContent = '';
+    this.onRubroChange(true);
+  },
+
+  // Lee el formulario: { type, labels } (labels solo con las palabras escritas)
+  readRubro() {
+    const type = (document.getElementById('set-rubro') || {}).value || Vocab.DEFAULT_TYPE;
+    const labels = {};
+    this.LABEL_FIELDS.forEach(([k]) => {
+      const el = document.getElementById('set-lbl-' + k);
+      const v = el ? el.value.trim() : '';
+      if (v) labels[k] = v;
+    });
+    return { type, labels };
+  },
+
+  // Al cambiar el rubro: placeholders con las palabras del preset y vista previa
+  onRubroChange(initial) {
+    if (!window.Vocab) return;
+    if (initial !== true) this.rubroDirty = true;
+    const { type, labels } = this.readRubro();
+    const p = Vocab.PRESETS[type] || Vocab.PRESETS[Vocab.DEFAULT_TYPE];
+    this.LABEL_FIELDS.forEach(([k]) => {
+      const el = document.getElementById('set-lbl-' + k);
+      if (el) el.placeholder = p[k] || '';
+    });
+    const w = Object.assign({}, p, labels);
+    const prev = document.getElementById('set-rubro-preview');
+    if (prev) {
+      const cap = (s) => String(s).charAt(0).toLocaleUpperCase('es-PE') + String(s).slice(1);
+      prev.textContent = cap(w.staffPlural) + ' · ' + cap(w.clientPlural) + ' · ' + cap(w.servicePlural) + ' · ' + cap(w.inService);
+    }
+  },
+
+  async saveRubro() {
+    const err = document.getElementById('set-rubro-error');
+    if (err) err.textContent = '';
+    const { type, labels } = this.readRubro();
+    if (!Vocab.PRESETS[type]) { if (err) err.textContent = 'Elige un rubro de la lista.'; return false; }
+    const bad = Object.keys(labels).find(k => labels[k].length > 40 || /[<>"]/.test(labels[k]));
+    if (bad) { if (err) err.textContent = 'Las palabras deben tener hasta 40 caracteres y no llevar los signos < > ".'; return false; }
+    const t = DB.tenant;
+    const before = Vocab.label(t.businessType) + (Object.keys(t.labels || {}).length ? ' (personalizado)' : '');
+    if (t.businessType === type && JSON.stringify(t.labels || {}) === JSON.stringify(labels)) {
+      this.rubroDirty = false;
+      UI.toast('No hay cambios por guardar.', 'info');
+      return false;
+    }
+    t.businessType = type;
+    t.labels = labels;
+    const ok = await DB.save();
+    if (!ok) return false;
+    this.rubroDirty = false;
+    DB.log('Cambió el rubro del negocio', 'Antes: ' + before + ' · Ahora: ' + Vocab.label(type) +
+      (Object.keys(labels).length ? ' · palabras: ' + Object.keys(labels).map(k => k + '=' + labels[k]).join(', ') : ''));
+    this.renderAll();
+    UI.toast('Rubro guardado. Las palabras ya se ven en el CRM y en la web.');
+    return true;
   },
 
   /* ---------- WhatsApp: vincular, mensajes y recordatorios ---------- */
@@ -960,10 +1065,11 @@ const CRM = {
     REMINDER: 'Recordatorio', REPLY: 'Respuesta', TEST: 'Prueba' },
   WA_STATUS: { PENDING: ['Programado', 'PROGRAMADA'], SENDING: ['Enviando', 'PROGRAMADA'], SENT: ['Enviado', 'COMPLETADA'],
     FAILED: ['Falló', 'CANCELADA'], CANCELLED: ['Anulado', 'NO_ASISTIO'] },
-  // Textos que se ofrecen si la barbería aún no tiene la plantilla (la base trae los mismos por defecto)
+  // Textos que se ofrecen si el negocio aún no tiene la plantilla (la base trae los mismos por defecto).
+  // {negocio} y {profesional} son los recomendados; {barberia} y {barbero} siguen funcionando.
   WA_TPL_FALLBACK: {
-    clientCancel: '{cliente}, tu cita en {barberia} del {fecha} a las {hora} fue cancelada. Si quieres otra fecha, reserva de nuevo o escríbenos.',
-    clientReschedule: '{cliente}, tu cita en {barberia} cambió: ahora es el {fecha} a las {hora} con {barbero}. Código {codigo}.'
+    clientCancel: '{cliente}, tu cita en {negocio} del {fecha} a las {hora} fue cancelada. Si quieres otra fecha, reserva de nuevo o escríbenos.',
+    clientReschedule: '{cliente}, tu cita en {negocio} cambió: ahora es el {fecha} a las {hora} con {profesional}. Código {codigo}.'
   },
   WA_QR_TTL: 2 * 60 * 1000,      // un QR de WhatsApp no sirve después de ~2 min
   WA_STALE: 3 * 60 * 1000,       // sin latido del bot en 3 min = bot apagado
@@ -991,6 +1097,13 @@ const CRM = {
       if (cr) cr.value = tp.clientReschedule != null ? tp.clientReschedule : this.WA_TPL_FALLBACK.clientReschedule;
       this.waReminders = (c.reminders || []).map(r => Object.assign({}, r));
       this.renderWaReminders();
+      // Plantillas antiguas con {barbero}/{barberia}: se avisa que siguen funcionando
+      const legacy = document.getElementById('wa-vars-legacy');
+      if (legacy) {
+        const old = /\{barber(o|ia)\}/.test(JSON.stringify([tp, c.reminders || []]));
+        legacy.hidden = !old;
+        legacy.textContent = old ? ' Tus textos usan variables antiguas: {barbero} equivale a {profesional} y {barberia} a {negocio}; siguen funcionando.' : '';
+      }
       document.getElementById('wa-error').textContent = '';
       // Lo que hay en pantalla al abrir: se guarda solo lo que cambie respecto de esto
       this.waBase = this.readWaForm();
@@ -1009,7 +1122,7 @@ const CRM = {
           '<input type="number" id="wa-rem-h-' + i + '" class="input-dark" min="0.5" max="168" step="0.5" inputmode="decimal" value="' +
           UI.esc(Number(r.offsetMinutes) / 60) + '" />' +
           '<label class="check-line wa-rem-only"><input type="checkbox" id="wa-rem-c-' + i + '"' + (r.onlyIfNotConfirmed ? ' checked' : '') + ' />' +
-          '<span>Solo si el cliente no confirmó</span></label></div>' +
+          '<span>' + this.vx('Solo si el {client} no confirmó') + '</span></label></div>' +
         '<div><label class="field-lbl" for="wa-rem-t-' + i + '">Mensaje</label>' +
           '<textarea id="wa-rem-t-' + i + '" class="input-dark" rows="3" maxlength="600">' + UI.esc(r.template || '') + '</textarea></div>' +
         '<div><span class="field-lbl">&nbsp;</span><button type="button" class="btn-dark" onclick="CRM.waRemoveReminder(' + i + ')" aria-label="Quitar recordatorio"><i data-icon="trash"></i></button></div>' +
@@ -1050,7 +1163,7 @@ const CRM = {
     this.waReminders = this.readWaReminders();
     if (this.waReminders.length >= 5) { UI.toast('Máximo 5 recordatorios por cita.', 'error'); return; }
     this.waReminders.push({ id: 'r' + Date.now().toString(36), offsetMinutes: 180, onlyIfNotConfirmed: false,
-      template: '{cliente}, te recordamos tu cita {cuando} a las {hora} con {barbero}. ¡Te esperamos en {barberia}!' });
+      template: '{cliente}, te recordamos tu cita {cuando} a las {hora} con {profesional}. ¡Te esperamos en {negocio}!' });
     this.waDirty = true;
     this.renderWaReminders();
   },
@@ -1129,7 +1242,7 @@ const CRM = {
   async waRequest(action) {
     if (action === 'LOGOUT') {
       const ok = await UI.confirm({ title: 'Desvincular WhatsApp',
-        message: 'Dejarán de salir los mensajes de esta barbería hasta que lo vuelvas a vincular.', confirmText: 'Desvincular', danger: true });
+        message: UI.v('Dejarán de salir los mensajes de {este:business} {business} hasta que lo vuelvas a vincular.'), confirmText: 'Desvincular', danger: true });
       if (!ok) return;
     }
     try {
@@ -1204,7 +1317,7 @@ const CRM = {
     const noBot = !!(s.requested_action && this.waRequestedAt && now - this.waRequestedAt > 20000);
     const lastSeen = seen ? new Date(seen).toLocaleString('es-PE') : '';
     const st = { label: 'Sin vincular', cls: 'PROGRAMADA', showQr: false, link: true, logout: false,
-      text: 'Pulsa "Vincular WhatsApp" y escanea el código con el celular de la barbería: WhatsApp → Dispositivos vinculados → Vincular un dispositivo.' };
+      text: UI.v('Pulsa "Vincular WhatsApp" y escanea el código con el celular {del:business} {business}: WhatsApp → Dispositivos vinculados → Vincular un dispositivo.') };
     if (s.status === 'CONNECTED' && !stale) {
       Object.assign(st, { label: 'Conectado', cls: 'CONFIRMADA_WSP', link: false, logout: true,
         text: 'Conectado al número +' + (s.phone || '') + '. Los mensajes salen solos.' });
@@ -1219,7 +1332,7 @@ const CRM = {
             : 'El código QR expiró. Pulsa "Vincular WhatsApp" para generar uno nuevo.' });
       } else if (s.qr) {
         Object.assign(st, { label: 'Esperando escaneo', cls: 'PROGRAMADA', showQr: true, link: false, logout: true,
-          text: 'Abre WhatsApp en el celular de la barbería → Dispositivos vinculados → Vincular un dispositivo, y escanea este código (vence en unos 2 minutos).' });
+          text: UI.v('Abre WhatsApp en el celular {del:business} {business} → Dispositivos vinculados → Vincular un dispositivo, y escanea este código (vence en unos 2 minutos).') });
       } else if (noBot || (seen && stale)) {
         Object.assign(st, { label: 'Bot apagado', cls: 'CANCELADA', link: true, logout: false,
           text: 'Bot apagado: enciende el bot para generar el código QR' + (lastSeen ? ' (última señal: ' + lastSeen + ')' : '') + '.' });
@@ -1277,8 +1390,8 @@ const CRM = {
     }).join('') : '<p class="sch-exc-empty">Todavía no hay envíos.</p>';
   },
 
-  /* Clientes que pidieron no recibir mensajes (respondieron BAJA). Quitar un
-     número de la lista vuelve a permitir los mensajes a ese cliente. */
+  /* Clientes (pacientes…) que pidieron no recibir mensajes (respondieron BAJA).
+     Quitar un número de la lista vuelve a permitir los mensajes a esa persona. */
   renderWaOptOuts() {
     const box = document.getElementById('wa-optouts');
     if (!box) return;
@@ -1294,7 +1407,7 @@ const CRM = {
 
   async waRemoveOptOut(phone) {
     const ok = await UI.confirm({ title: 'Volver a enviar mensajes',
-      message: 'El cliente ' + String(phone).replace(/^51/, '') + ' pidió no recibir mensajes. Quítalo de la lista solo si él te lo pidió.', confirmText: 'Quitar de la lista' });
+      message: UI.v('El {client} ') + String(phone).replace(/^51/, '') + ' pidió no recibir mensajes. Quítalo de la lista solo si te lo pidió.', confirmText: 'Quitar de la lista' });
     if (!ok) return false;
     try {
       const { data, error } = await DB.client().from('wa_opt_outs').delete().eq('tenant_id', DB.tenant.id).eq('phone', phone).select('phone');
@@ -1312,7 +1425,7 @@ const CRM = {
     return true;
   },
 
-  /* ---------- Horario de atención de la barbería ---------- */
+  /* ---------- Horario de atención del negocio ---------- */
   renderSchedule() {
     const iv = document.getElementById('set-sch-interval');
     if (!iv || this.schDirty) return;   // M13: no se repinta con cambios sin guardar
@@ -1345,9 +1458,9 @@ const CRM = {
 
   /* ---------- Fechas especiales ---------- */
   exceptionWho(e) {
-    if (!e.barberId) return 'Toda la barbería';
+    if (!e.barberId) return UI.v('Tod{o:business} {el:business} {business}');
     const b = DB.state.barberProfiles.find(x => x.id === e.barberId);
-    return b ? b.name : 'Barbero eliminado';
+    return b ? b.name : UI.v('{Staff} eliminad{o:staff}');
   },
 
   renderExceptions() {
@@ -1355,7 +1468,7 @@ const CRM = {
     const list = document.getElementById('set-exc-list');
     if (!who || !list) return;
     const prevWho = who.value;
-    who.innerHTML = '<option value="">Toda la barbería</option>' +
+    who.innerHTML = '<option value="">' + this.vx('Tod{o:business} {el:business} {business}') + '</option>' +
       DB.state.barberProfiles.map(b => '<option value="' + UI.esc(b.id) + '">' + UI.esc(b.name) + '</option>').join('');
     if (prevWho && DB.isUuid(prevWho) && who.querySelector('option[value="' + prevWho + '"]')) who.value = prevWho;
     const dateEl = document.getElementById('set-exc-date');
@@ -1400,7 +1513,7 @@ const CRM = {
     }
     const list = DB.state.scheduleExceptions || (DB.state.scheduleExceptions = []);
     if (list.some(e => e.date === date && (e.barberId || null) === barberId)) {
-      err.textContent = 'Ya hay una fecha especial ese día para ' + (barberId ? this.exceptionWho({ barberId }) : 'toda la barbería') + '. Quítala primero.';
+      err.textContent = 'Ya hay una fecha especial ese día para ' + (barberId ? this.exceptionWho({ barberId }) : UI.v('tod{o:business} {el:business} {business}')) + '. Quítala primero.';
       return false;
     }
     const affected = DB.visibleAppointments().filter(a => a.date === date && this.isVigente(a) &&
@@ -1477,7 +1590,7 @@ const CRM = {
   openAppointmentModal() {
     const cur = this.cur();
     if (!DB.state.services.length || !DB.state.barberProfiles.length) {
-      UI.toast('Primero registra al menos un servicio y un barbero.', 'error');
+      UI.toast(UI.v('Primero registra al menos {un:service} {service} y {un:staff} {staff}.'), 'error');
       return;
     }
     const E = (v) => UI.esc(v);
@@ -1490,16 +1603,16 @@ const CRM = {
       '<div class="crm-modal-header"><div><span class="card-kicker">Agenda</span><h3>Agregar cita</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveAppointmentModal(event)" novalidate>' +
         '<div class="form-grid-2">' +
-          '<div><label class="field-lbl" for="m-ap-name">Cliente <span class="req">*</span></label><input type="text" id="m-ap-name" class="input-dark" maxlength="80" required /></div>' +
+          '<div><label class="field-lbl" for="m-ap-name">' + E(Vocab.T('client')) + ' <span class="req">*</span></label><input type="text" id="m-ap-name" class="input-dark" maxlength="80" required /></div>' +
           '<div><label class="field-lbl" for="m-ap-phone">Celular</label><input type="tel" id="m-ap-phone" class="input-dark" inputmode="tel" maxlength="16" placeholder="987 654 321" /></div>' +
-          '<div><label class="field-lbl" for="m-ap-service">Servicio</label><select id="m-ap-service" class="input-dark" onchange="CRM.refreshApptSlots()">' + srvOptions + '</select></div>' +
-          '<div><label class="field-lbl" for="m-ap-barber">Barbero</label><select id="m-ap-barber" class="input-dark" onchange="CRM.refreshApptSlots()"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
+          '<div><label class="field-lbl" for="m-ap-service">' + E(Vocab.T('service')) + '</label><select id="m-ap-service" class="input-dark" onchange="CRM.refreshApptSlots()">' + srvOptions + '</select></div>' +
+          '<div><label class="field-lbl" for="m-ap-barber">' + E(Vocab.T('staff')) + '</label><select id="m-ap-barber" class="input-dark" onchange="CRM.refreshApptSlots()"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
           '<div><label class="field-lbl" for="m-ap-date">Fecha</label><input type="date" id="m-ap-date" class="input-dark" min="' + DB.todayISO() + '" value="' + E(firstDate) + '" onchange="CRM.refreshApptSlots()" required /></div>' +
           '<div><label class="field-lbl" for="m-ap-time">Hora</label><select id="m-ap-time" class="input-dark" required></select></div>' +
         '</div>' +
         '<label class="check-line" style="display:flex; gap:8px; align-items:flex-start; margin-top:12px;"><input type="checkbox" id="m-ap-wa" style="margin-top:3px;" />' +
-          '<span>El cliente acepta recibir la confirmación y los recordatorios por WhatsApp</span></label>' +
-        '<p class="field-hint">El precio es el del servicio en el catálogo.</p>' +
+          '<span>' + this.vx('El {client} acepta recibir la confirmación y los recordatorios por WhatsApp') + '</span></label>' +
+        '<p class="field-hint">' + this.vx('El precio es el {del:service} {service} en el catálogo.') + '</p>' +
         '<p class="field-hint" id="m-ap-note" style="margin-top:10px;"></p>' +
         '<div class="form-error" id="m-ap-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + 'Guardar cita</button></div>' +
@@ -1533,7 +1646,7 @@ const CRM = {
     const prev = timeSel.value;
     let first = null;
     const slots = DB.slotsFor(dateInp.value, barber, duration);
-    if (!slots.length) msg = msg || (barber + ' no tiene horarios disponibles en los próximos días. Revisa su horario en Barberos.');
+    if (!slots.length) msg = msg || (barber + ' no tiene horarios disponibles en los próximos días. ' + UI.v('Revisa su horario en {StaffPlural}.'));
     timeSel.innerHTML = slots.map(t => {
       const st = this.slotStateOf(dateInp.value, t, barber, undefined, duration);
       if (st === 'free' && !first) first = t;
@@ -1552,13 +1665,13 @@ const CRM = {
     const b = DB.barberById(document.getElementById('m-ap-barber').value);
     const date = document.getElementById('m-ap-date').value;
     const time = document.getElementById('m-ap-time').value;
-    if (!name) { err.textContent = 'Escribe el nombre del cliente.'; return false; }
+    if (!name) { err.textContent = UI.v('Escribe el nombre {del:client} {client}.'); return false; }
     let phone = document.getElementById('m-ap-phone').value.replace(/\D/g, '');
     if (/^519\d{8}$/.test(phone)) phone = phone.slice(2);
     if (phone && !/^9\d{8}$/.test(phone)) { err.textContent = 'El celular debe tener 9 dígitos y empezar con 9.'; return false; }
     const waOptIn = !!(document.getElementById('m-ap-wa') || {}).checked;
-    if (waOptIn && !phone) { err.textContent = 'Para enviar WhatsApp escribe el celular del cliente.'; return false; }
-    if (!srv || !b) { err.textContent = 'Elige el servicio y el barbero.'; return false; }
+    if (waOptIn && !phone) { err.textContent = UI.v('Para enviar WhatsApp escribe el celular {del:client} {client}.'); return false; }
+    if (!srv || !b) { err.textContent = UI.v('Elige {el:service} {service} y {el:staff} {staff}.'); return false; }
     const slotError = DB.validateBooking(date, time, b.name, undefined, srv.duration);
     if (slotError) { err.textContent = slotError; this.refreshApptSlots(); return false; }
 
@@ -1584,7 +1697,7 @@ const CRM = {
   /* ---------- Walk-in ---------- */
   openWalkInModal() {
     if (!DB.state.services.length || !DB.state.barberProfiles.length) {
-      UI.toast('Primero registra al menos un servicio y un barbero.', 'error');
+      UI.toast(UI.v('Primero registra al menos {un:service} {service} y {un:staff} {staff}.'), 'error');
       return;
     }
     const E = (v) => UI.esc(v);
@@ -1593,9 +1706,9 @@ const CRM = {
     ModalComponent.open(
       '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">AGREGAR WALK-IN</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveWalkInModal(event)">' +
-        '<div style="margin-bottom:12px;"><label class="field-lbl" for="m-wk-name">NOMBRE DEL CLIENTE *</label><input type="text" id="m-wk-name" class="input-dark" maxlength="80" required /></div>' +
-        '<div style="margin-bottom:12px;"><label class="field-lbl" for="m-wk-service">SERVICIO</label><select id="m-wk-service" class="input-dark">' + srvOptions + '</select></div>' +
-        '<div style="margin-bottom:18px;"><label class="field-lbl" for="m-wk-barber">BARBERO</label><select id="m-wk-barber" class="input-dark">' + barbOptions + '</select></div>' +
+        '<div style="margin-bottom:12px;"><label class="field-lbl" for="m-wk-name">' + this.vx('Nombre {del:client} {client} *').toUpperCase() + '</label><input type="text" id="m-wk-name" class="input-dark" maxlength="80" required /></div>' +
+        '<div style="margin-bottom:12px;"><label class="field-lbl" for="m-wk-service">' + E(Vocab.T('service')).toUpperCase() + '</label><select id="m-wk-service" class="input-dark">' + srvOptions + '</select></div>' +
+        '<div style="margin-bottom:18px;"><label class="field-lbl" for="m-wk-barber">' + E(Vocab.T('staff')).toUpperCase() + '</label><select id="m-wk-barber" class="input-dark">' + barbOptions + '</select></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">Guardar walk-in</button></div>' +
       '</form>'
     );
@@ -1622,7 +1735,7 @@ const CRM = {
   /* ---------- Agregar cliente (M14: por celular, sin duplicados) ---------- */
   openCustomerModal() {
     ModalComponent.open(
-      '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">AGREGAR CLIENTE</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+      '<div class="crm-modal-header"><h3 style="font-size:1.25rem;">' + this.vx('Agregar {client}').toUpperCase() + '</h3><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveCustomerModal(event)" novalidate>' +
         '<div style="margin-bottom:12px;"><label class="field-lbl" for="m-cu-name">NOMBRE *</label><input type="text" id="m-cu-name" class="input-dark" maxlength="80" required /></div>' +
         '<div style="margin-bottom:18px;"><label class="field-lbl" for="m-cu-phone">CELULAR *</label><input type="tel" id="m-cu-phone" class="input-dark" inputmode="tel" maxlength="16" placeholder="987 654 321" required /></div>' +
@@ -1638,18 +1751,18 @@ const CRM = {
     const name = document.getElementById('m-cu-name').value.trim();
     let phone = document.getElementById('m-cu-phone').value.replace(/\D/g, '');
     if (/^519\d{8}$/.test(phone)) phone = phone.slice(2);
-    if (!name) { err.textContent = 'Escribe el nombre del cliente.'; return false; }
+    if (!name) { err.textContent = UI.v('Escribe el nombre {del:client} {client}.'); return false; }
     if (!/^9\d{8}$/.test(phone)) { err.textContent = 'El celular debe tener 9 dígitos y empezar con 9.'; return false; }
     const existing = DB.state.customers.find(c => DB.cleanPhone(c.phone) === phone);
-    if (existing) { err.textContent = 'Ya existe un cliente con ese celular: ' + existing.name + '.'; return false; }
+    if (existing) { err.textContent = UI.v('Ya existe {un:client} {client} con ese celular: ') + existing.name + '.'; return false; }
     let id;
     try { id = await DB.ensureCustomer(name, phone); }
     catch (ex) { err.textContent = DB.errorText(ex); return false; }
-    if (!id) { err.textContent = 'No se pudo registrar el cliente.'; return false; }
+    if (!id) { err.textContent = UI.v('No se pudo registrar {el:client} {client}.'); return false; }
     const c = DB.state.customers.find(x => x.id === id);
     this.closeModal();
     this.renderAll();
-    UI.toast(c && c.name !== name ? 'Ese celular ya era de ' + c.name + ' (no se cambió el nombre).' : 'Cliente registrado.');
+    UI.toast(c && c.name !== name ? 'Ese celular ya era de ' + c.name + ' (no se cambió el nombre).' : UI.v('{Client} registrad{o:client}.'));
     return true;
   }
 };

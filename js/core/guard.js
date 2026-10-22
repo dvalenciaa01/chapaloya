@@ -1,12 +1,14 @@
 /* ==========================================================================
    Guard: aplica permisos y auditoría sobre el CRM existente
    --------------------------------------------------------------------------
-   1. Envuelve cada acción (crear cita, borrar barbero, etc.) con una
+   1. Envuelve cada acción (crear cita, borrar profesional, etc.) con una
       verificación de permiso y la registra en el historial.
    2. Oculta en pantalla los botones y módulos que el usuario no puede usar.
    3. Elimina del DOM los paneles a los que no tiene acceso (no quedan datos
       ocultos en la página).
    Todas las reglas están aquí para poder auditarlas en un solo lugar.
+   Los textos del historial y de las confirmaciones usan las palabras del
+   rubro (UI.v: barbero/doctor, cliente/paciente…).
    ========================================================================== */
 const Guard = {
   DOM_RULES: [
@@ -100,7 +102,7 @@ const Guard = {
       const a = G.appt(id);
       if (!a) return null;
       const who = a.customerName + ' (' + a.date + ' ' + a.time + ')';
-      if (status === 'CANCELADA') return { title: 'Cancelar cita', message: 'Se cancelará la cita de ' + who + ' y el horario quedará libre. Si el cliente aceptó WhatsApp, se le avisará.', confirmText: 'Cancelar cita', danger: true };
+      if (status === 'CANCELADA') return { title: 'Cancelar cita', message: 'Se cancelará la cita de ' + who + UI.v(' y el horario quedará libre. Si {el:client} {client} aceptó WhatsApp, se le avisará.'), confirmText: 'Cancelar cita', danger: true };
       if (status === 'NO_ASISTIO') return { title: 'Marcar "No asistió"', message: who + ' no se presentó. La cita no cuenta como venta.', confirmText: 'No asistió', danger: true };
       return null;
     });
@@ -118,7 +120,7 @@ const Guard = {
       return { action: 'Eliminó una cita', detail: a ? a.customerName + ' · ' + a.service + ' · ' + a.date + ' ' + a.time : id };
     }, (id) => {
       const a = G.appt(id);
-      return { title: 'Eliminar cita', message: 'Se eliminará la cita de ' + (a ? a.customerName + ' (' + a.date + ' ' + a.time + ')' : 'este cliente') + '. Esta acción no se puede deshacer.', confirmText: 'Eliminar', danger: true };
+      return { title: 'Eliminar cita', message: 'Se eliminará la cita de ' + (a ? a.customerName + ' (' + a.date + ' ' + a.time + ')' : UI.v('{este:client} {client}')) + '. Esta acción no se puede deshacer.', confirmText: 'Eliminar', danger: true };
     });
 
     /* ---- Walk-in ---- */
@@ -131,48 +133,49 @@ const Guard = {
       return { action: 'Actualizó un walk-in', detail: (w ? w.customerName + ': ' + DB.statusLabel(w.status) : id) + ' → ' + DB.statusLabel(status) };
     });
 
-    /* ---- Barberos y portafolio ---- */
+    /* ---- Profesionales (barberos, doctores…) y portafolio ---- */
     G.wrap(CRM, 'openBarberProfileModal', 'barbers.manage');
     G.wrap(CRM, 'saveBarberProfileModal', 'barbers.manage', (e, editId) => ({
-      action: editId ? 'Editó un barbero' : 'Creó un barbero', detail: G.val('m-bp-name') + ' · ' + G.val('m-bp-role')
+      action: UI.v(editId ? 'Editó {un:staff} {staff}' : 'Creó {un:staff} {staff}'), detail: G.val('m-bp-name') + ' · ' + G.val('m-bp-role')
     }));
     G.wrap(CRM, 'openAddHaircutPhotoModal', 'barbers.manage');
     G.wrap(CRM, 'saveHaircutPhotoModal', 'barbers.manage', (e, barberId) => {
       const b = G.barber(barberId);
-      return { action: 'Publicó una foto de corte', detail: (b ? b.name : '') + ' · ' + G.val('m-wkphoto-title') };
+      return { action: 'Publicó una foto de trabajo', detail: (b ? b.name : '') + ' · ' + G.val('m-wkphoto-title') };
     });
     G.wrap(CRM, 'deleteHaircutPhoto', 'barbers.manage', (barberId, workId) => {
       const b = G.barber(barberId);
       const w = b ? b.works.find(x => x.id === workId) : null;
-      return { action: 'Eliminó una foto de corte', detail: (b ? b.name : '') + ' · ' + (w ? w.title : workId) };
+      return { action: 'Eliminó una foto de trabajo', detail: (b ? b.name : '') + ' · ' + (w ? w.title : workId) };
     }, { title: 'Eliminar foto', message: 'La foto dejará de verse en el portafolio público.', confirmText: 'Eliminar', danger: true });
     G.wrap(CRM, 'deleteBarberProfile', 'barbers.manage', (id) => {
       const b = G.barber(id);
-      return { action: 'Eliminó un barbero', detail: b ? b.name : id };
+      return { action: UI.v('Eliminó {un:staff} {staff}'), detail: b ? b.name : id };
     }, (id) => {
       const b = G.barber(id);
       const linked = DB.load().users.filter(u => u.barberId === id).length;
       return {
-        title: 'Eliminar barbero',
-        message: 'Se eliminará a ' + (b ? b.name : 'este barbero') + ' y su portafolio (sus citas pasadas se conservan).' + (linked ? ' ' + linked + ' usuario(s) del personal quedarán sin barbero vinculado y verán todas las citas.' : ''),
+        title: UI.v('Eliminar {staff}'),
+        message: 'Se eliminará a ' + (b ? b.name : UI.v('{este:staff} {staff}')) + ' y su portafolio (sus citas pasadas se conservan).' + (linked ? ' ' + linked + UI.v(' usuario(s) del personal quedarán sin {staff} vinculad{o:staff} y verán todas las citas.') : ''),
         confirmText: 'Eliminar', danger: true
       };
     });
 
-    /* ---- Servicios, clientes, configuración ---- */
+    /* ---- Servicios, clientes (pacientes…), configuración ---- */
     G.wrap(CRM, 'openServiceModal', 'services.manage');
     G.wrap(CRM, 'saveServiceModal', 'services.manage', (e, editId) => {
       const before = editId ? DB.state.services.find(x => x.id === editId) : null;
       const now = G.val('m-sv-name') + ' · ' + DB.state.settings.currency + ' ' + G.val('m-sv-price') + ' · ' + G.val('m-sv-duration') + ' min';
       return before
-        ? { action: 'Editó un servicio', detail: before.name + ' (' + DB.state.settings.currency + ' ' + before.price + ') → ' + now }
-        : { action: 'Creó un servicio', detail: now };
+        ? { action: UI.v('Editó {un:service} {service}'), detail: before.name + ' (' + DB.state.settings.currency + ' ' + before.price + ') → ' + now }
+        : { action: UI.v('Creó {un:service} {service}'), detail: now };
     });
     G.wrap(CRM, 'deleteService', 'services.manage');
     G.wrap(CRM, 'refreshApptSlots', 'appointments.create');
     G.wrap(CRM, 'openCustomerModal', 'customers.manage');
-    G.wrap(CRM, 'saveCustomerModal', 'customers.manage', () => ({ action: 'Registró un cliente', detail: G.val('m-cu-name') + ' · ' + G.val('m-cu-phone') }));
+    G.wrap(CRM, 'saveCustomerModal', 'customers.manage', () => ({ action: UI.v('Registró {un:client} {client}'), detail: G.val('m-cu-name') + ' · ' + G.val('m-cu-phone') }));
     G.wrap(CRM, 'saveSettings', 'settings.manage');
+    G.wrap(CRM, 'saveRubro', 'settings.manage');
     G.wrap(CRM, 'saveSchedule', 'settings.manage');
     G.wrap(CRM, 'saveWhatsApp', 'settings.manage');
     G.wrap(CRM, 'waRemoveOptOut', 'settings.manage');
@@ -181,7 +184,7 @@ const Guard = {
     G.wrap(CRM, 'addException', 'settings.manage');
     G.wrap(CRM, 'deleteException', 'settings.manage', null, (id) => {
       const e = (DB.state.scheduleExceptions || []).find(x => x.id === id);
-      return { title: 'Quitar fecha especial', message: e ? 'El ' + CRM.fmtLongDate(e.date) + ' volverá al horario semanal de ' + CRM.exceptionWho(e).toLowerCase().replace('toda la barbería', 'la barbería') + '.' : 'La fecha volverá al horario semanal.', confirmText: 'Quitar', danger: true };
+      return { title: 'Quitar fecha especial', message: e ? 'El ' + CRM.fmtLongDate(e.date) + ' volverá al horario semanal de ' + (e.barberId ? CRM.exceptionWho(e) : UI.v('{el:business} {business}')) + '.' : 'La fecha volverá al horario semanal.', confirmText: 'Quitar', danger: true };
     });
     G.wrap(CRM, 'exportJSON', 'settings.manage', () => ({ action: 'Exportó un respaldo', detail: 'Datos de ' + DB.tenant.name }));
 

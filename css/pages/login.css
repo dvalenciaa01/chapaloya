@@ -1,7 +1,14 @@
 /* ==========================================================================
    Login del CRM
    ========================================================================== */
-body[data-page="login"] { background: var(--black); }
+/* Tipografía neutra, igual que la web pública (no depende del rubro) */
+body[data-page="login"] {
+  background: var(--black);
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+body[data-page="login"] h1, body[data-page="login"] h2 { text-transform: none; letter-spacing: -0.02em; line-height: 1.1; }
+body[data-page="login"] .login-pass-wrap, body[data-page="login"] .login-submit-btn { min-height: 48px; }
 
 .login-shell {
   min-height: 100vh;

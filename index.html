@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="js/config.js"></script>
   <script>
-    /* Raíz del sitio sin barbería (sin ?b=, sin barbería recordada y sin defaultSlug):
-       se va a la landing de Reservalope en vez de mostrar "No encontramos esta barbería". */
+    /* Raíz del sitio sin negocio (sin ?b=, sin negocio recordado y sin defaultSlug):
+       se va a la landing de Reservalope en vez de mostrar "No encontramos este negocio". */
     (function () {
       try {
         var slug = new URLSearchParams(location.search).get('b');
@@ -17,137 +17,144 @@
       } catch (e) { /* navegador antiguo: lo resuelve js/main.js */ }
     })();
   </script>
-  <title>Barbería</title>
-  <meta name="description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
+  <title>Reservas en línea</title>
+  <meta name="description" content="Reserva tu cita en línea: elige servicio, profesional, fecha y hora." data-v-attr="content:Reserva tu {appointment} en línea: elige {service}, {staff}, fecha y hora." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Reserva tu cita" />
-  <meta property="og:description" content="Reserva tu cita en línea: elige servicio, barbero, fecha y hora." />
-  <meta name="theme-color" content="#000000" />
-  <link rel="icon" href="assets/icons/logo-blade.svg" type="image/svg+xml" />
+  <meta property="og:description" content="Reserva tu cita en línea: elige servicio, profesional, fecha y hora." />
+  <meta name="theme-color" content="#111418" />
+  <link rel="icon" href="assets/icons/favicon-cita.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/pages/publico.css" />
-  <link rel="stylesheet" href="css/pages/inicio.css" />
-  <link rel="stylesheet" href="css/pages/servicios.css" />
 </head>
 <body data-page="inicio">
 
   <a class="skip-link" href="#main">Saltar al contenido</a>
 
-  <header class="site-header">
-    <div class="header-inner">
+  <header class="site-header on-brand">
+    <div class="container header-inner">
       <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-        <span class="brand-wordmark" data-brand-slot="1">Barbería</span>
+        <span class="brand-wordmark" data-brand-slot="1">Reservas en línea</span>
       </a>
 
-
       <nav class="site-nav" id="site-nav" aria-label="Navegación principal">
-      <a class="pub-nav-btn active" data-pub="inicio" href="index.html" aria-current="page">Inicio</a>
-      <a class="pub-nav-btn" data-pub="servicios" href="servicios.html">Servicios</a>
-      <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Barberos</a>
-      <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn active" data-pub="inicio" href="index.html" aria-current="page">Inicio</a>
+        <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
+        <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
         <div class="nav-mobile-extra">
-          <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-          <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')"><i data-icon="lock"></i>Acceso staff (CRM)</button>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
-        <button type="button" class="staff-link" onclick="AppRouter.openCRM('dashboard')" title="Panel CRM del barbero"><i data-icon="lock"></i><span>Staff</span></button>
-        <a class="btn-golden header-cta" href="reservar.html"><span class="cta-long">Reservar cita</span><span class="cta-short">Reservar</span></a>
+        <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
   </header>
 
-  
-
   <main id="main" tabindex="-1">
     <section id="pub-inicio" class="page-view">
-      <div class="hero">
-        <div class="hero-media" aria-hidden="true"></div>
-        <div class="container">
-          <div class="hero-content">
-            <h1 class="hero-title">Mantendremos en ti un estilo <span class="hl">impecable</span></h1>
-            <p class="hero-lead">Cortes y barba con maestros barberos. Reserva en menos de un minuto.</p>
+      <section class="hero on-brand" aria-labelledby="hero-title">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <span class="hero-kicker"><span class="kicker-icon" data-v-icon><i data-icon="calendar"></i></span><span data-v="Business">Negocio</span><span data-t-row>· <span data-t="city"></span></span></span>
+            <h1 id="hero-title" class="hero-title"><span data-t="name">Reserva tu cita</span></h1>
+            <p class="hero-sub">Reserva tu cita en línea, sin llamadas ni esperas.</p>
+            <p class="hero-lead" data-v-fmt="Elige {service}, {staff} y horario en menos de un minuto. Te mostramos solo los horarios realmente libres.">Elige servicio, profesional y horario en menos de un minuto. Te mostramos solo los horarios realmente libres.</p>
             <div class="hero-actions">
-              <a class="btn-golden btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-              <a class="btn-dark btn-lg" href="servicios.html">Ver servicios</a>
+              <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+              <a class="btn btn-outline btn-lg" href="servicios.html"><span>Ver <span data-v="servicePlural">servicios</span></span></a>
             </div>
             <ul class="hero-info">
               <li data-t-row><i data-icon="pin"></i><span data-t="address"></span></li>
               <li data-t-row><i data-icon="phone"></i><a data-t="phone" href="#"></a></li>
+              <li data-t-row><i data-icon="clock"></i><span data-t="hours"></span></li>
             </ul>
           </div>
+          <aside class="hero-card" aria-labelledby="hero-card-title">
+            <div class="hero-card-head">
+              <span class="hero-card-icon" data-v-icon><i data-icon="calendar"></i></span>
+              <div><strong id="hero-card-title">Reserva en línea</strong><span>Disponible las 24 horas</span></div>
+            </div>
+            <ol class="hero-steps">
+              <li><span class="step-dot">1</span><span data-v-fmt="Elige {service}">Elige servicio</span></li>
+              <li><span class="step-dot">2</span><span data-v-fmt="Escoge {staff}, fecha y hora">Escoge profesional, fecha y hora</span></li>
+              <li><span class="step-dot">3</span><span>Confirma y recibe tu código</span></li>
+            </ol>
+            <a class="btn btn-solid btn-lg btn-block" href="reservar.html">Empezar reserva <i data-icon="arrowRight"></i></a>
+          </aside>
         </div>
-        <span class="hero-scroll" aria-hidden="true"></span>
-      </div>
+      </section>
 
-    <section class="cta-band" aria-labelledby="cta-title">
-      <div class="container cta-band-inner">
-        <div>
-          <h2 id="cta-title">Tu próximo corte empieza aquí</h2>
-        </div>
-        <div class="cta-band-actions">
-          <a class="btn-black btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-          <a class="btn-ghost btn-lg" href="consultar-cita.html">Consultar mi cita <i data-icon="arrowRight"></i></a>
-        </div>
-      </div>
-    </section>
-
-      <section class="section section-light" aria-labelledby="srv-title">
+      <section class="section" aria-labelledby="srv-title">
         <div class="container">
           <div class="section-head reveal">
             <div>
-              <span class="eyebrow-golden">Servicios</span>
+              <span class="eyebrow" data-v="ServicePlural">Servicios</span>
               <h2 id="srv-title">Lo que ofrecemos</h2>
-              <p>Desde un fade impecable hasta el perfilado de barba con navaja: elige tu servicio y reserva en un minuto.</p>
+              <p data-v-fmt="Precios claros y duración estimada. Elige {service} y reserva en un minuto.">Precios claros y duración estimada. Elige servicio y reserva en un minuto.</p>
             </div>
-            <a class="btn-dark" href="servicios.html">Ver todos <i data-icon="arrowRight"></i></a>
+            <a class="btn btn-outline" href="servicios.html">Ver todos <i data-icon="arrowRight"></i></a>
           </div>
           <div class="services-grid" id="pub-home-services"></div>
         </div>
       </section>
 
-      <section class="section section-ink" aria-labelledby="team-title">
+      <section class="section section-alt" aria-labelledby="team-title">
         <div class="container">
           <div class="section-head reveal">
             <div>
-              <span class="eyebrow-golden">El equipo</span>
-              <h2 id="team-title">Maestros barberos</h2>
-              <p>Conoce a quienes estarán detrás de la silla y mira sus trabajos reales.</p>
+              <span class="eyebrow" data-v="StaffPlural">Profesionales</span>
+              <h2 id="team-title">Nuestro equipo</h2>
+              <p>Conoce a quienes te atenderán y reserva con quien prefieras.</p>
             </div>
-            <a class="btn-dark" href="barberos.html">Ver portafolio <i data-icon="arrowRight"></i></a>
+            <a class="btn btn-outline" href="barberos.html">Conocer al equipo <i data-icon="arrowRight"></i></a>
           </div>
           <div class="team-grid" id="pub-home-barbers"></div>
+        </div>
+      </section>
+
+      <section class="cta-band on-brand" aria-labelledby="cta-title">
+        <div class="container cta-band-inner">
+          <div>
+            <h2 id="cta-title">¿Listo para tu próxima cita?</h2>
+            <p data-v-fmt="Elige {service}, {staff} y horario. Recibes tu código al instante.">Elige servicio, profesional y horario. Recibes tu código al instante.</p>
+          </div>
+          <div class="cta-band-actions">
+            <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+            <a class="btn btn-outline btn-lg" href="consultar-cita.html">Consultar mi cita</a>
+          </div>
         </div>
       </section>
     </section>
   </main>
 
-
-
-  <footer class="site-footer">
+  <footer class="site-footer on-brand">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <a class="brand-logo" href="index.html" aria-label="Ir al inicio">
-            <span class="brand-wordmark is-lg" data-brand-slot="1">Barbería</span>
+            <span class="brand-wordmark is-lg" data-brand-slot="1">Reservas en línea</span>
           </a>
+          <p data-v-fmt="Reserva tu {appointment} en línea cuando quieras: elige {service}, {staff} y horario.">Reserva tu cita en línea cuando quieras: elige servicio, profesional y horario.</p>
         </div>
-        <div>
-          <h2 class="footer-title">Navegación</h2>
+        <nav aria-label="Enlaces del sitio">
+          <h2 class="footer-title">Explorar</h2>
           <ul class="footer-list">
             <li><a href="index.html">Inicio</a></li>
-            <li><a href="servicios.html">Servicios</a></li>
-            <li><a href="barberos.html">Barberos y trabajos</a></li>
+            <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
+            <li><a href="barberos.html">Equipo</a></li>
             <li><a href="reservar.html">Reservar cita</a></li>
             <li><a href="consultar-cita.html">Consultar mi cita</a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
-        </div>
+        </nav>
         <div>
           <h2 class="footer-title">Contacto</h2>
           <ul class="footer-list">
@@ -157,24 +164,23 @@
           </ul>
         </div>
         <div>
-          <h2 class="footer-title">Equipo</h2>
+          <h2 class="footer-title">Para el equipo</h2>
           <ul class="footer-list">
-            <li><button type="button" onclick="AppRouter.openCRM('dashboard')">Panel CRM</button></li>
+            <li><a href="crm.html"><i data-icon="lock"></i>Acceso al panel</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© <span data-t="year">2026</span> <span data-t="name">Barbería</span>. Todos los derechos reservados.</span>
+        <span>© <span data-t="year">2026</span> <span data-t="name">Reservas en línea</span>. Todos los derechos reservados.</span>
         <span data-t-row><span data-t="city"></span></span>
       </div>
     </div>
   </footer>
 
-
-
   <script src="js/utils/icons.js"></script>
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/data/db.js"></script>
+  <script src="js/core/vocab.js"></script>
   <script src="js/core/tenant-brand.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/components/whatsapp-bot.js"></script>

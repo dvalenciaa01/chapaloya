@@ -8,6 +8,8 @@ const ReportBuilder = {
   PREVIEW_ROWS: 15,
 
   esc(s) { return UI.esc(s == null ? '' : String(s)); },
+  // Palabras del rubro del alcance (un negocio = las suyas; comparativo = genéricas)
+  vb(s) { return Reports.w(this.isGlobal() ? null : this.tenants()[0], s); },
 
   mount(root, opts) {
     if (!root) return;
@@ -34,7 +36,7 @@ const ReportBuilder = {
     }
   },
 
-  /* Barberías en alcance */
+  /* Negocios en alcance */
   tenants() {
     const st = this.st;
     if (st.mode === 'crm') return [DB.tenantById(st.scope) || DB.tenant].filter(Boolean);
@@ -56,12 +58,12 @@ const ReportBuilder = {
     const opt = Reports.options(this.tenants());
     const scopeHTML = st.mode === 'console'
       ? '<div class="rp-scope">' +
-          '<div><label class="field-lbl" for="rp-scope">Barbería</label>' +
+          '<div><label class="field-lbl" for="rp-scope">Negocio</label>' +
           '<select id="rp-scope" class="input-dark" data-rp="scope">' +
-            '<option value="ALL"' + (st.scope === 'ALL' ? ' selected' : '') + '>Todas las barberías (comparativo)</option>' +
-            allTenants.map(t => '<option value="' + this.esc(t.id) + '"' + (st.scope === t.id ? ' selected' : '') + '>' + this.esc(t.name) + (t.status !== 'ACTIVE' ? ' (suspendida)' : '') + '</option>').join('') +
+            '<option value="ALL"' + (st.scope === 'ALL' ? ' selected' : '') + '>Todos los negocios (comparativo)</option>' +
+            allTenants.map(t => '<option value="' + this.esc(t.id) + '"' + (st.scope === t.id ? ' selected' : '') + '>' + this.esc(t.name) + (t.status !== 'ACTIVE' ? ' (suspendido)' : '') + '</option>').join('') +
           '</select></div>' +
-          (st.scope === 'ALL' ? this.msHTML('tenants', 'Barberías incluidas', allTenants.map(t => ({ value: t.id, label: t.name })), f.tenants, 'Todas') : '') +
+          (st.scope === 'ALL' ? this.msHTML('tenants', 'Negocios incluidos', allTenants.map(t => ({ value: t.id, label: t.name })), f.tenants, 'Todos') : '') +
         '</div>'
       : '';
 
@@ -84,14 +86,14 @@ const ReportBuilder = {
           '</div>' +
         '</div>' +
         '<div class="rp-grid">' +
-          this.msHTML('barbers', 'Barbero', opt.barbers.map(b => ({ value: b, label: b })), f.barbers, 'Todos') +
-          this.msHTML('services', 'Servicio', opt.services.map(b => ({ value: b, label: b })), f.services, 'Todos') +
-          this.msHTML('statuses', 'Estado', Reports.STATUSES.map(s => ({ value: s.key, label: s.label })), f.statuses, 'Todos') +
+          this.msHTML('barbers', this.vb('{Staff}'), opt.barbers.map(b => ({ value: b, label: b })), f.barbers, 'Todos') +
+          this.msHTML('services', this.vb('{Service}'), opt.services.map(b => ({ value: b, label: b })), f.services, 'Todos') +
+          this.msHTML('statuses', 'Estado', Reports.STATUSES.map(s => ({ value: s.key, label: this.vb(s.label) })), f.statuses, 'Todos') +
           this.msHTML('channels', 'Canal', Reports.CHANNELS.map(s => ({ value: s.key, label: s.label })), f.channels, 'Todos') +
           '<div><label class="field-lbl" for="rp-kind">Tipo</label><select id="rp-kind" class="input-dark" data-rp="kind">' +
             Reports.KINDS.map(k => '<option value="' + k.key + '"' + (f.kind === k.key ? ' selected' : '') + '>' + k.label + '</option>').join('') +
           '</select></div>' +
-          '<div><label class="field-lbl" for="rp-q">Cliente</label><input type="search" id="rp-q" class="input-dark" data-rp="q" placeholder="' + (st.customers ? 'Nombre o teléfono' : 'Nombre') + '" value="' + this.esc(f.q) + '" autocomplete="off" /></div>' +
+          '<div><label class="field-lbl" for="rp-q">' + this.esc(this.vb('{Client}')) + '</label><input type="search" id="rp-q" class="input-dark" data-rp="q" placeholder="' + (st.customers ? 'Nombre o teléfono' : 'Nombre') + '" value="' + this.esc(f.q) + '" autocomplete="off" /></div>' +
         '</div>' +
       '</section>' +
 
@@ -103,7 +105,7 @@ const ReportBuilder = {
           return '<label class="rp-sec' + (on ? ' is-on' : '') + (locked ? ' is-locked' : '') + '">' +
             '<input type="checkbox" data-rp-sec="' + s.key + '"' + (on ? ' checked' : '') + (locked ? ' disabled' : '') + ' />' +
             '<span class="rp-sec-check" aria-hidden="true">' + ic('check') + '</span>' +
-            '<span class="rp-sec-txt"><strong>' + (s.key === 'people' && !st.customers ? 'Barberos' : s.label) + '</strong><small>' + (locked ? 'Requiere el permiso de Ventas.' : (s.key === 'people' && !st.customers ? 'Desempeño por barbero (la cartera de clientes requiere el permiso de Clientes).' : s.desc)) + '</small></span>' +
+            '<span class="rp-sec-txt"><strong>' + this.esc(this.vb(s.key === 'people' && !st.customers ? '{StaffPlural}' : s.label)) + '</strong><small>' + this.esc(locked ? 'Requiere el permiso de Ventas.' : this.vb(s.key === 'people' && !st.customers ? 'Desempeño por {staff} (la cartera de {clientPlural} requiere el permiso de {ClientPlural}).' : s.desc)) + '</small></span>' +
           '</label>';
         }).join('') + '</div>' +
       '</section>' +
@@ -128,7 +130,7 @@ const ReportBuilder = {
       ? ((options.find(o => o.value === selected[0]) || {}).label || selected[0])
       : selected.length + ' seleccionados';
     return '<div class="rp-ms" data-ms="' + key + '">' +
-      '<span class="field-lbl" id="' + id + '-lbl">' + label + '</span>' +
+      '<span class="field-lbl" id="' + id + '-lbl">' + this.esc(label) + '</span>' +
       '<button type="button" class="input-dark rp-ms-btn' + (selected.length ? ' is-active' : '') + '" aria-haspopup="true" aria-expanded="false" aria-controls="' + id + '" aria-labelledby="' + id + '-lbl ' + id + '-val"><span id="' + id + '-val">' + this.esc(summary) + '</span></button>' +
       '<div class="rp-ms-panel" id="' + id + '" role="group" aria-labelledby="' + id + '-lbl" hidden>' +
         '<button type="button" class="rp-ms-all" data-ms-all="' + key + '">' + allLabel + '</button>' +
@@ -225,20 +227,20 @@ const ReportBuilder = {
     if (!box) return;
     const sel = this.st.filters[key];
     const checked = Array.from(box.querySelectorAll('[data-ms-opt]:checked'));
-    const all = key === 'tenants' ? 'Todas' : 'Todos';
+    const all = 'Todos';
     const txt = !sel.length ? all : sel.length === 1 ? (checked[0] ? checked[0].nextElementSibling.textContent : sel[0]) : sel.length + ' seleccionados';
     box.querySelector('.rp-ms-btn span').textContent = txt;
     box.querySelector('.rp-ms-btn').classList.toggle('is-active', sel.length > 0);
   },
 
-  // Al cambiar las barberías incluidas se recalculan barberos y servicios
+  // Al cambiar los negocios incluidos se recalculan profesionales y servicios
   refreshOptionLists() {
     const opt = Reports.options(this.tenants());
     ['barbers', 'services'].forEach(key => {
       const box = this.st.root.querySelector('.rp-ms[data-ms="' + key + '"]');
       if (!box) return;
       const tmp = document.createElement('div');
-      tmp.innerHTML = this.msHTML(key, key === 'barbers' ? 'Barbero' : 'Servicio', opt[key].map(v => ({ value: v, label: v })), [], 'Todos');
+      tmp.innerHTML = this.msHTML(key, this.vb(key === 'barbers' ? '{Staff}' : '{Service}'), opt[key].map(v => ({ value: v, label: v })), [], 'Todos');
       const fresh = tmp.firstChild;
       box.replaceWith(fresh);
       this.bindMs(fresh);
@@ -273,14 +275,14 @@ const ReportBuilder = {
     const tables = Reports.tables(rep);
     let html = '<div class="rp-preview-head"><div><span class="eyebrow-golden">Vista previa</span><h2>' + this.esc(rep.meta.title) + '</h2>' +
       '<p>' + this.esc(rep.meta.filters[0][1]) + ' · comparado con ' + this.esc(rep.meta.filters[1][1]) + '</p></div></div>';
-    if (rep.mixedCurrency) html += '<p class="text-warn">' + ic('alert') + 'Las barberías usan monedas distintas: los totales suman montos de monedas diferentes.</p>';
+    if (rep.mixedCurrency) html += '<p class="text-warn">' + ic('alert') + 'Los negocios usan monedas distintas: los totales suman montos de monedas diferentes.</p>';
 
     const kpiT = tables.find(t => t.kpi);
     if (kpiT) {
       const pick = st.money
-        ? ['Ingresos', 'Ventas (', 'Ticket promedio', 'Citas registradas', 'Tasa de citas completadas', 'Tasa de cancelación', 'Walk-in atendidos', 'Clientes únicos']
-        : ['Ventas (', 'Citas registradas', 'Citas completadas', 'Tasa de citas completadas', 'Tasa de cancelación', 'No asistió', 'Walk-in atendidos', 'Clientes únicos'];
-      const tiles = pick.map(l => kpiT.rows.find(x => x.label.indexOf(l) === 0)).filter(Boolean);
+        ? ['Ingresos', 'Ventas (', 'Ticket promedio', 'Citas registradas', 'Tasa de citas completadas', 'Tasa de cancelación', 'Walk-in atendidos', 'clients']
+        : ['Ventas (', 'Citas registradas', 'Citas completadas', 'Tasa de citas completadas', 'Tasa de cancelación', 'No asistió', 'Walk-in atendidos', 'clients'];
+      const tiles = pick.map(l => kpiT.rows.find(x => x.id === l || x.label.indexOf(l) === 0)).filter(Boolean);
       html += '<div class="rl-kpis rp-kpis">' + tiles.map(x => {
         const tone = Reports.deltaTone(x);
         return '<div class="crm-kpi-card rl-kpi"><div class="crm-kpi-label">' + this.esc(x.label.replace(/ \(.*\)/, '')) + '</div>' +

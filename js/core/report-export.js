@@ -86,7 +86,7 @@ const ReportExport = {
         if (rep.mixedCurrency) {
           ws.getCell('A' + r).value = 'Aviso';
           ws.getCell('A' + r).font = { bold: true, color: { argb: 'FFB45309' } };
-          ws.getCell('B' + r).value = 'Las barberías usan monedas distintas: los totales suman montos de monedas diferentes.';
+          ws.getCell('B' + r).value = 'Los negocios usan monedas distintas: los totales suman montos de monedas diferentes.';
           r++;
         }
       }
@@ -276,7 +276,7 @@ const ReportExport = {
     y += Math.ceil(fl.length / 2) * 4.6 + 2;
     if (rep.mixedCurrency) {
       doc.setTextColor(180, 83, 9); doc.setFont('helvetica', 'bold');
-      doc.text('Aviso: las barberías usan monedas distintas; los totales suman montos de monedas diferentes.', MX, y);
+      doc.text('Aviso: los negocios usan monedas distintas; los totales suman montos de monedas diferentes.', MX, y);
       y += 5;
     }
     doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(MX, y, PW - MX, y);
@@ -297,9 +297,9 @@ const ReportExport = {
     if (kpiT) {
       sectionTitle('Resumen ejecutivo');
       const pick = rep.money
-        ? ['Ingresos', 'Ventas (', 'Ticket promedio', 'Citas registradas', 'Tasa de citas completadas', 'Tasa de cancelación', 'Walk-in atendidos', 'Clientes únicos']
-        : ['Ventas (', 'Citas registradas', 'Citas completadas', 'Tasa de citas completadas', 'Tasa de cancelación', 'No asistió', 'Walk-in atendidos', 'Clientes únicos'];
-      const tiles = pick.map(l => kpiT.rows.find(r => r.label.indexOf(l) === 0)).filter(Boolean);
+        ? ['Ingresos', 'Ventas (', 'Ticket promedio', 'Citas registradas', 'Tasa de citas completadas', 'Tasa de cancelación', 'Walk-in atendidos', 'clients']
+        : ['Ventas (', 'Citas registradas', 'Citas completadas', 'Tasa de citas completadas', 'Tasa de cancelación', 'No asistió', 'Walk-in atendidos', 'clients'];
+      const tiles = pick.map(l => kpiT.rows.find(r => r.id === l || r.label.indexOf(l) === 0)).filter(Boolean);
       const perRow = 4, gap = 4, tw = (PW - MX * 2 - gap * (perRow - 1)) / perRow, th = 21;
       tiles.forEach((r, i) => {
         const cx = MX + (i % perRow) * (tw + gap);
@@ -350,7 +350,7 @@ const ReportExport = {
     }
 
     /* --- Tablas --- */
-    const sectionNames = { summary: 'Resumen ejecutivo', sales: 'Ventas e ingresos', records: 'Citas y walk-in', people: 'Barberos y clientes' };
+    const sectionNames = rep.meta.sectionNames || { summary: 'Resumen ejecutivo', sales: 'Ventas e ingresos', records: 'Citas y walk-in', people: 'Profesionales y clientes' };
     let lastSection = kpiT ? 'summary' : null;
     tables.forEach(t => {
       if (t.section !== lastSection) {

@@ -150,6 +150,20 @@ const DB = {
     return this.sb;
   },
 
+  /* Texto con las palabras del rubro (js/core/vocab.js). En el CRM usa UI.v
+     (con concordancia); en la web pública, Vocab.fmt; sin Vocab, genérico. */
+  vt(str) {
+    if (typeof UI !== 'undefined' && UI.v) return UI.v(str);
+    const hasV = typeof Vocab !== 'undefined';
+    const s = String(str).replace(/\{(\w+):\w+\}/g, (m, f) => ({ o: 'o', os: 'os', el: 'el', El: 'El', del: 'del', al: 'al', un: 'un', Un: 'Un', este: 'este', Este: 'Este' }[f] || ''))
+      .replace(/\{([Ii])nServiceShort\}/g, (m, c) => {
+        const w = hasV ? Vocab.t('inService').replace(/\s+ahora$/i, '') : 'en atención';
+        return c === 'I' ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+      });
+    if (hasV) return Vocab.fmt(s);
+    return s.replace(/\{(\w+)\}/g, '$1');
+  },
+
   // Mensaje entendible para un error de Supabase
   errorText(err) {
     const m = String((err && (err.message || err.error_description || err.error)) || err || '');
@@ -157,7 +171,7 @@ const DB = {
     const code = err && err.code;
     if ((code === '22023' || code === 'P0001' || code === '23505') && m && !/duplicate key|violates|constraint/i.test(m)) return m;
     if (/row-level security|permission denied|42501/i.test(m)) return 'No tienes permiso para guardar este cambio.';
-    if (/customers_tenant_id_phone_key/i.test(m)) return 'Ya existe un cliente con ese celular.';
+    if (/customers_tenant_id_phone_key/i.test(m)) return this.vt('Ya existe {un:client} {client} con ese celular.');
     if (/schedule_exceptions_tenant_id_barber_id_date_key/i.test(m)) return 'Ya hay una fecha especial para ese día.';
     if (/schedule_valid|ranges_check/i.test(m)) return 'El horario no es válido: revisa que cada tramo empiece antes de terminar.';
     if (/appointments_no_double_booking/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
@@ -212,7 +226,10 @@ const DB = {
       schedule: this.normSchedule(r.schedule),
       plan: r.plan || 'PRO', planFee: r.plan_fee == null ? 0 : Number(r.plan_fee),
       subscriptionEnd: r.subscription_end || '', status: r.status || 'ACTIVE',
-      createdAt: r.created_at, whatsapp: r.whatsapp || null
+      createdAt: r.created_at, whatsapp: r.whatsapp || null,
+      // Rubro (migración 11): define las palabras visibles. Sin dato = barbería.
+      businessType: r.business_type || 'barberia',
+      labels: (r.labels && typeof r.labels === 'object' && !Array.isArray(r.labels)) ? r.labels : {}
     };
   },
   // Datos de la barbería que solo usa el CRM / la consola (fromTenant es compartido con la web pública)
@@ -234,7 +251,8 @@ const DB = {
       palette: t.palette || this.DEFAULT_PALETTE, address: t.address || '', phone: t.phone || '',
       hours: t.hours || '', city: t.city || '', currency: t.currency || 'S/',
       plan: t.plan || 'PRO', plan_fee: Number(t.planFee) || 0, subscription_end: t.subscriptionEnd || null,
-      status: t.status || 'ACTIVE', schedule: this.normSchedule(t.schedule)
+      status: t.status || 'ACTIVE', schedule: this.normSchedule(t.schedule),
+      business_type: t.businessType || 'barberia', labels: t.labels || {}
     };
   },
   fromProfile(r) {
@@ -541,7 +559,7 @@ const DB = {
     this.mode = 'crm';
     await this.loadAll();
     const t = this.useTenant(tenantId);
-    if (!t) throw new Error('No hay barberías registradas todavía.');
+    if (!t) throw new Error('No hay negocios registrados todavía.');
     this.subscribe();
     return t;
   },
@@ -589,6 +607,10 @@ const DB = {
     t.leadMinutes = isNaN(lead) ? 0 : Math.min(1440, Math.max(0, lead));
     t.waEnabled = pick('wa_enabled') !== false;      // sin dato (base antigua) = como antes
     t.accepting = pick('accepting') !== false;
+    // Rubro del negocio (migración 11): palabras visibles de la web (js/core/vocab.js)
+    t.businessType = pick('business_type') || 'barberia';
+    const labels = pick('labels');
+    t.labels = (labels && typeof labels === 'object' && !Array.isArray(labels)) ? labels : {};
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
@@ -811,7 +833,7 @@ const DB = {
           spec.columns(v.logical, tid),
           spec.insertExtra ? spec.insertExtra(v.rec, tid) : {}
         ));
-        if (k === 'appointments' && rows.some(r => !r.barber_id)) throw new Error('Selecciona un barbero válido para la cita.');
+        if (k === 'appointments' && rows.some(r => !r.barber_id)) throw new Error(this.vt('Selecciona {un:staff} {staff} válid{o:staff} para la cita.'));
         const { data, error } = await sb.from(spec.table).insert(rows).select();
         if (error) throw error;
         this.applyReturned(k, inserts, data, tid, gen);
@@ -1134,9 +1156,9 @@ const DB = {
   validateBooking(date, time, barber, excludeId, durationMin) {
     if (!date || !time) return 'Selecciona fecha y hora.';
     if (this.isPastDate(date)) return 'No se puede reservar en una fecha que ya pasó.';
-    const who = (this.barberOf(barber) || {}).name || barber || 'La barbería';
+    const who = (this.barberOf(barber) || {}).name || barber || this.vt('{El:business} {business}');
     if (!this.slotsFor(date, barber).includes(time)) return who + ' no atiende en ese horario. Elige otro de la lista.';
-    if (!this.slotsFor(date, barber, durationMin).includes(time)) return 'Ese servicio no termina antes del cierre o del descanso. Elige una hora más temprana.';
+    if (!this.slotsFor(date, barber, durationMin).includes(time)) return this.vt('{Este:service} {service} no termina antes del cierre o del descanso. Elige una hora más temprana.');
     if (this.isPastSlot(date, time)) return 'Ese horario ya pasó. Elige uno más tarde.';
     if (this.isTooSoon(date, time)) return 'Reserva con al menos ' + this.tenant.leadMinutes + ' minutos de anticipación. Elige una hora más tarde.';
     if (this.isBusySlot(date, time, barber, excludeId, durationMin)) return 'Ese horario ya está ocupado para ' + who + '.';
@@ -1173,7 +1195,7 @@ const DB = {
   statusLabel(status) {
     const map = {
       PROGRAMADA: 'Programada', CONFIRMADA_WSP: 'Confirmada', COMPLETADA: 'Completada', CANCELADA: 'Cancelada',
-      NO_ASISTIO: 'No asistió', EN_SILLON: 'En sillón', ESPERANDO: 'En espera', FINALIZADO: 'Finalizado'
+      NO_ASISTIO: 'No asistió', EN_SILLON: this.vt('{InServiceShort}'), ESPERANDO: 'En espera', FINALIZADO: 'Finalizado'
     };
     return map[status] || status;
   },
@@ -1207,9 +1229,13 @@ const DB = {
     return id;
   },
 
-  /* Catálogo base para una barbería nueva */
-  templateData(tenantName) {
-    const base = [
+  /* Catálogo base para un negocio nuevo (el de barbería solo si es barbería) */
+  templateData(tenantName, businessType) {
+    const generic = [
+      { name: 'Atención general', category: 'General', price: 50, duration: 30, desc: 'Primera atención o control.' },
+      { name: 'Atención extendida', category: 'General', price: 80, duration: 60, desc: 'Sesión completa con más tiempo.' }
+    ];
+    const base = businessType && businessType !== 'barberia' ? generic : [
       { name: 'Corte de Cabello + Barba', category: 'Paquetes', price: 45, duration: 45, desc: 'Corte degradado completo con perfilado de barba y toalla caliente.' },
       { name: 'Paquete Grooming Premium', category: 'Paquetes', price: 72, duration: 60, desc: 'Corte, barba, lavado capilar, toalla caliente y estilizado.' },
       { name: 'Corte Clásico / Fade', category: 'Cortes', price: 32, duration: 30, desc: 'Corte clásico o degradado limpio con acabado mate.' },
@@ -1217,7 +1243,7 @@ const DB = {
       { name: 'Lavado & Spa Capilar', category: 'Cuidado', price: 15, duration: 15, desc: 'Lavado refrescante, masaje capilar y secado.' }
     ];
     return {
-      settings: { shopName: tenantName || 'Nueva barbería', ownerName: '', currency: 'S/', showQuickStart: true },
+      settings: { shopName: tenantName || 'Nuevo negocio', ownerName: '', currency: 'S/', showQuickStart: true },
       barberProfiles: [],
       services: base.map(s => Object.assign({ id: this.uid() }, s)),
       customers: [], appointments: [], walkIns: []
