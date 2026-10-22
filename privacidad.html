@@ -29,16 +29,16 @@
         <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
         <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
         <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
-        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html"><span>Mi <span data-v="appointment">cita</span></span></a>
         <div class="nav-mobile-extra">
-          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i><span>Reservar <span data-v="appointment">cita</span></span></a>
           <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
         <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
-        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> <span data-v="appointment">cita</span></span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -51,7 +51,7 @@
           <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Privacidad</span></nav>
           <span class="eyebrow">Tus datos</span>
           <h1>Política de privacidad</h1>
-          <p>Cómo tratamos los datos que nos das al reservar una cita en línea, conforme a la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su reglamento.</p>
+          <p>Cómo tratamos los datos que nos das al reservar en línea, conforme a la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su reglamento.</p>
         </div>
       </section>
 
@@ -73,13 +73,13 @@
             <h2>3. Para qué los usamos</h2>
             <ul>
               <li>Registrar, gestionar y atender tu reserva, y permitirte consultarla con tu celular y tu código.</li>
-              <li>Contactarte si hay algún cambio en tu cita.</li>
-              <li data-wa-only>Enviarte por WhatsApp la confirmación y los recordatorios de tu cita, <strong>solo si lo aceptas</strong> al reservar. Puedes dejar de recibirlos en cualquier momento respondiendo <strong>BAJA</strong>.</li>
+              <li data-v-fmt="Contactarte si hay algún cambio en tu {appointment}.">Contactarte si hay algún cambio en tu cita.</li>
+              <li data-wa-only>Enviarte por WhatsApp la confirmación y los recordatorios de tu <span data-v="appointment">cita</span>, <strong>solo si lo aceptas</strong> al reservar. Puedes dejar de recibirlos en cualquier momento respondiendo <strong>BAJA</strong>.</li>
             </ul>
             <p>No usamos tus datos para publicidad ni los vendemos o cedemos a terceros para sus propios fines.</p>
 
             <h2>4. Base legal y conservación</h2>
-            <p>Tratamos tus datos porque son necesarios para atender la cita que solicitas y, en el caso de los avisos por WhatsApp, por tu consentimiento. Los conservamos mientras sean necesarios para gestionar tus citas y tu historial de atención con el negocio, o hasta que pidas su eliminación, salvo que una norma obligue a conservarlos por más tiempo.</p>
+            <p>Tratamos tus datos porque son necesarios para atender la reserva que solicitas y, en el caso de los avisos por WhatsApp, por tu consentimiento. Los conservamos mientras sean necesarios para gestionar tus <span data-v="appointmentPlural">citas</span> y tu historial de atención con el negocio, o hasta que pidas su eliminación, salvo que una norma obligue a conservarlos por más tiempo.</p>
 
             <h2>5. Con quién se comparten</h2>
             <p>Solo con los proveedores tecnológicos que hacen posible el servicio, que actúan por cuenta del negocio: el alojamiento de la base de datos en la nube (sus servidores pueden estar fuera del Perú, con medidas de seguridad equivalentes), la verificación contra robots del formulario<span data-wa-only> y WhatsApp, si aceptas recibir avisos</span>.</p>
@@ -89,7 +89,7 @@
             <p>Si consideras que no se atendió tu solicitud, puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos Personales del Ministerio de Justicia y Derechos Humanos.</p>
 
             <h2>7. Seguridad</h2>
-            <p>Los datos viajan cifrados y solo el personal autorizado del negocio puede verlos. La consulta pública de una cita exige tu celular y tu código de reserva.</p>
+            <p>Los datos viajan cifrados y solo el personal autorizado del negocio puede verlos. La consulta pública de tu <span data-v="appointment">cita</span> exige tu celular y tu código de reserva.</p>
 
             <p class="legal-updated">Última actualización: octubre de 2026.</p>
           </article>
@@ -113,8 +113,8 @@
             <li><a href="index.html">Inicio</a></li>
             <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
             <li><a href="barberos.html">Equipo</a></li>
-            <li><a href="reservar.html">Reservar cita</a></li>
-            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+            <li><a href="reservar.html"><span>Reservar <span data-v="appointment">cita</span></span></a></li>
+            <li><a href="consultar-cita.html"><span>Consultar mi <span data-v="appointment">cita</span></span></a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
         </nav>

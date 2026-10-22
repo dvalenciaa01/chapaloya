@@ -611,6 +611,11 @@ const DB = {
     t.businessType = pick('business_type') || 'barberia';
     const labels = pick('labels');
     t.labels = (labels && typeof labels === 'object' && !Array.isArray(labels)) ? labels : {};
+    // Campos propios de la cita que el negocio pide al reservar (migración 12, crm_config).
+    // Sin dato (base antigua) = ninguno. Se descarta lo que no tenga forma válida.
+    t.bookingFields = this.normBookingFields(pick('booking_fields'));
+    // Portada personalizable (título, subtítulo, imagen); sin dato = diseño de siempre
+    t.site = this.normSite(pick('site'));
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
@@ -629,6 +634,36 @@ const DB = {
     await this.refreshBusy();
     try { sessionStorage.setItem(this.PUBLIC_SLUG_KEY, t.slug); } catch (e) { /* sin almacenamiento */ }
     return { ok: true, slug: t.slug, tenant: t };
+  },
+
+  // site de web_barberia → { heroTitle, heroSubtitle, heroImage } (solo lo que tenga forma válida)
+  normSite(site) {
+    const out = {};
+    if (!site || typeof site !== 'object' || Array.isArray(site)) return out;
+    const txt = (v, max) => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, max) : '';
+    const title = txt(site.heroTitle, 80), sub = txt(site.heroSubtitle, 200), img = txt(site.heroImage, 1000);
+    if (title) out.heroTitle = title;
+    if (sub) out.heroSubtitle = sub;
+    if (img && /^https:\/\/[^\s"'<>()]+$/i.test(img)) out.heroImage = img;   // solo https, sin caracteres que rompan el atributo
+    return out;
+  },
+
+  // booking_fields de web_barberia → [{ key, label, type, options, required }]
+  BOOKING_FIELD_TYPES: ['text', 'textarea', 'number', 'date', 'select', 'checkbox'],
+  normBookingFields(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    return list.filter(f => f && typeof f === 'object' && typeof f.key === 'string' && /^[a-z][a-z0-9_]{1,29}$/.test(f.key) &&
+        !seen.has(f.key) && seen.add(f.key) && this.BOOKING_FIELD_TYPES.includes(f.type))
+      .map(f => ({
+        key: f.key,
+        label: String(f.label || f.key).slice(0, 40),
+        type: f.type,
+        options: f.type === 'select' && Array.isArray(f.options) ? f.options.map(o => String(o)).filter(Boolean).slice(0, 20) : [],
+        required: f.required === true
+      }))
+      .filter(f => f.type !== 'select' || f.options.length)
+      .slice(0, 12);
   },
 
   // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario.
@@ -650,7 +685,8 @@ const DB = {
   async reservar(p) {
     const { data, error } = await this.client().functions.invoke('reservar', {
       body: { slug: this.tenant.slug, service_id: p.serviceId, barber_id: p.barberId, date: p.date, time: p.time,
-        name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '' }
+        name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '',
+        extra: (p.extra && typeof p.extra === 'object') ? p.extra : {} }
     });
     if (error) throw new Error(await this.functionError(error));
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo registrar la reserva.');

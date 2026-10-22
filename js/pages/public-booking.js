@@ -19,7 +19,7 @@ const PublicBooking = {
   /* ---------------- Vocabulario del rubro ---------------- */
   // Sin vocab.js (no debería pasar) se usan las palabras genéricas
   V_DEFAULT: { business: 'negocio', businessArticle: 'el', staff: 'profesional', staffPlural: 'profesionales', staffArticle: 'el',
-    service: 'servicio', servicePlural: 'servicios', client: 'cliente', appointment: 'cita', inService: 'atendiendo ahora' },
+    service: 'servicio', servicePlural: 'servicios', client: 'cliente', appointment: 'cita', appointmentPlural: 'citas', inService: 'atendiendo ahora' },
   v(key) { return typeof Vocab !== 'undefined' ? Vocab.t(key) : (this.V_DEFAULT[key] || key); },
   V(key) { const w = this.v(key); return w.charAt(0).toUpperCase() + w.slice(1); },
   vf(str) {
@@ -274,6 +274,38 @@ const PublicBooking = {
     if (typeof ModalComponent !== 'undefined') ModalComponent.open(html, { wide: true });
   },
 
+  /* ---------------- Portada personalizable (site de web_barberia) ----------------
+     Título, subtítulo e imagen de fondo que el negocio define en la consola.
+     Sin dato se queda el diseño de siempre (nombre del negocio y texto genérico).
+     Con imagen: se pinta como fondo decorativo (alt vacío) bajo una capa oscura
+     y el texto pasa a blanco para mantener contraste ≥ 4.5:1 sobre cualquier foto. */
+  renderHero() {
+    const hero = document.querySelector('section.hero');
+    const site = DB.tenant && DB.tenant.site;
+    if (!hero || !site) return;
+    const title = document.getElementById('hero-title');
+    if (title && site.heroTitle) title.textContent = site.heroTitle;
+    const sub = hero.querySelector('.hero-sub');
+    if (sub && site.heroSubtitle) { sub.removeAttribute('data-v-fmt'); sub.textContent = site.heroSubtitle; }
+    let img = hero.querySelector('img.hero-bg');
+    if (site.heroImage) {
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'hero-bg';
+        img.alt = '';
+        img.setAttribute('aria-hidden', 'true');
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        hero.insertBefore(img, hero.firstChild);
+      }
+      if (img.getAttribute('src') !== site.heroImage) img.src = site.heroImage;
+      hero.classList.add('has-image');
+    } else if (img) {
+      img.remove();
+      hero.classList.remove('has-image');
+    }
+  },
+
   /* ---------------- Servicios ---------------- */
   serviceCard(s, cur) {
     const featured = s.featured;
@@ -309,6 +341,7 @@ const PublicBooking = {
     const allServicesEl = document.getElementById('pub-all-services');
     if (allServicesEl) allServicesEl.innerHTML = srvHTML;
 
+    this.renderHero();
     this.renderHomeBarbers();
     this.renderBarbersShowcase();
     this.renderBookingForm();
@@ -359,8 +392,125 @@ const PublicBooking = {
     if (currentBarVal && DB.barberOf(currentBarVal)) barSel.value = currentBarVal;
 
     dateInp.min = DB.todayISO();
+    this.renderExtraFields();
     this.refreshTimes();
     this.updateSubmitState();
+  },
+
+  /* ---------------- Campos propios del negocio (booking_fields) ----------------
+     El negocio (desde la consola, crm_config) puede pedir datos extra al reservar:
+     texto, texto largo, número, fecha, lista o casilla. Se validan aquí con las
+     mismas reglas que la base (crear_reserva las repite) y se envían como "extra". */
+  extraFields() { return (DB.tenant && Array.isArray(DB.tenant.bookingFields)) ? DB.tenant.bookingFields : []; },
+  EXTRA_MAX: 500,
+
+  extraFieldHTML(f) {
+    const id = 'pb-x-' + f.key;
+    const err = '<span class="field-error" id="' + id + '-error">' + ic('alert') + '<span class="field-error-text"></span></span>';
+    const req = f.required ? '<span class="req" aria-hidden="true">*</span>' : ' <span class="opt">(opcional)</span>';
+    const attrs = ' id="' + id + '" data-extra="' + this.esc(f.key) + '" aria-describedby="' + id + '-error"' + (f.required ? ' required aria-required="true"' : '');
+    if (f.type === 'checkbox') {
+      return '<div class="field field-wide extra-check">' +
+        '<label class="check-line" for="' + id + '"><input type="checkbox"' + attrs + ' /><span>' + this.esc(f.label) + req + '</span></label>' + err + '</div>';
+    }
+    let ctrl;
+    if (f.type === 'textarea') ctrl = '<textarea class="input" rows="3" maxlength="' + this.EXTRA_MAX + '"' + attrs + '></textarea>';
+    else if (f.type === 'select') ctrl = '<select class="input"' + attrs + '><option value="">Elige una opción</option>' +
+      f.options.map(o => '<option value="' + this.esc(o) + '">' + this.esc(o) + '</option>').join('') + '</select>';
+    else if (f.type === 'number') ctrl = '<input type="number" class="input" inputmode="decimal" step="any"' + attrs + ' />';
+    else if (f.type === 'date') ctrl = '<input type="date" class="input"' + attrs + ' />';
+    else ctrl = '<input type="text" class="input" maxlength="' + this.EXTRA_MAX + '"' + attrs + ' />';
+    return '<div class="field' + (f.type === 'textarea' ? ' field-wide' : '') + '">' +
+      '<label class="field-lbl" for="' + id + '">' + this.esc(f.label) + req + '</label>' + ctrl + err + '</div>';
+  },
+
+  renderExtraFields() {
+    const box = document.getElementById('pb-extra');
+    if (!box) return;
+    const fields = this.extraFields();
+    const sig = fields.map(f => f.key + ':' + f.type).join('|');
+    if (box.dataset.sig === sig && (sig || box.hidden)) return;   // ya pintados: se conservan los valores
+    box.dataset.sig = sig;
+    box.hidden = !fields.length;
+    box.innerHTML = fields.map(f => this.extraFieldHTML(f)).join('');
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      const onEdit = (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('[data-extra]') : null;
+        if (el) this.setExtraError(el, '');
+        this.updateSummary();
+      };
+      box.addEventListener('input', onEdit);
+      box.addEventListener('change', onEdit);
+    }
+  },
+
+  setExtraError(el, msg) {
+    const err = document.getElementById(el.id + '-error');
+    if (msg) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+    if (!err) return;
+    const txt = err.querySelector('.field-error-text');
+    if (txt) txt.textContent = msg || '';
+    err.classList.toggle('is-visible', !!msg);
+  },
+
+  // Lee y valida los campos propios → { extra, errors: [{ el, msg }] }
+  readExtra() {
+    const extra = {}, errors = [];
+    this.extraFields().forEach(f => {
+      const el = document.getElementById('pb-x-' + f.key);
+      if (!el) return;
+      const fail = (msg) => errors.push({ el, msg });
+      if (f.type === 'checkbox') {
+        if (f.required && !el.checked) return fail('Marca esta casilla para continuar.');
+        extra[f.key] = !!el.checked;
+        return;
+      }
+      if (f.type === 'number' && el.validity && el.validity.badInput) return fail('Escribe un número válido.');
+      const v = String(el.value || '').trim();
+      if (!v) { if (f.required) fail(f.type === 'select' ? 'Elige una opción.' : 'Completa este campo.'); return; }
+      if (f.type === 'number') {
+        const n = Number(v);
+        if (!isFinite(n)) return fail('Escribe un número válido.');
+        extra[f.key] = n;
+      } else if (f.type === 'date') {
+        const d = new Date(v + 'T12:00:00');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(d) || d.toISOString().slice(0, 10) !== v) return fail('Elige una fecha válida.');
+        extra[f.key] = v;
+      } else if (f.type === 'select') {
+        if (!f.options.includes(v)) return fail('Elige una opción de la lista.');
+        extra[f.key] = v;
+      } else {
+        if (v.length > this.EXTRA_MAX) return fail('Máximo ' + this.EXTRA_MAX + ' caracteres.');
+        extra[f.key] = v;
+      }
+    });
+    return { extra, errors };
+  },
+
+  // Filas del resumen con los campos propios que ya tienen valor
+  extraSummaryHTML() {
+    return this.extraFields().map(f => {
+      const el = document.getElementById('pb-x-' + f.key);
+      if (!el) return '';
+      let val;
+      if (f.type === 'checkbox') val = el.checked ? 'Sí' : '';
+      else {
+        val = String(el.value || '').trim();
+        if (val && f.type === 'date') val = this.fmtDate(val);
+        if (val.length > 80) val = val.slice(0, 77) + '…';
+      }
+      return val ? '<div class="booking-summary-row"><span>' + this.esc(f.label) + '</span><strong>' + this.esc(val) + '</strong></div>' : '';
+    }).join('');
+  },
+
+  resetExtra() {
+    this.extraFields().forEach(f => {
+      const el = document.getElementById('pb-x-' + f.key);
+      if (!el) return;
+      if (f.type === 'checkbox') el.checked = false; else el.value = '';
+      this.setExtraError(el, '');
+    });
   },
 
   // Listeners del formulario (una sola vez) y refresco periódico de la disponibilidad
@@ -524,6 +674,8 @@ const PublicBooking = {
     set('pb-sum-dt', this.fmtDate(dateInp.value) + (timeSel.value ? ' · ' + timeSel.value : ''));
     set('pb-sum-dur', srvObj && srvObj.duration ? srvObj.duration + ' min' : '—');
     set('pb-sum-price', srvObj ? (cur + ' ' + srvObj.price) : (cur + ' 0'));
+    const sumExtra = document.getElementById('pb-sum-extra');
+    if (sumExtra) sumExtra.innerHTML = this.extraSummaryHTML();
   },
 
   clearPhoneError() {
@@ -569,6 +721,14 @@ const PublicBooking = {
     this.clearPhoneError();
     if (notes.length > 300) { showError('Las notas pueden tener como máximo 300 caracteres.'); document.getElementById('pb-notes').focus(); return; }
 
+    // Campos propios del negocio: el error se muestra debajo de cada campo
+    const { extra, errors: extraErrors } = this.readExtra();
+    if (extraErrors.length) {
+      extraErrors.forEach(x => this.setExtraError(x.el, x.msg));
+      extraErrors[0].el.focus();
+      return;
+    }
+
     const srvObj = DB.state.services.find(s => s.id === serviceId);
     const barberObj = DB.barberOf(barberId);
     if (!srvObj || !barberObj) { showError(this.vf('Elige {service} y {staff}.')); return; }
@@ -584,7 +744,7 @@ const PublicBooking = {
     if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
     let res;
     try {
-      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, captcha: this.captchaToken || '' });
+      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, extra, captcha: this.captchaToken || '' });
     } catch (ex) {
       // El servidor ya devuelve el motivo en español (horario ocupado, límite de citas…)
       showError((ex && ex.message) || 'No se pudo registrar la reserva. Inténtalo de nuevo.');
@@ -607,17 +767,18 @@ const PublicBooking = {
             '<strong class="booking-code-value" id="pb-code">' + this.esc(code) + '</strong>' +
             '<button type="button" class="booking-code-copy" data-pb-action="copy-code" data-code="' + this.esc(code) + '">' + ic('file') + '<span>Copiar código</span></button>' +
           '</div>' +
-          '<span class="booking-code-hint">Guárdalo o toma una captura de esta pantalla: lo necesitas junto con tu celular para consultar tu cita.</span>'
+          '<span class="booking-code-hint">Guárdalo o toma una captura de esta pantalla: lo necesitas junto con tu celular para consultar tu ' + this.esc(this.v('appointment')) + '.</span>'
         : '') +
       (waOptIn ? '<span style="display:block; margin-top:4px;">Te enviaremos la confirmación por WhatsApp.</span>' : '') +
       '<div class="alert-links">' +
-        '<a href="' + this.esc(this.href('consultar-cita.html')) + '">Consultar mi cita ' + ic('arrowRight') + '</a>' +
+        '<a href="' + this.esc(this.href('consultar-cita.html')) + '">Consultar mi ' + this.esc(this.v('appointment')) + ' ' + ic('arrowRight') + '</a>' +
       '</div></div>' +
     '</div>';
 
     document.getElementById('pb-name').value = '';
     phoneInp.value = '';
     document.getElementById('pb-notes').value = '';
+    this.resetExtra();
     if (waEl) waEl.checked = false;
     try { await DB.refreshBusy(); } catch (e4) { /* sin conexión */ }
     this.renderPublicViews();
@@ -671,9 +832,9 @@ const PublicBooking = {
     }
     if (!matches.length) {
       box.innerHTML = '<div class="lookup-empty">' + ic('search') +
-        '<strong>No encontramos una cita con esos datos</strong>' +
-        '<span>Revisa el celular y el código, o agenda una nueva cita.</span>' +
-        '<a class="btn btn-solid btn-sm" href="' + this.esc(this.href('reservar.html')) + '">Reservar cita</a></div>';
+        '<strong>' + this.esc(this.vf('No encontramos tu {appointment} con esos datos')) + '</strong>' +
+        '<span>Revisa el celular y el código, o haz una nueva reserva.</span>' +
+        '<a class="btn btn-solid btn-sm" href="' + this.esc(this.href('reservar.html')) + '">Reservar ' + this.esc(this.v('appointment')) + '</a></div>';
       return;
     }
     box.innerHTML = matches.map(a =>
