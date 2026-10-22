@@ -135,6 +135,13 @@ const DB = {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   },
   hhmm(t) { return t ? String(t).slice(0, 5) : ''; },
+  // Campos propios (extra jsonb): objeto plano con las claves en orden (para comparar copias)
+  normExtra(v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+    const out = {};
+    Object.keys(v).sort().forEach(k => { const x = v[k]; if (x !== null && x !== undefined && x !== '') out[k] = x; });
+    return out;
+  },
   cleanPhone(p) { const d = String(p || '').replace(/\D/g, ''); return /^[0-9]{9,15}$/.test(d) ? d : null; },
 
   /* ---------------- Cliente de Supabase ---------------- */
@@ -237,6 +244,9 @@ const DB = {
     const t = this.fromTenant(r);
     const lead = parseInt(r.booking_lead_minutes, 10);
     t.leadMinutes = isNaN(lead) ? 15 : Math.min(1440, Math.max(0, lead));
+    // CRM personalizable (migración 12): lo edita solo el superadministrador desde la consola.
+    // No va en tenantRow: se guarda aparte (Reservalope.saveCrmConfig), nunca con DB.save().
+    t.crmConfig = (r.crm_config && typeof r.crm_config === 'object' && !Array.isArray(r.crm_config)) ? r.crm_config : {};
     return t;
   },
   tenantRow(t) {
@@ -334,10 +344,19 @@ const DB = {
         return c;
       }
     },
+    // email, birthdate, document, address y extra: migración 12 (CRM personalizable)
     customers: {
       table: 'customers',
-      from(r) { return { id: r.id, name: r.name, phone: r.phone || '—', notes: r.notes || '' }; },
-      logical(c) { return { name: c.name, phone: DB.cleanPhone(c.phone), notes: c.notes || '' }; },
+      from(r) {
+        return { id: r.id, name: r.name, phone: r.phone || '—', notes: r.notes || '',
+          email: r.email || '', birthdate: r.birthdate || '', document: r.document || '', address: r.address || '',
+          extra: DB.normExtra(r.extra) };
+      },
+      logical(c) {
+        return { name: c.name, phone: DB.cleanPhone(c.phone), notes: c.notes || '',
+          email: c.email || null, birthdate: c.birthdate || null, document: c.document || null, address: c.address || null,
+          extra: DB.normExtra(c.extra) };
+      },
       columns(l) { return Object.assign({}, l); }
     },
     appointments: {
@@ -348,13 +367,14 @@ const DB = {
           date: r.date, time: DB.hhmm(r.time),
           price: Number(r.price), status: r.status, source: r.source, notes: r.notes || '',
           waOptIn: !!r.wa_opt_in, createdAt: r.created_at, completedAt: r.completed_at,
-          durationMin: r.duration_min != null ? Number(r.duration_min) : undefined };
+          durationMin: r.duration_min != null ? Number(r.duration_min) : undefined,
+          extra: DB.normExtra(r.extra) };
       },
       // Barbero y servicio se comparan y guardan por id (los nombres los pone el servidor)
       logical(a) {
         return { customerName: a.customerName, phone: DB.cleanPhone(a.phone), serviceId: a.serviceId || null,
           service: a.service || '', barberId: a.barberId || null, date: a.date, time: DB.hhmm(a.time), price: Number(a.price) || 0,
-          status: a.status, notes: a.notes || '', waOptIn: !!a.waOptIn };
+          status: a.status, notes: a.notes || '', waOptIn: !!a.waOptIn, extra: DB.normExtra(a.extra) };
       },
       columns(l) {
         const c = {};
@@ -369,6 +389,7 @@ const DB = {
         if ('status' in l) c.status = l.status;
         if ('notes' in l) c.notes = l.notes;
         if ('waOptIn' in l) c.wa_opt_in = l.waOptIn;
+        if ('extra' in l) c.extra = l.extra;
         return c;
       },
       insertExtra(a, tid) {
@@ -611,6 +632,11 @@ const DB = {
     t.businessType = pick('business_type') || 'barberia';
     const labels = pick('labels');
     t.labels = (labels && typeof labels === 'object' && !Array.isArray(labels)) ? labels : {};
+    // Campos propios de la cita que el negocio pide al reservar (migración 12, crm_config).
+    // Sin dato (base antigua) = ninguno. Se descarta lo que no tenga forma válida.
+    t.bookingFields = this.normBookingFields(pick('booking_fields'));
+    // Portada personalizable (título, subtítulo, imagen); sin dato = diseño de siempre
+    t.site = this.normSite(pick('site'));
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
@@ -629,6 +655,36 @@ const DB = {
     await this.refreshBusy();
     try { sessionStorage.setItem(this.PUBLIC_SLUG_KEY, t.slug); } catch (e) { /* sin almacenamiento */ }
     return { ok: true, slug: t.slug, tenant: t };
+  },
+
+  // site de web_barberia → { heroTitle, heroSubtitle, heroImage } (solo lo que tenga forma válida)
+  normSite(site) {
+    const out = {};
+    if (!site || typeof site !== 'object' || Array.isArray(site)) return out;
+    const txt = (v, max) => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, max) : '';
+    const title = txt(site.heroTitle, 80), sub = txt(site.heroSubtitle, 200), img = txt(site.heroImage, 1000);
+    if (title) out.heroTitle = title;
+    if (sub) out.heroSubtitle = sub;
+    if (img && /^https:\/\/[^\s"'<>()]+$/i.test(img)) out.heroImage = img;   // solo https, sin caracteres que rompan el atributo
+    return out;
+  },
+
+  // booking_fields de web_barberia → [{ key, label, type, options, required }]
+  BOOKING_FIELD_TYPES: ['text', 'textarea', 'number', 'date', 'select', 'checkbox'],
+  normBookingFields(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    return list.filter(f => f && typeof f === 'object' && typeof f.key === 'string' && /^[a-z][a-z0-9_]{1,29}$/.test(f.key) &&
+        !seen.has(f.key) && seen.add(f.key) && this.BOOKING_FIELD_TYPES.includes(f.type))
+      .map(f => ({
+        key: f.key,
+        label: String(f.label || f.key).slice(0, 40),
+        type: f.type,
+        options: f.type === 'select' && Array.isArray(f.options) ? f.options.map(o => String(o)).filter(Boolean).slice(0, 20) : [],
+        required: f.required === true
+      }))
+      .filter(f => f.type !== 'select' || f.options.length)
+      .slice(0, 12);
   },
 
   // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario.
@@ -650,7 +706,8 @@ const DB = {
   async reservar(p) {
     const { data, error } = await this.client().functions.invoke('reservar', {
       body: { slug: this.tenant.slug, service_id: p.serviceId, barber_id: p.barberId, date: p.date, time: p.time,
-        name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '' }
+        name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '',
+        extra: (p.extra && typeof p.extra === 'object') ? p.extra : {} }
     });
     if (error) throw new Error(await this.functionError(error));
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo registrar la reserva.');
@@ -1220,7 +1277,7 @@ const DB = {
     // Solo quien ve la cartera de clientes la tiene en memoria
     const canSee = typeof Auth === 'undefined' || Auth.can('customers.view');
     if (canSee && !this.state.customers.some(c => c.id === id)) {
-      const rec = { id, name: cleanName, phone: p, notes: '' };
+      const rec = { id, name: cleanName, phone: p, notes: '', email: '', birthdate: '', document: '', address: '', extra: {} };
       this.state.customers.unshift(rec);
       // Ya existe en el servidor: se anota en la copia para no insertarlo otra vez
       const snap = this._snap[this.tenant.id] || (this._snap[this.tenant.id] = this.emptySnap());

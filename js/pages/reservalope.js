@@ -67,8 +67,14 @@ const Reservalope = {
   fromHash() {
     const h = (window.location.hash || '').replace('#', '');
     if (h.indexOf('negocio/') === 0 || h.indexOf('barberia/') === 0) {
-      const id = h.split('/')[1];
-      if (DB.tenantById(id)) return this.show('detail', id);
+      const parts = h.split('/');
+      const id = parts[1];
+      if (DB.tenantById(id)) {
+        if (this.pane !== 'detail' || this.detailId !== id) this.show('detail', id);
+        // #negocio/<id>/crm abre directamente "Personalizar CRM" (enlace desde Configuración del CRM)
+        if (parts[2] === 'crm') this.openCrmEditor(id);
+        return;
+      }
     }
     if (h === 'reportes' || h.indexOf('reportes/') === 0) {
       const id = h.split('/')[1];
@@ -456,6 +462,7 @@ const Reservalope = {
             '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.go(\'reports\', \'' + t.id + '\')">' + ic('download') + 'Reportes</button>' +
             '<a class="btn-dark btn-xs" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">' + ic('external') + 'Ver web</a>' +
             '<button type="button" class="btn-dark btn-xs" onclick="AdminUI.openTenantModal(\'' + t.id + '\')">' + ic('edit') + 'Editar</button>' +
+            (this.ceIsSA() ? '<button type="button" class="btn-dark btn-xs" id="rl-crm-custom" onclick="Reservalope.openCrmEditor(\'' + t.id + '\')">' + ic('sliders') + 'Personalizar CRM</button>' : '') +
             (active ? '<button type="button" class="btn-danger btn-xs" onclick="AdminUI.toggleTenant(\'' + t.id + '\')">Suspender</button>'
                     : '<button type="button" class="btn-golden btn-xs" onclick="AdminUI.toggleTenant(\'' + t.id + '\')">Reactivar</button>') +
           '</div>' +
@@ -610,5 +617,477 @@ const Reservalope = {
     UI.toast('CSV descargado.');
   }
 };
+
+/* ==========================================================================
+   Personalizar CRM (solo superadministrador)
+   Editor de tenants.crm_config por negocio: módulos, campos estándar,
+   columnas de la lista de citas, campos propios, apariencia y portada de la
+   web, con vista previa en vivo. Guardar envía SOLO crm_config (lo que
+   difiere de los valores por defecto); "Restablecer" lo deja en {}.
+   ========================================================================== */
+Object.assign(Reservalope, {
+  ce: null,
+  CE_TABS: [['modules', 'Módulos'], ['fields', 'Campos'], ['custom', 'Campos propios'], ['theme', 'Apariencia'], ['site', 'Web']],
+
+  ceIsSA() { return !!(Auth.user && Auth.user.role === 'SUPERADMIN'); },
+
+  openCrmEditor(id) {
+    if (!this.ceIsSA()) return Guard.deny('Solo el superadministrador puede personalizar el CRM.');
+    const t = DB.tenantById(id);
+    if (!t) return;
+    this.ce = { id: t.id, cfg: CrmConfig.normalize(t.crmConfig), tab: 'modules', entity: 'customers', edit: null, saving: false };
+    const E = UI.esc;
+    ModalComponent.open(
+      '<div class="crm-modal-header"><div><span class="card-kicker">Personalizar CRM</span><h3>' + E(t.name) + '</h3></div>' +
+        '<button type="button" class="btn-dark btn-xs" onclick="ModalComponent.close()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+      '<div class="ce-layout" id="crm-editor">' +
+        '<div class="ce-main">' +
+          '<div class="ce-tabs" role="tablist" aria-label="Secciones">' + this.CE_TABS.map(([k, l]) =>
+            '<button type="button" role="tab" class="ce-tab" id="ce-tab-' + k + '" data-tab="' + k + '" onclick="Reservalope.ceTab(\'' + k + '\')">' + E(l) + '</button>').join('') + '</div>' +
+          '<div class="ce-panel" id="ce-panel" role="tabpanel"></div>' +
+        '</div>' +
+        '<aside class="ce-side" aria-label="Vista previa">' +
+          '<span class="card-kicker">Vista previa</span>' +
+          '<div class="ce-preview" id="ce-preview"></div>' +
+          '<div class="ce-contrast" id="ce-contrast" aria-live="polite"></div>' +
+        '</aside>' +
+      '</div>' +
+      '<div class="form-error" id="ce-error" role="alert"></div>' +
+      '<div class="modal-actions ce-actions">' +
+        '<button type="button" class="btn-dark" id="ce-reset" onclick="Reservalope.ceReset()">' + ic('refresh') + 'Restablecer</button>' +
+        '<span class="ce-spacer"></span>' +
+        '<button type="button" class="btn-dark" onclick="ModalComponent.close()">Cancelar</button>' +
+        '<button type="button" class="btn-golden" id="ce-save" onclick="Reservalope.ceSave()">' + ic('check') + 'Guardar</button>' +
+      '</div>',
+      { wide: true }
+    );
+    this.ceTab('modules');
+  },
+
+  ceT() { return this.ce ? DB.tenantById(this.ce.id) : null; },
+  ceV(s) { return UI.vFor(this.ceT(), s); },
+
+  ceTab(tab) {
+    if (!this.ce) return;
+    this.ce.tab = tab;
+    document.querySelectorAll('#crm-editor .ce-tab').forEach(b => {
+      const on = b.dataset.tab === tab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+
+  ceRenderPanel() {
+    const el = document.getElementById('ce-panel');
+    if (!el || !this.ce) return;
+    const f = { modules: 'cePanelModules', fields: 'cePanelFields', custom: 'cePanelCustom', theme: 'cePanelTheme', site: 'cePanelSite' }[this.ce.tab];
+    el.innerHTML = this[f]();
+    const err = document.getElementById('ce-error');
+    if (err) err.textContent = '';
+  },
+
+  ceChk(id, label, checked, onchange, extra) {
+    return '<label class="ce-check"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + (extra || '') + ' onchange="' + onchange + '" /> <span>' + UI.esc(label) + '</span></label>';
+  },
+
+  /* ---------- Módulos ---------- */
+  cePanelModules() {
+    const c = this.ce.cfg;
+    return '<p class="ce-hint">Un módulo apagado desaparece del menú y de las acciones para todo el equipo (administradores y personal). Configuración siempre queda visible.</p>' +
+      '<div class="ce-grid">' + CrmConfig.MODULES.map(m =>
+        this.ceChk('ce-mod-' + m.key, this.ceV(m.label), c.modules[m.key] !== false, 'Reservalope.ceSetModule(\'' + m.key + '\', this.checked)')).join('') + '</div>';
+  },
+  ceSetModule(k, on) { this.ce.cfg.modules[k] = !!on; this.cePreview(); },
+
+  /* ---------- Campos estándar y columnas ---------- */
+  cePanelFields() {
+    const c = this.ce.cfg;
+    const ent = Object.keys(CrmConfig.FIELDS).map(e =>
+      '<fieldset class="ce-fieldset"><legend>' + UI.esc(this.ceV(CrmConfig.ENTITY_LABEL[e])) + '</legend>' +
+        CrmConfig.FIELDS[e].map(f => {
+          const v = c.fields[e][f.key];
+          return '<div class="ce-row"><span class="ce-row-lbl">' + UI.esc(f.label) + '</span>' +
+            this.ceChk('ce-f-' + e + '-' + f.key, 'Mostrar', v.show, 'Reservalope.ceSetField(\'' + e + '\', \'' + f.key + '\', \'show\', this.checked)') +
+            (f.canRequire ? this.ceChk('ce-r-' + e + '-' + f.key, 'Obligatorio', v.show && v.required, 'Reservalope.ceSetField(\'' + e + '\', \'' + f.key + '\', \'required\', this.checked)', v.show ? '' : ' disabled') : '') +
+          '</div>';
+        }).join('') +
+      '</fieldset>').join('');
+    return '<p class="ce-hint">Los campos ocultos no se ven en formularios, tablas, fichas, exportaciones ni reportes. Los datos guardados no se borran.</p>' +
+      ent + this.ceColumnsHTML();
+  },
+  ceSetField(e, k, prop, on) {
+    const v = this.ce.cfg.fields[e][k];
+    v[prop] = !!on;
+    if (prop === 'show' && !on && 'required' in v) v.required = false;
+    // Si se oculta un campo, su columna sale de la lista de citas
+    if (e === 'appointments' && prop === 'show' && !on) this.ceDropColumn(k);
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+
+  // Columnas disponibles: estándar (con su campo visible) + campos propios de citas
+  ceAllColumns() {
+    const c = this.ce.cfg;
+    const std = CrmConfig.APPT_COLUMNS.filter(x => !x.field || c.fields.appointments[x.field].show !== false)
+      .map(x => ({ key: x.key, label: this.ceV(x.label) }));
+    return std.concat(c.customFields.appointments.map(f => ({ key: 'x:' + f.key, label: f.label + ' (propio)' })));
+  },
+  ceColumns() { return this.ce.cfg.lists.appointments.columns || CrmConfig.apptColumns(this.ce.cfg); },
+  ceColumnsHTML() {
+    const all = this.ceAllColumns();
+    const cur = this.ceColumns().filter(k => all.some(a => a.key === k));
+    const rest = all.filter(a => !cur.includes(a.key));
+    const lbl = (k) => (all.find(a => a.key === k) || { label: k }).label;
+    const isDefault = !this.ce.cfg.lists.appointments.columns;
+    const row = (k, on, i) => {
+      const id = 'ce-col-' + k.replace(':', '-');
+      return '<li class="ce-col' + (on ? ' is-on' : '') + '" data-col="' + UI.esc(k) + '">' +
+        this.ceChk(id, lbl(k), on, 'Reservalope.ceToggleCol(\'' + UI.esc(k) + '\', this.checked)') +
+        (on ? '<span class="ce-col-move">' +
+          '<button type="button" class="btn-dark btn-xs" aria-label="Subir ' + UI.esc(lbl(k)) + '" onclick="Reservalope.ceMoveCol(\'' + UI.esc(k) + '\', -1)"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button type="button" class="btn-dark btn-xs" aria-label="Bajar ' + UI.esc(lbl(k)) + '" onclick="Reservalope.ceMoveCol(\'' + UI.esc(k) + '\', 1)"' + (i === cur.length - 1 ? ' disabled' : '') + '>↓</button></span>' : '') +
+      '</li>';
+    };
+    return '<fieldset class="ce-fieldset"><legend>' + UI.esc(this.ceV('Columnas de la lista de {appointmentPlural}')) + '</legend>' +
+      '<p class="ce-hint">Marca las columnas y ordénalas (máximo ' + CrmConfig.MAX_COLUMNS + '). ' + (isDefault ? 'Ahora se usan las columnas por defecto.' : '') + '</p>' +
+      '<ol class="ce-cols" id="ce-cols">' + cur.map((k, i) => row(k, true, i)).join('') + rest.map(a => row(a.key, false, 0)).join('') + '</ol>' +
+      (isDefault ? '' : '<button type="button" class="btn-dark btn-xs" id="ce-cols-default" onclick="Reservalope.ceColsDefault()">Usar columnas por defecto</button>') +
+    '</fieldset>';
+  },
+  ceSetColumns(cols) {
+    // Nunca se guarda []: con una lista igual a la de por defecto se omite
+    const def = CrmConfig.apptColumns(Object.assign({}, this.ce.cfg, { lists: { appointments: { columns: null } } }));
+    this.ce.cfg.lists.appointments.columns = (cols.length && JSON.stringify(cols) !== JSON.stringify(def)) ? cols : null;
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+  ceToggleCol(k, on) {
+    const cols = this.ceColumns().slice();
+    const err = document.getElementById('ce-error');
+    if (on) {
+      if (cols.length >= CrmConfig.MAX_COLUMNS) { this.ceRenderPanel(); document.getElementById('ce-error').textContent = 'Máximo ' + CrmConfig.MAX_COLUMNS + ' columnas.'; return; }
+      if (!cols.includes(k)) cols.push(k);
+    } else {
+      if (cols.length <= 1) { this.ceRenderPanel(); document.getElementById('ce-error').textContent = 'La lista necesita al menos una columna.'; return; }
+      cols.splice(cols.indexOf(k), 1);
+    }
+    if (err) err.textContent = '';
+    this.ceSetColumns(cols);
+  },
+  ceMoveCol(k, d) {
+    const cols = this.ceColumns().slice();
+    const i = cols.indexOf(k), j = i + d;
+    if (i < 0 || j < 0 || j >= cols.length) return;
+    cols.splice(i, 1); cols.splice(j, 0, k);
+    this.ceSetColumns(cols);
+  },
+  ceColsDefault() { this.ce.cfg.lists.appointments.columns = null; this.ceRenderPanel(); this.cePreview(); },
+  ceDropColumn(k) {
+    const cur = this.ce.cfg.lists.appointments.columns;
+    if (!cur) return;
+    const cols = cur.filter(x => x !== k);
+    this.ce.cfg.lists.appointments.columns = cols.length ? cols : null;
+  },
+
+  /* ---------- Campos propios ---------- */
+  cePanelCustom() {
+    const e = this.ce.entity;
+    const list = this.ce.cfg.customFields[e];
+    const E = UI.esc;
+    const typeLbl = (k) => (CrmConfig.TYPES.find(x => x.key === k) || {}).label || k;
+    const ed = this.ce.edit;
+    const cur = ed && ed.entity === e && ed.key ? list.find(f => f.key === ed.key) : null;
+    const v = cur || { key: '', label: '', type: 'text', options: [], required: false, showInList: false, public: false };
+    const entBtn = (k, l) => '<button type="button" class="ce-seg' + (e === k ? ' active' : '') + '" id="ce-ent-' + k + '" aria-pressed="' + (e === k) + '" onclick="Reservalope.ceEntity(\'' + k + '\')">' + E(l) + '</button>';
+    return '<div class="ce-segs">' + entBtn('customers', this.ceV('Fichas de {clientPlural}')) + entBtn('appointments', this.ceV('{AppointmentPlural}')) + '</div>' +
+      '<p class="ce-hint">Hasta ' + CrmConfig.MAX_CUSTOM + ' campos. Se guardan en la ficha (datos adicionales) y salen en los formularios, la lista y las exportaciones.</p>' +
+      (list.length ? '<ol class="ce-cf-list" id="ce-cf-list">' + list.map((f, i) =>
+        '<li class="ce-cf-item" data-key="' + E(f.key) + '"><div class="ce-cf-info"><strong>' + E(f.label) + '</strong><small>' + E(typeLbl(f.type)) +
+          (f.type === 'select' ? ' · ' + E(f.options.join(', ')) : '') + (f.required ? ' · obligatorio' : '') + (f.showInList ? ' · en la lista' : '') + (f.public ? ' · público' : '') + '</small></div>' +
+          '<span class="ce-cf-acts">' +
+            '<button type="button" class="btn-dark btn-xs" aria-label="Subir" onclick="Reservalope.ceMoveCustom(' + i + ', -1)"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button type="button" class="btn-dark btn-xs" aria-label="Bajar" onclick="Reservalope.ceMoveCustom(' + i + ', 1)"' + (i === list.length - 1 ? ' disabled' : '') + '>↓</button>' +
+            '<button type="button" class="btn-dark btn-xs" aria-label="Editar ' + E(f.label) + '" onclick="Reservalope.ceEditCustom(\'' + E(f.key) + '\')">' + ic('edit') + '</button>' +
+            '<button type="button" class="btn-danger btn-xs" aria-label="Eliminar ' + E(f.label) + '" onclick="Reservalope.ceDeleteCustom(\'' + E(f.key) + '\')">' + ic('trash') + '</button>' +
+          '</span></li>').join('') + '</ol>'
+        : '<div class="chart-empty">Aún no hay campos propios.</div>') +
+      '<fieldset class="ce-fieldset ce-cf-form"><legend>' + (cur ? 'Editar campo' : 'Nuevo campo') + '</legend>' +
+        '<div class="form-grid-2">' +
+          '<div><label class="field-lbl" for="ce-cf-label">Nombre</label><input type="text" id="ce-cf-label" class="input-dark" maxlength="40" value="' + E(v.label) + '" oninput="Reservalope.ceAutoKey()" placeholder="p. ej. Alergias" /></div>' +
+          '<div><label class="field-lbl" for="ce-cf-key">Clave interna</label><input type="text" id="ce-cf-key" class="input-dark" maxlength="30" value="' + E(v.key) + '"' + (cur ? ' readonly' : '') + ' data-touched="' + (cur ? '1' : '') + '" oninput="this.dataset.touched=\'1\'" placeholder="alergias" />' +
+            '<span class="field-hint">' + (cur ? 'La clave no cambia (así se conservan los datos guardados).' : 'Minúsculas, números y _. Se completa sola.') + '</span></div>' +
+          '<div><label class="field-lbl" for="ce-cf-type">Tipo</label><select id="ce-cf-type" class="input-dark" onchange="Reservalope.ceTypeChange()">' +
+            CrmConfig.TYPES.map(x => '<option value="' + x.key + '"' + (x.key === v.type ? ' selected' : '') + '>' + E(x.label) + '</option>').join('') + '</select></div>' +
+          '<div id="ce-cf-opts-wrap"' + (v.type === 'select' ? '' : ' hidden') + '><label class="field-lbl" for="ce-cf-options">Opciones (una por línea)</label><textarea id="ce-cf-options" class="input-dark" rows="3">' + E((v.options || []).join('\n')) + '</textarea></div>' +
+        '</div>' +
+        '<div class="ce-grid">' +
+          this.ceChk('ce-cf-req', 'Obligatorio', v.required, '') +
+          this.ceChk('ce-cf-list', 'Mostrar en la lista', v.showInList, '') +
+          (e === 'appointments' ? this.ceChk('ce-cf-pub', 'Público', v.public, '') : '') +
+        '</div>' +
+        (e === 'appointments' ? '<p class="ce-hint ce-note">' + ic('alert') + ' Los campos públicos aparecen en el formulario de reserva en línea de la web.</p>' : '') +
+        '<div class="row-actions">' +
+          '<button type="button" class="btn-golden btn-xs" id="ce-cf-save" onclick="Reservalope.ceSaveCustom()">' + ic(cur ? 'check' : 'plus') + (cur ? 'Guardar campo' : 'Agregar campo') + '</button>' +
+          (cur ? '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.ceCancelCustom()">Cancelar</button>' : '') +
+        '</div>' +
+      '</fieldset>';
+  },
+  ceEntity(e) { this.ce.entity = e; this.ce.edit = null; this.ceRenderPanel(); },
+  ceAutoKey() {
+    const k = document.getElementById('ce-cf-key');
+    if (!k || k.dataset.touched === '1') return;
+    let s = DB.slugify(document.getElementById('ce-cf-label').value).replace(/-/g, '_').replace(/^[^a-z]+/, '').slice(0, 30);
+    if (s.length === 1) s += '_1';
+    k.value = s;
+  },
+  ceTypeChange() {
+    const w = document.getElementById('ce-cf-opts-wrap');
+    if (w) w.hidden = document.getElementById('ce-cf-type').value !== 'select';
+  },
+  ceEditCustom(key) { this.ce.edit = { entity: this.ce.entity, key }; this.ceRenderPanel(); },
+  ceCancelCustom() { this.ce.edit = null; this.ceRenderPanel(); },
+  ceSaveCustom() {
+    const e = this.ce.entity;
+    const list = this.ce.cfg.customFields[e];
+    const err = document.getElementById('ce-error');
+    const ed = this.ce.edit && this.ce.edit.entity === e ? this.ce.edit.key : null;
+    const val = (id) => (document.getElementById(id) || {}).value || '';
+    const chk = (id) => !!(document.getElementById(id) || {}).checked;
+    const label = val('ce-cf-label').trim();
+    const key = val('ce-cf-key').trim();
+    const type = val('ce-cf-type');
+    const f = { key, label, type, required: chk('ce-cf-req'), showInList: chk('ce-cf-list') };
+    if (type === 'select') f.options = Array.from(new Set(val('ce-cf-options').split('\n').map(s => s.trim()).filter(Boolean)));
+    if (e === 'appointments') f.public = chk('ce-cf-pub');
+    if (!label || label.length > 40 || /[<>"]/.test(label)) { err.textContent = 'El nombre debe tener de 1 a 40 caracteres, sin < > ".'; return false; }
+    if (!CrmConfig.KEY_RE.test(key)) { err.textContent = 'La clave debe empezar con letra y usar solo minúsculas, números y _ (2 a 30).'; return false; }
+    if (list.some(x => x.key === key && x.key !== ed)) { err.textContent = 'Ya existe un campo con la clave “' + key + '”.'; return false; }
+    if (type === 'select' && (!f.options.length || f.options.length > 20 || f.options.some(o => o.length > 40 || /[<>"]/.test(o)))) { err.textContent = 'Agrega de 1 a 20 opciones (hasta 40 caracteres, sin < > ").'; return false; }
+    if (!ed && list.length >= CrmConfig.MAX_CUSTOM) { err.textContent = 'Máximo ' + CrmConfig.MAX_CUSTOM + ' campos propios.'; return false; }
+    if (ed) list[list.findIndex(x => x.key === ed)] = f; else list.push(f);
+    // Con columnas propias elegidas, "mostrar en la lista" agrega o quita su columna
+    if (e === 'appointments' && this.ce.cfg.lists.appointments.columns) {
+      const cols = this.ce.cfg.lists.appointments.columns;
+      const ck = 'x:' + key;
+      if (f.showInList && !cols.includes(ck) && cols.length < CrmConfig.MAX_COLUMNS) cols.push(ck);
+      if (!f.showInList && cols.includes(ck)) this.ceDropColumn(ck);
+    }
+    this.ce.edit = null;
+    this.ceRenderPanel();
+    this.cePreview();
+    return true;
+  },
+  ceMoveCustom(i, d) {
+    const list = this.ce.cfg.customFields[this.ce.entity];
+    const j = i + d;
+    if (j < 0 || j >= list.length) return;
+    const [f] = list.splice(i, 1); list.splice(j, 0, f);
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+  ceDeleteCustom(key) {
+    const e = this.ce.entity;
+    const list = this.ce.cfg.customFields[e];
+    const i = list.findIndex(f => f.key === key);
+    if (i < 0) return;
+    list.splice(i, 1);
+    if (e === 'appointments') this.ceDropColumn('x:' + key);   // su columna también se va
+    if (this.ce.edit && this.ce.edit.key === key) this.ce.edit = null;
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+
+  /* ---------- Apariencia ---------- */
+  cePanelTheme() {
+    const th = this.ce.cfg.theme;
+    const t = this.ceT();
+    const pal = TenantBrand.paletteOf(t);
+    const usePal = !th.primary && !th.accent;
+    const E = UI.esc;
+    const radio = (name, val, lbl) => '<label class="ce-seg-radio"><input type="radio" name="ce-th-' + name + '" id="ce-th-' + name + '-' + val + '" value="' + val + '"' + (th[name] === val ? ' checked' : '') +
+      ' onchange="Reservalope.ceSetTheme(\'' + name + '\', this.value)" /> <span>' + E(lbl) + '</span></label>';
+    const color = (k, lbl, def) => '<div class="ce-color"><label class="field-lbl" for="ce-th-' + k + '">' + lbl + '</label>' +
+      '<div class="color-field"><input type="color" id="ce-th-' + k + '" value="' + E(th[k] || def) + '"' + (usePal ? ' disabled' : '') + ' oninput="Reservalope.ceSetColor(\'' + k + '\', this.value)" />' +
+      '<input type="text" id="ce-th-' + k + '-hex" class="input-dark" maxlength="7" value="' + E((th[k] || def).toUpperCase()) + '"' + (usePal ? ' disabled' : '') + ' aria-label="' + lbl + ' en hexadecimal" onchange="Reservalope.ceSetColor(\'' + k + '\', this.value)" /></div></div>';
+    return '<fieldset class="ce-fieldset"><legend>Modo</legend><div class="ce-segs">' +
+        radio('mode', 'dark', 'Oscuro') + radio('mode', 'light', 'Claro') + radio('mode', 'auto', 'Automático (según el equipo)') + '</div></fieldset>' +
+      '<fieldset class="ce-fieldset"><legend>Colores</legend>' +
+        this.ceChk('ce-th-usepal', 'Usar la paleta del negocio', usePal, 'Reservalope.ceUsePalette(this.checked)') +
+        '<div class="form-grid-2">' + color('primary', 'Principal (botones y activos)', pal.secondary) + color('accent', 'Acento (detalles)', th.primary || pal.secondary) + '</div>' +
+        '<p class="ce-hint">Si un color no se lee bien sobre el fondo, se ajusta solo y aquí se avisa.</p>' +
+      '</fieldset>' +
+      '<fieldset class="ce-fieldset"><legend>Texto y espacios</legend><div class="form-grid-2">' +
+        '<div><label class="field-lbl" for="ce-th-font">Tipografía</label><select id="ce-th-font" class="input-dark" onchange="Reservalope.ceSetTheme(\'font\', this.value)">' +
+          Object.keys(CrmConfig.FONTS).map(k => '<option value="' + k + '"' + (th.font === k ? ' selected' : '') + '>' + E(CrmConfig.FONTS[k].label) + '</option>').join('') + '</select></div>' +
+        '<div><label class="field-lbl" for="ce-th-density">Densidad</label><select id="ce-th-density" class="input-dark" onchange="Reservalope.ceSetTheme(\'density\', this.value)">' +
+          [['comfortable', 'Cómoda'], ['compact', 'Compacta']].map(([k, l]) => '<option value="' + k + '"' + (th.density === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>' +
+        '<div><label class="field-lbl" for="ce-th-radius">Esquinas</label><select id="ce-th-radius" class="input-dark" onchange="Reservalope.ceSetTheme(\'radius\', this.value)">' +
+          [['sharp', 'Rectas'], ['soft', 'Suaves'], ['round', 'Redondeadas']].map(([k, l]) => '<option value="' + k + '"' + (th.radius === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>' +
+        '<div class="ce-logo-opt">' + this.ceChk('ce-th-logo', 'Mostrar el logo en la barra (si no, el nombre)', th.logoInNav, 'Reservalope.ceSetTheme(\'logoInNav\', this.checked)') + '</div>' +
+      '</div></fieldset>';
+  },
+  ceSetTheme(k, v) { this.ce.cfg.theme[k] = v; this.cePreview(); },
+  ceUsePalette(on) {
+    const th = this.ce.cfg.theme;
+    if (on) { th.primary = null; th.accent = null; }
+    else { const pal = TenantBrand.paletteOf(this.ceT()); th.primary = pal.secondary.toUpperCase(); th.accent = null; }
+    this.ceRenderPanel();
+    this.cePreview();
+  },
+  ceSetColor(k, v) {
+    v = String(v || '').trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(v)) { document.getElementById('ce-error').textContent = 'El color debe tener el formato #RRGGBB.'; return; }
+    document.getElementById('ce-error').textContent = '';
+    this.ce.cfg.theme[k] = v.toUpperCase();
+    const a = document.getElementById('ce-th-' + k), b = document.getElementById('ce-th-' + k + '-hex');
+    if (a && a.value.toUpperCase() !== v.toUpperCase()) a.value = v;
+    if (b && b.value.toUpperCase() !== v.toUpperCase()) b.value = v.toUpperCase();
+    this.cePreview();
+  },
+
+  /* ---------- Web (portada pública) ---------- */
+  cePanelSite() {
+    const s = this.ce.cfg.site;
+    const E = UI.esc;
+    return '<p class="ce-hint">Portada de la web pública. Vacío usa los textos e imagen por defecto.</p>' +
+      '<div class="form-stack">' +
+        '<div><label class="field-lbl" for="ce-site-title">Título de portada</label><input type="text" id="ce-site-title" class="input-dark" maxlength="80" value="' + E(s.heroTitle) + '" oninput="Reservalope.ceSetSite(\'heroTitle\', this.value)" /><span class="field-hint">Hasta 80 caracteres.</span></div>' +
+        '<div><label class="field-lbl" for="ce-site-sub">Subtítulo</label><textarea id="ce-site-sub" class="input-dark" rows="2" maxlength="200" oninput="Reservalope.ceSetSite(\'heroSubtitle\', this.value)">' + E(s.heroSubtitle) + '</textarea><span class="field-hint">Hasta 200 caracteres.</span></div>' +
+        '<div><label class="field-lbl" for="ce-site-img">Imagen de portada (enlace https://)</label><input type="url" id="ce-site-img" class="input-dark" maxlength="500" value="' + E(s.heroImage) + '" placeholder="https://…" oninput="Reservalope.ceSetSite(\'heroImage\', this.value)" />' +
+          '<div class="row-actions" style="margin-top:8px;"><label class="btn-dark btn-xs" for="ce-site-file">' + ic('upload') + 'Subir imagen</label>' +
+          '<input type="file" id="ce-site-file" accept="image/png,image/jpeg,image/webp" class="sr-only" onchange="Reservalope.ceUploadHero(this)" />' +
+          (s.heroImage ? '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.ceClearHero()">' + ic('trash') + 'Quitar imagen</button>' : '') + '</div></div>' +
+      '</div>' +
+      '<span class="card-kicker" style="display:block;margin-top:16px;">Así se verá la portada</span>' +
+      '<div class="ce-hero" id="ce-hero"></div>';
+  },
+  ceSetSite(k, v) { this.ce.cfg.site[k] = v; this.ceHero(); },
+  ceHero() {
+    const el = document.getElementById('ce-hero');
+    if (!el || !this.ce) return;
+    const s = this.ce.cfg.site, t = this.ceT();
+    const pal = TenantBrand.paletteOf(t);
+    const img = /^https:\/\/[^\s"'<>]+$/.test((s.heroImage || '').trim()) ? s.heroImage.trim() : '';
+    el.style.setProperty('--h-bg', pal.primary); el.style.setProperty('--h-fg', pal.tertiary); el.style.setProperty('--h-ac', pal.secondary);
+    el.style.backgroundImage = img ? 'linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url("' + img.replace(/["\\]/g, '') + '")' : '';
+    el.innerHTML = '<strong>' + UI.esc(s.heroTitle || t.name) + '</strong><span>' + UI.esc(s.heroSubtitle || this.ceV('Reserva tu {appointment} en línea.')) + '</span>' +
+      '<em>' + UI.esc(this.ceV('Reservar {appointment}')) + '</em>';
+  },
+  async ceUploadHero(input) {
+    const file = input && input.files && input.files[0];
+    const err = document.getElementById('ce-error');
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 4 * 1024 * 1024) { err.textContent = 'Usa una imagen JPG, PNG o WebP de hasta 4 MB.'; return; }
+    const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+    err.textContent = 'Subiendo imagen…';
+    try {
+      const url = await DB.uploadImage(dataUrl, this.ce.id);
+      if (!/^https:\/\//.test(url || '') || url.length > 500) throw new Error('El enlace de la imagen no es válido.');
+      this.ce.cfg.site.heroImage = url;
+      err.textContent = '';
+      this.ceRenderPanel();
+      this.cePreview();
+    } catch (e) { err.textContent = DB.errorText(e); }
+  },
+  ceClearHero() { this.ce.cfg.site.heroImage = ''; this.ceRenderPanel(); this.cePreview(); },
+
+  /* ---------- Vista previa en vivo (mini CRM con el tema elegido) ---------- */
+  cePreview() {
+    const el = document.getElementById('ce-preview');
+    if (!el || !this.ce) return;
+    const c = this.ce.cfg, t = this.ceT();
+    const E = UI.esc, V = (s) => this.ceV(s);
+    const r = CrmConfig.applyThemeTo(el, t, c);
+    el.setAttribute('data-crm-logo', t.logo && !c.theme.logoInNav ? 'off' : 'on');
+    const mods = CrmConfig.MODULES.filter(m => m.tab && c.modules[m.key] !== false).slice(0, 5);
+    const cols = CrmConfig.apptColumns(c).slice(0, 8);
+    const sample = { client: 'Lucía Torres', phone: '987 654 321', service: V('{Service}') === 'Servicio' ? 'Corte clásico' : V('{Service}') + ' general', staff: 'Ana', date: 'Hoy', time: '10:30', price: (t.currency || 'S/') + ' 40', status: '<span class="st-badge st-CONFIRMADA_WSP">Confirmada</span>', source: 'Web', notes: '—' };
+    const colLbl = (k) => {
+      if (/^x:/.test(k)) { const f = c.customFields.appointments.find(x => x.key === k.slice(2)); return f ? f.label : k; }
+      return V((CrmConfig.APPT_COLUMNS.find(x => x.key === k) || {}).label || k);
+    };
+    const cell = (k) => /^x:/.test(k) ? '—' : (k === 'status' ? sample.status : E(sample[k]));
+    const brand = (t.logo && c.theme.logoInNav) ? TenantBrand.logoHTML(t, 'cep-logo') : '<span class="cep-name">' + E(t.name) + '</span>';
+    const ph = c.fields.appointments.phone;
+    const firstCustom = c.customFields.appointments[0];
+    el.innerHTML =
+      '<div class="cep-top">' + brand + '<span class="crm-tag">CRM</span></div>' +
+      '<div class="cep-shell">' +
+        '<nav class="cep-nav" aria-label="Menú de ejemplo">' + (mods.length ? mods.map((m, i) => '<span class="cep-nav-item' + (i === 0 ? ' active' : '') + '">' + E(V(m.label)) + '</span>').join('') : '<span class="cep-nav-item">Configuración</span>') + '</nav>' +
+        '<div class="cep-body">' +
+          '<div class="cep-kpis">' +
+            '<div class="crm-kpi-card"><div class="crm-kpi-label">' + E(V('{AppointmentPlural} de hoy')) + '</div><div class="crm-kpi-val">12</div><div class="crm-kpi-sub">3 por confirmar</div></div>' +
+            '<div class="crm-kpi-card"><div class="crm-kpi-label">Ingresos</div><div class="crm-kpi-val">' + E((t.currency || 'S/') + ' 480') + '</div><div class="crm-kpi-sub cep-accent">+12% vs. ayer</div></div>' +
+          '</div>' +
+          '<div class="table-wrap cep-table"><table class="crm-table"><thead><tr>' + cols.map(k => '<th>' + E(colLbl(k)) + '</th>').join('') + '</tr></thead>' +
+            '<tbody><tr>' + cols.map(k => '<td>' + cell(k) + '</td>').join('') + '</tr></tbody></table></div>' +
+          '<div class="cep-form">' +
+            '<label class="field-lbl" for="cep-in">' + E(V('{Client}')) + '</label><input id="cep-in" class="input-dark" value="Lucía Torres" readonly tabindex="-1" />' +
+            (ph.show ? '<label class="field-lbl" for="cep-ph">Celular' + (ph.required ? ' *' : '') + '</label><input id="cep-ph" class="input-dark" placeholder="987 654 321" readonly tabindex="-1" />' : '') +
+            (firstCustom ? '<label class="field-lbl" for="cep-x">' + E(firstCustom.label) + (firstCustom.required ? ' *' : '') + '</label><input id="cep-x" class="input-dark" readonly tabindex="-1" />' : '') +
+            '<div class="cep-btns"><span class="btn-dark btn-xs">Cancelar</span><span class="btn-golden btn-xs">' + E(V('Guardar {appointment}')) + '</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    // Avisos de contraste
+    const box = document.getElementById('ce-contrast');
+    if (box) {
+      const bad = r.checks.filter(x => !x.ok);
+      box.innerHTML = '<ul class="ce-checks">' + r.checks.map(x =>
+        '<li class="' + (x.ok ? 'is-ok' : 'is-bad') + '">' + ic(x.ok ? 'checkCircle' : 'alert') + '<span>' + E(x.label) + '</span><code>' + x.ratio.toFixed(1) + ':1</code></li>').join('') + '</ul>' +
+        r.notes.map(n => '<p class="ce-warn" data-note="' + n.key + '">' + ic('alert') + '<span>El color ' + E(n.from) + ' se lee poco sobre el fondo (' + n.ratio.toFixed(1) + ':1). Se usará ' + E(n.to) + ' para que tenga contraste 4.5:1.</span></p>').join('') +
+        (bad.length ? '<p class="ce-warn">' + ic('alert') + '<span>Hay textos con poco contraste. Elige otros colores.</span></p>' : '');
+    }
+    this.ceHero();
+    return r;
+  },
+
+  /* ---------- Guardar / restablecer ---------- */
+  ceReset() {
+    if (!this.ce) return;
+    this.ce.cfg = CrmConfig.defaults();
+    this.ce.edit = null;
+    this.ceRenderPanel();
+    this.cePreview();
+    document.getElementById('ce-error').textContent = 'Se volvió a la configuración por defecto. Pulsa Guardar para aplicarlo.';
+  },
+
+  async ceSave() {
+    if (!this.ce || this.ce.saving) return false;
+    if (!this.ceIsSA()) { Guard.deny('Solo el superadministrador puede personalizar el CRM.'); return false; }
+    const t = this.ceT();
+    const err = document.getElementById('ce-error');
+    const s = this.ce.cfg.site;
+    ['heroTitle', 'heroSubtitle', 'heroImage'].forEach(k => { s[k] = String(s[k] || '').trim(); });
+    const errs = CrmConfig.validate(this.ce.cfg);
+    if (errs.length) { err.textContent = errs[0]; return false; }
+    const out = CrmConfig.compact(this.ce.cfg);
+    const errs2 = CrmConfig.validate(out);
+    if (errs2.length) { err.textContent = errs2[0]; return false; }
+    this.ce.saving = true;
+    const btn = document.getElementById('ce-save');
+    if (btn) btn.disabled = true;
+    try {
+      const { data, error } = await DB.client().from('tenants').update({ crm_config: out }).eq('id', t.id).select('id');
+      if (error) throw error;
+      if (!data || !data.length) throw new Error('No tienes permiso para guardar este cambio.');
+    } catch (e) {
+      err.textContent = DB.errorText(e);
+      this.ce.saving = false;
+      if (btn) btn.disabled = false;
+      return false;
+    }
+    t.crmConfig = out;
+    const parts = Object.keys(out);
+    DB.log('Personalizó el CRM', t.name + ' · ' + (parts.length ? parts.join(', ') : 'configuración por defecto'), { tenantId: t.id });
+    this.ce = null;
+    ModalComponent.close();
+    UI.toast(parts.length ? 'Personalización del CRM guardada.' : 'El CRM volvió a la configuración por defecto.');
+    if (this.pane === 'detail') this.renderDetail();
+    return true;
+  }
+});
 
 window.addEventListener('DOMContentLoaded', () => Reservalope.init());

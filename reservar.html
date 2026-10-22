@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reservar cita | Reservas en línea</title>
+  <title data-v-fmt="Reservar {appointment} | Reservas en línea">Reservar cita | Reservas en línea</title>
   <meta name="description" content="Reserva tu cita en línea: elige servicio, profesional, fecha y hora." data-v-attr="content:Reserva tu {appointment} en línea: elige {service}, {staff}, fecha y hora." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Reserva tu cita" />
@@ -29,16 +29,16 @@
         <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
         <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
         <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
-        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html"><span>Mi <span data-v="appointment">cita</span></span></a>
         <div class="nav-mobile-extra">
-          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i><span>Reservar <span data-v="appointment">cita</span></span></a>
           <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
         <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
-        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> <span data-v="appointment">cita</span></span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -48,9 +48,9 @@
     <section id="pub-reservar" class="page-view">
       <section class="page-hero on-brand">
         <div class="container">
-          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Reservar cita</span></nav>
+          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page"><span>Reservar <span data-v="appointment">cita</span></span></span></nav>
           <span class="eyebrow">Reserva en línea</span>
-          <h1>Reserva tu cita</h1>
+          <h1 data-v-fmt="Reserva tu {appointment}">Reserva tu cita</h1>
           <p><span data-v-fmt="Completa tus datos y elige {service}, {staff} y horario.">Completa tus datos y elige servicio, profesional y horario.</span><span data-wa-only> Si lo aceptas, la confirmación te llega por WhatsApp.</span></p>
         </div>
       </section>
@@ -63,7 +63,7 @@
 
               <fieldset class="form-step">
                 <legend class="form-step-head"><span class="form-step-num">1</span><h2>Tus datos</h2></legend>
-                <p class="field-hint step-hint" data-v-fmt="Datos del {client} que asistirá a la {appointment}.">Datos del cliente que asistirá a la cita.</p>
+                <p class="field-hint step-hint" data-v-fmt="Datos del {client} que asistirá.">Datos del cliente que asistirá.</p>
                 <div class="form-row-2">
                   <div class="field">
                     <label class="field-lbl" for="pb-name">Nombre completo<span class="req" aria-hidden="true">*</span></label>
@@ -76,6 +76,8 @@
                     <span class="field-error" id="pb-phone-error"><i data-icon="alert"></i>Ingresa 9 dígitos que empiecen con 9.</span>
                   </div>
                 </div>
+                <!-- Campos propios que pide el negocio (booking_fields); se pintan desde public-booking.js -->
+                <div class="form-row-2 extra-fields" id="pb-extra" hidden></div>
               </fieldset>
 
               <fieldset class="form-step">
@@ -113,22 +115,23 @@
 
               <label class="check-line" data-wa-only>
                 <input type="checkbox" id="pb-wa" />
-                <span>Acepto recibir la confirmación y los recordatorios de mi cita por WhatsApp.</span>
+                <span>Acepto recibir la confirmación y los recordatorios de mi <span data-v="appointment">cita</span> por WhatsApp.</span>
               </label>
               <div id="pb-captcha" class="captcha-box"></div>
               <p class="captcha-note" id="pb-captcha-note" role="alert" hidden></p>
               <button type="submit" class="btn btn-solid btn-lg booking-submit-btn"><i data-icon="check"></i>Confirmar reserva</button>
-              <p class="form-legal">Al confirmar te mostraremos tu código de reserva. Guárdalo para consultar tu cita.</p>
-              <p class="form-legal">Usamos tu nombre y celular solo para gestionar tu cita. Lee nuestra <a href="privacidad.html">política de privacidad</a>.</p>
+              <p class="form-legal">Al confirmar te mostraremos tu código de reserva. Guárdalo para consultar tu <span data-v="appointment">cita</span>.</p>
+              <p class="form-legal">Usamos tu nombre y celular solo para gestionar tu <span data-v="appointment">cita</span>. Lee nuestra <a href="privacidad.html">política de privacidad</a>.</p>
             </form>
 
-            <aside class="booking-summary-card on-brand" aria-label="Resumen de tu cita">
-              <div class="booking-summary-head"><span>Resumen de tu cita</span><span class="summary-icon" data-v-icon><i data-icon="calendar"></i></span></div>
+            <aside class="booking-summary-card on-brand" aria-label="Resumen de tu cita" data-v-attr="aria-label:Resumen de tu {appointment}">
+              <div class="booking-summary-head"><span data-v-fmt="Resumen de tu {appointment}">Resumen de tu cita</span><span class="summary-icon" data-v-icon><i data-icon="calendar"></i></span></div>
               <div class="booking-summary-body" aria-live="polite">
                 <div class="booking-summary-row"><span data-v="Service">Servicio</span><strong id="pb-sum-srv">—</strong></div>
                 <div class="booking-summary-row"><span data-v="Staff">Profesional</span><strong id="pb-sum-bar">—</strong></div>
                 <div class="booking-summary-row"><span>Fecha y hora</span><strong id="pb-sum-dt">—</strong></div>
                 <div class="booking-summary-row"><span>Duración</span><strong id="pb-sum-dur">—</strong></div>
+                <div id="pb-sum-extra"></div>
                 <div class="booking-summary-total">
                   <span>Total</span>
                   <span id="pb-sum-price" class="booking-total-amount">S/ 0</span>
@@ -136,7 +139,7 @@
               </div>
               <ul class="booking-perks">
                 <li data-wa-only><i data-icon="message"></i>Confirmación por WhatsApp, si la aceptas</li>
-                <li><i data-icon="check"></i>Código de reserva para consultar tu cita</li>
+                <li><i data-icon="check"></i><span>Código de reserva para consultar tu <span data-v="appointment">cita</span></span></li>
                 <li><i data-icon="clock"></i>Solo te mostramos horarios realmente libres</li>
               </ul>
             </aside>
@@ -161,8 +164,8 @@
             <li><a href="index.html">Inicio</a></li>
             <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
             <li><a href="barberos.html">Equipo</a></li>
-            <li><a href="reservar.html">Reservar cita</a></li>
-            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+            <li><a href="reservar.html"><span>Reservar <span data-v="appointment">cita</span></span></a></li>
+            <li><a href="consultar-cita.html"><span>Consultar mi <span data-v="appointment">cita</span></span></a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
         </nav>

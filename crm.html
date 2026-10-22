@@ -39,6 +39,7 @@
     <div class="crm-header-inner">
       <a class="brand-logo" href="index.html" id="crm-brand-link" aria-label="Ir al sitio público">
         <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="" width="640" height="267" />
+        <span class="crm-brand-text title-font" id="crm-brand-text"></span>
         <span class="crm-tag">CRM</span>
       </a>
 
@@ -90,7 +91,7 @@
 
             <span class="crm-nav-group">Operación</span>
             <button type="button" class="crm-nav-btn" data-crm="appointments" onclick="CRM.switchTab('appointments')">
-              <span class="crm-nav-label"><i data-icon="calendar"></i>Citas</span>
+              <span class="crm-nav-label"><i data-icon="calendar"></i><span data-v="AppointmentPlural">Citas</span></span>
               <span class="crm-nav-count" id="badge-nav-appts">0</span>
             </button>
             <button type="button" class="crm-nav-btn" data-crm="walkins" onclick="CRM.switchTab('walkins')">
@@ -150,7 +151,7 @@
             </div>
             <div class="crm-topbar-actions">
               <button type="button" class="btn-dark" onclick="CRM.openWalkInModal()"><i data-icon="plus"></i>Walk-in</button>
-              <button type="button" class="btn-dark" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Cita</button>
+              <button type="button" class="btn-dark" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i><span data-v="Appointment">Cita</span></button>
             </div>
           </div>
 
@@ -164,7 +165,7 @@
             </div>
             <div class="quick-actions">
               <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span data-v-fmt="{StaffPlural} y portafolio">Profesionales y portafolio</span></button>
-              <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span>Agregar cita</span></button>
+              <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span data-v-fmt="Agregar {appointment}">Agregar cita</span></button>
               <button type="button" class="quick-action" onclick="CRM.openWalkInModal()"><i data-icon="hourglass"></i><span>Agregar walk-in</span></button>
             </div>
           </div>
@@ -183,8 +184,8 @@
           <div class="crm-split-2">
             <div class="crm-section-card">
               <div class="card-head">
-                <h3>Próximas citas de hoy</h3>
-                <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')">Ver citas<i data-icon="arrowRight"></i></button>
+                <h3 data-v-fmt="Próximas {appointmentPlural} de hoy">Próximas citas de hoy</h3>
+                <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')"><span data-v-fmt="Ver {appointmentPlural}">Ver citas</span><i data-icon="arrowRight"></i></button>
               </div>
               <div id="dashboard-upcoming-list"></div>
             </div>
@@ -219,12 +220,15 @@
           <div class="crm-topbar">
             <div>
               <span class="eyebrow-golden">Agenda</span>
-              <h1 class="crm-title">Citas</h1>
-              <p class="crm-lead">Gestiona la agenda: crea, confirma, reprograma o cancela citas.</p>
+              <h1 class="crm-title" data-v="AppointmentPlural">Citas</h1>
+              <p class="crm-lead" data-v-fmt="Gestiona la agenda: crea, confirma, reprograma o cancela {appointmentPlural}.">Gestiona la agenda: crea, confirma, reprograma o cancela citas.</p>
             </div>
-            <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i>Agregar cita</button>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="CRM.exportApptsCSV()"><i data-icon="download"></i>Exportar CSV</button>
+              <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {appointment}">Agregar cita</span></button>
+            </div>
           </div>
-          <div class="segmented" id="appt-quick-tabs" role="group" aria-label="Filtro rápido de citas">
+          <div class="segmented" id="appt-quick-tabs" role="group" aria-label="Filtro rápido" data-v-attr="aria-label:Filtro rápido de {appointmentPlural}">
             <button type="button" class="btn-dark active" data-atab="TODAY" onclick="CRM.setApptTab('TODAY')">Hoy</button>
             <button type="button" class="btn-dark" data-atab="UPCOMING" onclick="CRM.setApptTab('UPCOMING')">Próximas</button>
             <button type="button" class="btn-dark" data-atab="COMPLETADA" onclick="CRM.setApptTab('COMPLETADA')">Completadas</button>
@@ -254,7 +258,7 @@
           </div>
           <div class="crm-table-wrap">
             <table class="crm-table">
-              <thead><tr><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+              <thead id="crm-appts-thead"><tr><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
               <tbody id="crm-appts-tbody"></tbody>
             </table>
           </div>
@@ -301,7 +305,7 @@
             <div class="card-head"><h3>Ventas completadas recientes</h3></div>
             <div class="crm-table-wrap is-flat">
               <table class="crm-table">
-                <thead><tr><th scope="col">Fecha</th><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Origen</th><th scope="col">Ingreso</th></tr></thead>
+                <thead id="sales-recent-thead"><tr><th scope="col">Fecha</th><th scope="col" data-v="Client">Cliente</th><th scope="col" data-v="Service">Servicio</th><th scope="col" data-v="Staff">Profesional</th><th scope="col">Origen</th><th scope="col">Ingreso</th></tr></thead>
                 <tbody id="sales-recent-tbody"></tbody>
               </table>
             </div>
@@ -315,12 +319,15 @@
               <span class="eyebrow-golden">Cartera</span>
               <h1 class="crm-title" data-v="ClientPlural">Clientes</h1>
             </div>
-            <button type="button" class="btn-golden" onclick="CRM.openCustomerModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {client}">Agregar cliente</span></button>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="CRM.exportCustomersCSV()"><i data-icon="download"></i>Exportar CSV</button>
+              <button type="button" class="btn-golden" onclick="CRM.openCustomerModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {client}">Agregar cliente</span></button>
+            </div>
           </div>
           <div class="search-bar">
             <i data-icon="search"></i>
             <label for="cust-search-q" class="sr-only" data-v-fmt="Buscar {client}">Buscar cliente</label>
-            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre o teléfono…" oninput="CRM.renderCustomers(true)" />
+            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre, teléfono o dato…" oninput="CRM.renderCustomers(true)" />
           </div>
           <p class="field-hint" id="cust-count" aria-live="polite"></p>
           <div class="cards-grid-3" id="crm-customers-grid"></div>
@@ -394,6 +401,11 @@
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
             </div>
+          </div>
+          <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
+            <div class="card-head"><h3>Personalizar CRM</h3></div>
+            <p class="card-text">Módulos visibles, campos, campos propios y apariencia de este CRM. Solo el superadministrador los cambia, desde la consola.</p>
+            <div class="card-foot"><a class="btn-golden" id="set-crm-custom-link" href="reservalope.html"><i data-icon="sliders"></i>Abrir en la consola</a></div>
           </div>
           <div class="crm-section-card sch-card" id="rubro-card">
             <div class="card-head"><h3>Rubro del negocio</h3></div>
@@ -612,6 +624,7 @@
   </div>
 
   <script src="js/core/vocab.js"></script>
+  <script src="js/core/crm-config.js"></script>
   <script src="js/utils/icons.js"></script>
   <script src="js/utils/image-compressor.js"></script>
   <script src="js/vendor/supabase.min.js"></script>

@@ -29,16 +29,16 @@
         <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
         <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
         <a class="pub-nav-btn active" data-pub="barberos" href="barberos.html" aria-current="page">Equipo</a>
-        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html">Mi cita</a>
+        <a class="pub-nav-btn" data-pub="mi-cita" href="consultar-cita.html"><span>Mi <span data-v="appointment">cita</span></span></a>
         <div class="nav-mobile-extra">
-          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i><span>Reservar <span data-v="appointment">cita</span></span></a>
           <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
         <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
-        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> <span data-v="appointment">cita</span></span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -65,12 +65,12 @@
       <section class="cta-band on-brand" aria-labelledby="cta-title">
         <div class="container cta-band-inner">
           <div>
-            <h2 id="cta-title">¿Listo para tu próxima cita?</h2>
+            <h2 id="cta-title" data-v-fmt="¿Listo para reservar tu {appointment}?">¿Listo para reservar tu cita?</h2>
             <p data-v-fmt="Elige {service}, {staff} y horario. Recibes tu código al instante.">Elige servicio, profesional y horario. Recibes tu código al instante.</p>
           </div>
           <div class="cta-band-actions">
-            <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
-            <a class="btn btn-outline btn-lg" href="consultar-cita.html">Consultar mi cita</a>
+            <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i><span>Reservar <span data-v="appointment">cita</span></span></a>
+            <a class="btn btn-outline btn-lg" href="consultar-cita.html"><span>Consultar mi <span data-v="appointment">cita</span></span></a>
           </div>
         </div>
       </section>
@@ -92,8 +92,8 @@
             <li><a href="index.html">Inicio</a></li>
             <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
             <li><a href="barberos.html">Equipo</a></li>
-            <li><a href="reservar.html">Reservar cita</a></li>
-            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+            <li><a href="reservar.html"><span>Reservar <span data-v="appointment">cita</span></span></a></li>
+            <li><a href="consultar-cita.html"><span>Consultar mi <span data-v="appointment">cita</span></span></a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
         </nav>

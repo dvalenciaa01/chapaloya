@@ -79,7 +79,8 @@ const Reports = {
         status: a.status, statusLabel: DB.statusLabel(a.status),
         price: Number(a.price || 0),
         sale: a.status === 'COMPLETADA',
-        booked: a.status !== 'CANCELADA'
+        booked: a.status !== 'CANCELADA',
+        extra: a.extra || {}
       });
     });
     (s.walkIns || []).forEach(w => {
@@ -395,12 +396,22 @@ const Reports = {
         totals: { service: 'Total', records: sum(sv, 'records'), sales: sum(sv, 'sales'), revenue: sum(sv, 'revenue'), share: sv.length && M ? 1 : null } });
     }
 
+    /* CRM personalizable (reporte de UN negocio): campos ocultos fuera y campos propios como columnas */
+    const CC = (!G && typeof CrmConfig !== 'undefined' && rep.tenants[0]) ? CrmConfig.of(rep.tenants[0]) : null;
+    const showF = (e, k) => !CC || CC.fields[e][k].show !== false;
+    const apptCustom = CC ? CC.customFields.appointments : [];
+    const custCustom = CC ? CC.customFields.customers : [];
     const recCols = (withStatus) => keep([
       col('date', 'Fecha', 'date', 12), col('time', 'Hora', 'text', 8), G ? col('tenantName', 'Negocio', 'text', 20) : null,
-      col('kindLabel', 'Tipo', 'text', 9), col('customer', W('{Client}'), 'text', 24), rep.customersOk ? col('phone', 'Teléfono', 'text', 13) : null,
-      col('service', W('{Service}'), 'text', 28), col('barber', W('{Staff}'), 'text', 14), col('channelLabel', 'Canal', 'text', 11),
-      withStatus ? col('statusLabel', 'Estado', 'text', 13) : null, col('price', 'Monto', 'money', 13)]);
-    const recRows = (arr) => arr.map(r => Object.assign({}, r, { channelLabel: this.CHANNEL_LABEL[r.channel] || r.channel }));
+      col('kindLabel', 'Tipo', 'text', 9), col('customer', W('{Client}'), 'text', 24), rep.customersOk && showF('appointments', 'phone') ? col('phone', 'Teléfono', 'text', 13) : null,
+      col('service', W('{Service}'), 'text', 28), col('barber', W('{Staff}'), 'text', 14), showF('appointments', 'source') ? col('channelLabel', 'Canal', 'text', 11) : null,
+      withStatus ? col('statusLabel', 'Estado', 'text', 13) : null, showF('appointments', 'price') ? col('price', 'Monto', 'money', 13) : null]
+      .concat(apptCustom.map(f => col('x_' + f.key, f.label, 'text', 16))));
+    const recRows = (arr) => arr.map(r => {
+      const o = Object.assign({}, r, { channelLabel: this.CHANNEL_LABEL[r.channel] || r.channel });
+      apptCustom.forEach(f => { o['x_' + f.key] = r.kind === 'appt' ? CrmConfig.display(f, (r.extra || {})[f.key]) : ''; });
+      return o;
+    });
 
     if (rep.sections.includes('sales') && M) {
       const rows = recRows(rep.sales);
@@ -424,12 +435,23 @@ const Reports = {
         rows: b,
         totals: { barber: 'Total', tenantName: G ? 'Total' : undefined, appts: sum(b, 'appts'), completed: sum(b, 'completed'), cancelled: sum(b, 'cancelled'), noShow: sum(b, 'noShow'), walkins: sum(b, 'walkins'), sales: sum(b, 'sales'), revenue: sum(b, 'revenue') } });
 
-      const c = rep.customers;
+      let c = rep.customers;
+      if (CC && custCustom.length) {
+        // Campos propios de la ficha: se buscan por celular
+        const byPhone = {};
+        ((DB.load().data[rep.tenants[0].id] || {}).customers || []).forEach(x => { const p = this.digits(x.phone); if (p) byPhone[p] = x; });
+        c = c.map(r => {
+          const rec = byPhone[this.digits(r.phone)] || {};
+          const o = Object.assign({}, r);
+          custCustom.forEach(f => { o['x_' + f.key] = CrmConfig.display(f, (rec.extra || {})[f.key]); });
+          return o;
+        });
+      }
       if (rep.customersOk) out.push({ key: 'customers', section: 'people', sheet: W('{ClientPlural}'), title: W('{ClientPlural}'),
-        columns: keep([G ? col('tenantName', 'Negocio', 'text', 20) : null, col('customer', W('{Client}'), 'text', 26), col('phone', 'Teléfono', 'text', 13),
+        columns: keep([G ? col('tenantName', 'Negocio', 'text', 20) : null, col('customer', W('{Client}'), 'text', 26), showF('customers', 'phone') ? col('phone', 'Teléfono', 'text', 13) : null,
           col('visits', 'Visitas', 'int', 9), col('appts', 'Citas', 'int', 8), col('lost', 'Cancel./No asistió', 'int', 16),
           col('spend', 'Gasto total', 'money', 14), col('avgTicket', 'Ticket prom.', 'money', 13), col('last', 'Última visita', 'date', 13),
-          col('topBarber', W('{Staff} frecuente'), 'text', 18)]),
+          col('topBarber', W('{Staff} frecuente'), 'text', 18)].concat(custCustom.map(f => col('x_' + f.key, f.label, 'text', 16)))),
         rows: c,
         totals: { customer: c.length + ' ' + W('{clientPlural}'), tenantName: G ? 'Total' : undefined, visits: sum(c, 'visits'), appts: sum(c, 'appts'), lost: sum(c, 'lost'), spend: sum(c, 'spend') } });
     }

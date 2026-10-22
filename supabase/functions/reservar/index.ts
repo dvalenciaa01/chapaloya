@@ -3,6 +3,7 @@
 // --------------------------------------------------------------------------
 // La web pública envía aquí la reserva. Se verifica el captcha de Cloudflare
 // Turnstile y luego se llama a public.crear_reserva con la secret key.
+// Los campos propios del negocio llegan en "extra" (objeto { clave: valor }).
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   TURNSTILE_SECRET_KEY  clave secreta de Turnstile (obligatoria en producción)
@@ -99,6 +100,12 @@ Deno.serve(async (req: Request) => {
   if (name.length < 2 || name.length > 80) return json(400, { error: 'Tu nombre debe tener entre 2 y 80 letras.' });
   const notes = String(b.notes || '').trim();
   if (notes.length > 300) return json(400, { error: 'Las notas no pueden pasar de 300 caracteres.' });
+  // Campos propios del negocio (booking_fields de web_barberia). La base valida
+  // cada uno contra la configuración del negocio; aquí solo la forma.
+  const extra = b.extra == null ? {} : b.extra;
+  if (typeof extra !== 'object' || Array.isArray(extra) || JSON.stringify(extra).length > 8192) {
+    return json(400, { error: 'Revisa los datos de tu reserva e inténtalo de nuevo.' });
+  }
 
   const sb = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await sb.rpc('crear_reserva', {
@@ -111,6 +118,7 @@ Deno.serve(async (req: Request) => {
     p_phone: String(b.phone || ''),
     p_notes: notes,
     p_wa_opt_in: b.wa_opt_in === true,
+    p_extra: extra,
   });
   if (error) {
     const msg = friendly(error);
