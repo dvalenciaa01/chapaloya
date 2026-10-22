@@ -6,7 +6,7 @@ const Login = {
     DB.load();
     const params = new URLSearchParams(window.location.search);
     this.nextTab = params.get('tab') || '';
-    const msg = params.get('msg');
+    const msg = this.messageFor(params.get('msg'));
     if (msg) this.showMsg(msg);
     this.bind();
     this.applyBrand();
@@ -53,6 +53,27 @@ const Login = {
     else box.innerHTML = '<span class="brand-wordmark is-lg">' + UIx.esc(t.name) + '</span>';
     const back = document.getElementById('login-back');
     if (back) back.href = 'index.html?b=' + encodeURIComponent(t.slug);
+  },
+
+  /* ?msg= solo acepta códigos conocidos con textos fijos (B13): un enlace con
+     texto libre ("Llama al 9xx…") no puede aparecer con la marca de la barbería.
+     Mientras js/core/auth.js siga enviando el texto completo, también se
+     aceptan esos textos exactos; cualquier otro valor se ignora. */
+  MESSAGES: {
+    expired: 'Tu sesión expiró. Vuelve a ingresar.',
+    idle: 'Sesión cerrada por inactividad.',
+    noaccess: 'Tu usuario ya no tiene acceso.',
+    temp: 'Debes cambiar tu contraseña temporal.',
+    suspended: 'La barbería asociada a tu cuenta está suspendida.',
+    error: 'No pudimos verificar tu sesión. Vuelve a ingresar.',
+    logout: 'Cerraste sesión.'
+  },
+  messageFor(raw) {
+    if (!raw) return '';
+    const key = String(raw).trim();
+    if (Object.prototype.hasOwnProperty.call(this.MESSAGES, key)) return this.MESSAGES[key];
+    const known = Object.keys(this.MESSAGES).map(k => this.MESSAGES[k]);
+    return known.includes(key) ? key : '';
   },
 
   showMsg(text) {

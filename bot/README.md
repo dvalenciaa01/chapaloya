@@ -4,8 +4,8 @@ Programa que envía los mensajes de WhatsApp de todas las barberías y recibe su
 
 Qué hace:
 
-- **Envía la cola `wa_outbox`:** el aviso al equipo por cada reserva, cancelación o cambio; la confirmación al cliente; los recordatorios; y los mensajes de prueba. Espera entre 8 y 20 segundos entre un mensaje y otro.
-- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "sí", "ok"), la cita queda **Confirmada** y se le responde "Asistencia confirmada". Si escribe **BAJA**, deja de recibir recordatorios. Cualquier otro mensaje no se toca: lo contesta la barbería desde su celular.
+- **Envía la cola `wa_outbox`:** el aviso al equipo por cada reserva, cancelación o cambio; la confirmación al cliente; los recordatorios; y los mensajes de prueba. Cada barbería envía por su lado, esperando entre 8 y 20 segundos entre un mensaje y otro: si una barbería tiene mucha cola, no retrasa a las demás.
+- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "confirmar" y el código, si tiene varias citas), la cita queda **Confirmada** y se le responde una vez. Si escribe **BAJA**, deja de recibir recordatorios. Cualquier otro mensaje no se toca: lo contesta la barbería desde su celular. Si un mismo número escribe muchas veces seguidas (más de 5 en 10 minutos), el resto se ignora.
 - **Vincula y desvincula** cuando el administrador lo pide en **CRM → Configuración → WhatsApp** (el QR aparece ahí mismo).
 
 > Importante: no es la API oficial de WhatsApp. Funciona como WhatsApp Web y es gratis, pero WhatsApp puede bloquear un número que envíe spam. Usa un número con antigüedad, escribe solo a clientes que aceptaron y no subas la cantidad de recordatorios.
@@ -16,12 +16,12 @@ Qué hace:
 
 Tiene que estar encendido todo el día. Sirve:
 
-- **Una computadora de la barbería** con Windows que no se apague: lo más simple, ver [En una computadora con Windows](#en-una-computadora-con-windows-sin-servidor).
-- **Una VM** con Ubuntu: gratis en Oracle Cloud "Always Free", o un VPS pequeño de pago (unos 5 dólares al mes).
+- **Una VM** con Ubuntu: gratis en Oracle Cloud "Always Free", o un VPS pequeño de pago (unos 5 dólares al mes). **Es lo recomendado en producción con varias barberías**: el bot usa la *Secret key* de Supabase, que da acceso total a los datos de todas las barberías, y debe estar en un servidor que controle Reservalope, no en la PC de una barbería.
+- **Una computadora con Windows** que no se apague, instalada como servicio: ver [En una computadora con Windows](#en-una-computadora-con-windows-sin-servidor). Sirve para una sola barbería o para pruebas, en una PC de confianza.
 
 No sirven los hostings que "duermen" cuando no hay visitas (Render gratis, Vercel, etc.): se cae la sesión de WhatsApp.
 
-Un solo bot atiende a todas las barberías. **No enciendas dos bots a la vez**: WhatsApp cerraría la sesión.
+Un solo bot atiende a todas las barberías. **No enciendas dos bots con las mismas barberías** (por ejemplo, en dos computadoras): WhatsApp cerraría la sesión. En una misma carpeta el bot ya lo impide solo: si hay uno encendido, el segundo se cierra sin conectarse (archivo `bot.lock`).
 
 ## 2. Instalar en la VM (Ubuntu)
 
@@ -80,6 +80,7 @@ Comandos útiles:
 ```bash
 sudo systemctl status reservalope-bot        # ¿está encendido?
 journalctl -u reservalope-bot -f             # ver lo que hace en vivo
+tail -f ~/chapaloya/bot/logs/bot.log         # el mismo registro, en archivo (rota cada día o a los 5 MB)
 sudo systemctl restart reservalope-bot       # reiniciar
 ```
 
@@ -103,7 +104,9 @@ Las sesiones vinculadas se conservan (carpeta `bot/sessions/`, cifrada con `BOT_
 
 ## En una computadora con Windows (sin servidor)
 
-Sirve cualquier PC de la barbería con Windows 10 u 11 e internet. Mientras la PC esté encendida, los mensajes salen. Si se apaga, quedan en cola y salen al volver a encenderla, salvo los recordatorios cuya cita ya pasó.
+Sirve cualquier PC con Windows 10 u 11 e internet. Mientras la PC esté encendida, los mensajes salen. Si se apaga, quedan en cola y salen al volver a encenderla, salvo los recordatorios cuya cita ya pasó.
+
+> Antes de elegir esta opción lee [Seguridad](#seguridad): quien tenga acceso de administrador a esa PC puede leer la *Secret key*, que abre los datos de **todas** las barberías.
 
 1. **Que no se suspenda:** Configuración → Sistema → Inicio/apagado y batería (o *Energía*) → "Suspender" en **Nunca** cuando está enchufada.
 2. **Node.js:** descarga la versión **22 LTS** de https://nodejs.org e instálala con las opciones por defecto.
@@ -113,16 +116,38 @@ Sirve cualquier PC de la barbería con Windows 10 u 11 e internet. Mientras la P
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
    Copia el resultado (64 caracteres) y guárdalo en un lugar seguro.
-5. **El archivo `.env`:** en la carpeta `bot`, copia `.env.example`, renombra la copia como `.env` y ábrela con el Bloc de notas. Completa `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `BOT_SESSION_KEY` (la del paso 4) y guarda. Si Windows la guarda como `.env.txt`, no pasa nada: el bot la corrige solo.
-6. **Encenderlo:** doble clic en **`iniciar.bat`**. La primera vez instala lo que necesita. Cuando diga `Bot de Reservalope iniciado`, ya está. **No cierres esa ventana** (puedes minimizarla).
-7. **Que arranque solo al prender la PC:** pulsa `Windows + R`, escribe `shell:startup` y Enter. En la carpeta que se abre, haz clic derecho → Nuevo → Acceso directo → elige `C:\reservalope\chapaloya-main\bot\iniciar.bat`.
+5. **El archivo `.env`:** en la carpeta `bot`, copia `.env.example`, renombra la copia como `.env` y ábrela con el Bloc de notas. Completa `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `BOT_SESSION_KEY` (la del paso 4) y guarda. Si Windows la guarda como `.env.txt`, no pasa nada: se corrige solo.
+   *Opcional:* en vez de dejarlo en la carpeta del bot, puedes guardarlo como `C:\ProgramData\Reservalope\bot.env` (o en la ruta que indique la variable de sistema `BOT_ENV_FILE`); así no viaja si alguien copia la carpeta del bot.
+6. **Probarlo:** doble clic en **`iniciar.bat`**. La primera vez instala lo que necesita. Cuando diga `Bot de Reservalope iniciado`, funciona. Ciérralo con `Ctrl + C` (o cerrando la ventana).
+7. **Instalarlo como servicio:** doble clic en **`instalar-servicio.bat`** y acepta el permiso de administrador. Esto:
+   - crea la tarea programada **"Reservalope Bot"**, que enciende el bot al prender la PC **aunque nadie inicie sesión**, sin ventana (no se puede cerrar por error) y lo vuelve a encender si se cae;
+   - deja el `.env` y la carpeta `sessions` (y `logs`) visibles solo para SYSTEM y Administradores;
+   - quita los accesos directos antiguos a `iniciar.bat` de la carpeta de Inicio, si había.
+
+   Al terminar dice si el bot quedó encendido. Desde ahí **ya no uses `iniciar.bat`** (si lo abres, avisa que el servicio ya está y se cierra).
 
 Luego vincula el WhatsApp desde el CRM, como en el paso 6 de arriba.
 
-Para actualizar: descarga el ZIP de nuevo, reemplaza la carpeta **conservando tu `.env` y la carpeta `sessions`**, y vuelve a abrir `iniciar.bat`.
+**Ver qué hace:** abre `logs\bot.log` (como administrador si el servicio está instalado). Se crea un archivo nuevo cada día o al pasar de 5 MB y se guardan los 10 últimos. Los arranques y errores graves del servicio quedan en `logs\servicio.log`. También puedes abrir http://127.0.0.1:8080 en esa PC.
+
+**Quitar el servicio:** doble clic en **`desinstalar-servicio.bat`**. Apaga el bot con calma, borra la tarea y devuelve los permisos normales a `.env`, `sessions` y `logs`.
+
+**Actualizar:** descarga el ZIP de nuevo y copia los archivos nuevos **encima** de la carpeta `bot` (no borres `.env` ni `sessions`). Después vuelve a ejecutar `instalar-servicio.bat`: apaga el bot viejo y enciende el nuevo.
+
+## Si algo falla
+
+| En el CRM o en el registro | Qué hacer |
+|---|---|
+| "WhatsApp bloqueó este número" | WhatsApp suspendió el número. Revísalo en el celular; si lo recuperas, pulsa **Vincular WhatsApp**. El bot no reintenta solo. |
+| "Sesión dañada: vuelve a vincular" | La sesión guardada no sirve y se borró. Pulsa **Vincular WhatsApp**. |
+| "WhatsApp rechazó este dispositivo vinculado" | Actualiza WhatsApp en el celular y vuelve a vincular. |
+| "No se pudo reconectar con WhatsApp tras muchos intentos" | El bot estuvo horas sin internet. Pulsa **Vincular WhatsApp**: reconecta sin perder la vinculación. |
+| "Ya hay un bot de Reservalope encendido" | Hay otro bot en la misma carpeta (o el servicio). No abras otro. |
+| "No se pudo guardar el resultado del envío; queda en el diario local" | Supabase no respondió. El resultado queda en `marcados-pendientes.json` y se guarda solo cuando vuelva la conexión; mientras tanto no se envía nada nuevo (para no duplicar mensajes). |
 
 ## Seguridad
 
-- La **Secret key** de Supabase da acceso total a la base: solo va en el `.env` de esta máquina.
-- La carpeta `sessions/` es el acceso al WhatsApp de cada barbería. Está cifrada, pero no la compartas.
-- El paquete de WhatsApp es el oficial `@whiskeysockets/baileys`, con la versión fijada en `package.json`. No instales forks con nombres parecidos.
+- La **Secret key** de Supabase da **acceso total a la base de todas las barberías** (salta todos los permisos). Solo va en el `.env` del bot. Para producción con varias barberías, **el bot debe correr en un servidor controlado por Reservalope** (sección 2), no en la PC de una barbería: quien sea administrador de esa PC, o se la lleve, puede leer la clave aunque el servicio proteja el archivo.
+- Si alguna vez la clave estuvo en una PC que ya no controlas, **cámbiala** en Supabase (Project Settings → API Keys) y actualiza el `.env`.
+- La carpeta `sessions/` es el acceso al WhatsApp de cada barbería. Está cifrada con `BOT_SESSION_KEY`, pero no la compartas ni la copies junto con el `.env`.
+- El paquete de WhatsApp es el oficial `@whiskeysockets/baileys`, con la versión fijada en `package.json` (7.0.0-rc14: al 21/10/2026 todavía no hay una 7.x estable publicada). No instales forks con nombres parecidos.

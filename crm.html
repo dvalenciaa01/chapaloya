@@ -22,7 +22,10 @@
         var s = JSON.parse(localStorage.getItem('BARBERSUITE_SESSION') || 'null');
         if (!s || !s.userId || Date.now() > s.exp) {
           var t = new URLSearchParams(location.search).get('tab');
-          location.replace('login.html' + (t ? '?tab=' + encodeURIComponent(t) : ''));
+          var q = [];
+          if (s && s.userId) q.push('msg=expired');
+          if (t) q.push('tab=' + encodeURIComponent(t));
+          location.replace('login.html' + (q.length ? '?' + q.join('&') : ''));
         }
       } catch (e) { location.replace('login.html'); }
     })();
@@ -136,6 +139,7 @@
       </aside>
 
       <main class="crm-main" id="crm-main" tabindex="-1">
+        <div id="crm-sub-banner" class="crm-banner" role="status" hidden></div>
 
         <!-- ================= PANEL PRINCIPAL ================= -->
         <div id="crm-pane-dashboard" class="crm-pane active-pane">
@@ -242,6 +246,7 @@
                   <option value="CONFIRMADA_WSP">Confirmada</option>
                   <option value="COMPLETADA">Completada</option>
                   <option value="CANCELADA">Cancelada</option>
+                  <option value="NO_ASISTIO">No asistió</option>
                 </select>
               </div>
               <div><button type="button" class="btn-dark" onclick="CRM.clearApptFilters()"><i data-icon="refresh"></i>Limpiar</button></div>
@@ -315,9 +320,11 @@
           <div class="search-bar">
             <i data-icon="search"></i>
             <label for="cust-search-q" class="sr-only">Buscar cliente</label>
-            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre o teléfono…" oninput="CRM.renderCustomers()" />
+            <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre o teléfono…" oninput="CRM.renderCustomers(true)" />
           </div>
+          <p class="field-hint" id="cust-count" aria-live="polite"></p>
           <div class="cards-grid-3" id="crm-customers-grid"></div>
+          <div class="btn-row cust-more-row"><button type="button" class="btn-dark" id="cust-more" onclick="CRM.showMoreCustomers()" hidden>Ver más</button></div>
         </div>
 
         <!-- ================= SERVICIOS ================= -->
@@ -370,7 +377,13 @@
                 <div><label class="field-lbl" for="set-phone">Teléfono / WhatsApp</label><input type="tel" id="set-phone" class="input-dark" /></div>
                 <div><label class="field-lbl" for="set-hours">Horario</label><input type="text" id="set-hours" class="input-dark" placeholder="Citas de 9:00 a 20:00" /></div>
                 <div><label class="field-lbl" for="set-city">Ciudad</label><input type="text" id="set-city" class="input-dark" placeholder="Lima, Perú" /></div>
+                <div>
+                  <label class="field-lbl" for="set-lead">Anticipación mínima para reservar en línea (min)</label>
+                  <input type="number" id="set-lead" class="input-dark" min="0" max="1440" step="5" inputmode="numeric" />
+                  <p class="field-hint">Entre 0 y 1440. La web no ofrece horarios que empiecen antes de ese margen. No aplica a las citas que agrega el equipo.</p>
+                </div>
               </div>
+              <p class="form-error" id="set-error" role="alert"></p>
               <p class="form-note" data-role="ADMIN">El nombre, el logo, el color de marca y el enlace público los administra el superadministrador.</p>
               <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSettings()"><i data-icon="check"></i>Guardar configuración</button></div>
             </div>
@@ -379,16 +392,6 @@
               <p class="card-text">Descarga una copia de los datos de esta barbería (barberos, servicios, citas y clientes).</p>
               <div class="btn-row">
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
-              </div>
-              <div class="danger-zone" data-role="SUPERADMIN">
-                <div>
-                  <strong>Zona de riesgo · Superadministrador</strong>
-                  <span>Reemplazar los datos de esta barbería por datos de ejemplo, o borrar el sistema completo.</span>
-                </div>
-                <div class="btn-row">
-                  <button type="button" class="btn-dark" onclick="CRM.reloadDemoData()"><i data-icon="refresh"></i>Cargar datos demo</button>
-                  <button type="button" class="btn-danger" onclick="CRM.factoryReset()"><i data-icon="trash"></i>Restablecer todo</button>
-                </div>
               </div>
             </div>
           </div>
@@ -448,6 +451,7 @@
               </div>
             </div>
 
+            <div id="wa-warn" class="wa-warn" role="alert" hidden></div>
             <label class="check-line wa-enable"><input type="checkbox" id="wa-enabled" oninput="CRM.waDirty = true" />
               <span>Enviar mensajes automáticos por WhatsApp</span></label>
 
@@ -458,15 +462,25 @@
                 <p class="field-hint">Separa los números con comas. Déjalo vacío si no quieres avisos.</p>
               </div>
               <div>
-                <label class="field-lbl" for="wa-quiet-from">No enviar recordatorios entre</label>
+                <label class="field-lbl" for="wa-quiet-from">No enviar mensajes a clientes entre</label>
                 <div class="sch-inline"><input type="time" step="300" id="wa-quiet-from" class="input-dark sch-time" oninput="CRM.waDirty = true" /><span>y</span><input type="time" step="300" id="wa-quiet-to" class="input-dark sch-time" oninput="CRM.waDirty = true" /></div>
-                <p class="field-hint">Un recordatorio que caiga en ese horario sale antes, el día anterior.</p>
+                <p class="field-hint">Formato HH:MM. Aplica a todos los mensajes a clientes: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.</p>
               </div>
             </div>
 
             <div class="wa-msg">
               <label class="field-lbl" for="wa-tpl-confirm">Mensaje al reservar</label>
               <textarea id="wa-tpl-confirm" class="input-dark" rows="10" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+            </div>
+            <div class="form-grid-2">
+              <div class="wa-msg">
+                <label class="field-lbl" for="wa-tpl-ccancel">Mensaje cuando se cancela la cita (vacío = no se envía)</label>
+                <textarea id="wa-tpl-ccancel" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+              </div>
+              <div class="wa-msg">
+                <label class="field-lbl" for="wa-tpl-cresched">Mensaje cuando se reprograma la cita (vacío = no se envía)</label>
+                <textarea id="wa-tpl-cresched" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+              </div>
             </div>
             <div class="field-lbl wa-sub">Recordatorios</div>
             <div id="wa-reminders"></div>
@@ -480,6 +494,9 @@
               <label class="field-lbl" for="wa-test-num">Enviar un mensaje de prueba a</label>
               <div class="sch-inline"><input type="tel" id="wa-test-num" class="input-dark" placeholder="999 111 222" inputmode="numeric" /><button type="button" class="btn-dark" onclick="CRM.waTest()">Enviar prueba</button></div>
             </div>
+
+            <div class="field-lbl wa-sub">Clientes que pidieron no recibir mensajes</div>
+            <div id="wa-optouts" class="sch-exc-list"></div>
 
             <div class="field-lbl wa-sub">Últimos envíos</div>
             <div id="wa-history" class="sch-exc-list"></div>

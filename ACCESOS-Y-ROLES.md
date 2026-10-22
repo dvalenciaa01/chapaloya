@@ -1,9 +1,7 @@
-# Accesos, roles y barberías (versión demo)
+# Accesos, roles y barberías
 
 ## Cuentas iniciales
-En la demo se crean la primera vez que se abre `login.html`: un superadministrador, un administrador y un barbero por barbería. Cada cuenta **debe cambiar su contraseña** en el primer ingreso. Las contraseñas iniciales ya no se publican aquí; pídelas al responsable del proyecto.
-
-En producción las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.md)).
+Las cuentas se crean en Supabase Auth (ver [supabase/README.md](supabase/README.md)) o desde **Usuarios y accesos**. Cada cuenta **debe cambiar su contraseña temporal** en el primer ingreso: hasta hacerlo, la base de datos no le da acceso a ningún dato.
 
 - El **superadministrador** entra a **Reservalope** (`reservalope.html`), su consola propia. Desde ahí puede abrir el CRM de cualquier barbería y volver con el botón "Reservalope".
 - Administradores y personal entran directo al CRM de su barbería (`crm.html`).
@@ -38,10 +36,10 @@ En producción las cuentas se crean en Supabase Auth (ver [supabase/README.md](s
 | Reportes | Una barbería o todas (comparativo), con filtros y descarga en PDF o Excel. También desde el botón "Reportes" de cada ficha. |
 | Alertas | Suscripción por vencer o vencida, cancelación/no-show altos, sin actividad 7 días, configuración incompleta, cuentas bloqueadas, almacenamiento alto. |
 | Usuarios y accesos · Historial | Igual que antes, para todas las barberías. |
-| Plataforma | Almacenamiento usado, respaldo (sin contraseñas), borrar datos demo y restablecer de fábrica. |
+| Plataforma | Almacenamiento usado y respaldo (sin contraseñas). |
 
 - Si las barberías usan monedas distintas, el total global las suma y muestra un aviso.
-- Una suscripción vencida **solo genera alerta**; no suspende la barbería automáticamente.
+- Una suscripción vencida muestra un aviso en el CRM y en la consola. Las reservas web siguen 7 días después del vencimiento y luego se pausan hasta renovar.
 - Precios de plan (Básico S/ 79, Pro S/ 149, Premium S/ 249) son valores de ejemplo editables por barbería.
 
 ## Barberías
@@ -73,25 +71,14 @@ En producción las cuentas se crean en Supabase Auth (ver [supabase/README.md](s
 - Si el día elegido ya no tiene horarios libres, la web salta al siguiente día disponible y lo avisa.
 - La validación se repite al guardar, así que manipular el formulario no permite saltarse la regla.
 
-## Datos demo
-- Golden y **Navaja Norte** traen 90 días de historial + 2 semanas futuras para ver el dashboard con datos.
-- Para quitarlos: Reservalope → Plataforma → **Borrar datos demo**. Elimina los registros de ejemplo y la barbería Navaja Norte con sus usuarios; no se regeneran.
-
 ## Seguridad de cuentas
-- Contraseñas guardadas con sal + hash iterado (nunca en texto plano). Mínimo 8 caracteres, con letras y números.
+- Las contraseñas las guarda Supabase Auth (nunca en texto plano). Mínimo 8 caracteres, con letras y números.
 - Contraseña temporal obligatoria de cambiar en el primer ingreso o tras un restablecimiento.
 - 5 intentos fallidos bloquean la cuenta 15 minutos. Un administrador puede desbloquearla restableciendo la clave.
 - La sesión expira a las 8 horas, o tras 60 minutos sin actividad.
 - Los usuarios se **desactivan**, no se borran, para conservar el historial. Siempre debe quedar un superadministrador activo.
-- Todo texto ingresado (por ejemplo, el nombre de un cliente en la web) se neutraliza para evitar inyección de código.
+- Todo texto ingresado (por ejemplo, el nombre de un cliente en la web) se escapa al mostrarlo, para evitar inyección de código.
+- Los permisos los aplica la base de datos (RLS), no solo la pantalla.
 
 ## Historial de actividad
 Registra inicios de sesión, intentos fallidos, bloqueos, citas, walk-in, barberos, fotos, servicios, clientes, usuarios, permisos, barberías, configuración y reservas web. Se puede filtrar y exportar a CSV.
-
-## Limitación importante (modo demo)
-Todo se guarda en el **navegador** (`localStorage`):
-- Los datos **no se comparten entre equipos**: cada computadora o celular tiene su propia copia.
-- Quien tenga acceso al equipo puede alterar los datos con las herramientas del navegador. El login organiza el uso, pero **no es una barrera de seguridad real**.
-- El espacio es limitado (~5 MB): muchas fotos grandes pueden llenarlo.
-
-**Para producción** se reemplaza `js/data/db.js` y `js/core/auth.js` por un backend (por ejemplo, Supabase o una API propia). La interfaz, los roles y las reglas ya están separados para que ese cambio sea acotado.

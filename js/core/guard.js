@@ -11,14 +11,13 @@
 const Guard = {
   DOM_RULES: [
     ['[onclick*="CRM.openAppointmentModal"]', 'appointments.create'],
-    ['[onclick*="CRM.setApptStatus"]', 'appointments.status'],
+    ['[onclick*="CRM.setApptStatus"], [onclick*="CRM.openRescheduleModal"]', 'appointments.status'],
     ['[onclick*="CRM.deleteAppt"]', 'appointments.delete'],
     ['[onclick*="CRM.openWalkInModal"]', 'walkins.create'],
     ['[onclick*="CRM.setWalkInStatus"]', 'walkins.status'],
     ['[onclick*="CRM.openBarberProfileModal"], [onclick*="CRM.openAddHaircutPhotoModal"], [onclick*="CRM.deleteHaircutPhoto"], [onclick*="CRM.deleteBarberProfile"]', 'barbers.manage'],
     ['[onclick*="CRM.openServiceModal"], [onclick*="CRM.deleteService"]', 'services.manage'],
     ['[onclick*="CRM.openCustomerModal"]', 'customers.manage'],
-    ['[onclick*="CRM.reloadDemoData"], [onclick*="CRM.factoryReset"]', 'system.reset'],
     ['[onclick*="CRM.exportJSON"]', 'settings.manage']
   ],
 
@@ -26,7 +25,9 @@ const Guard = {
     UI.toast(msg || 'No tienes permiso para realizar esta acción.', 'error');
   },
 
-  /* Envuelve obj[name]: verifica permiso → (confirma) → ejecuta → registra */
+  /* Envuelve obj[name]: verifica permiso → (confirma) → ejecuta → registra.
+     El historial se escribe SOLO si la acción terminó bien: la función debe
+     devolver true (o una promesa que resuelva a true) cuando se guardó. */
   wrap(obj, name, perm, describe, confirmOpts) {
     const orig = obj[name];
     if (typeof orig !== 'function') return;
@@ -42,15 +43,13 @@ const Guard = {
       try { info = describe ? describe.apply(obj, args) : null; } catch (e) { info = null; }
       const run = () => {
         const res = orig.apply(obj, args);
-        const finish = () => { if (info && info.action) DB.log(info.action, info.detail || ''); };
-        if (res && typeof res.then === 'function') return res.then(r => { finish(); return r; });
-        finish();
+        const finish = (ok) => { if (ok && info && info.action) DB.log(info.action, info.detail || ''); };
+        if (res && typeof res.then === 'function') return res.then(r => { finish(r === true); return r; });
+        finish(res === true);
         return res;
       };
-      if (confirmOpts) {
-        const opts = typeof confirmOpts === 'function' ? confirmOpts.apply(obj, args) : confirmOpts;
-        return UI.confirm(opts).then(ok => (ok ? run() : undefined));
-      }
+      const opts = confirmOpts ? (typeof confirmOpts === 'function' ? confirmOpts.apply(obj, args) : confirmOpts) : null;
+      if (opts) return UI.confirm(opts).then(ok => (ok ? run() : undefined));
       return run();
     };
   },
@@ -60,12 +59,12 @@ const Guard = {
   walk(id) { return DB.state.walkIns.find(w => w.id === id); },
   barber(id) { return DB.state.barberProfiles.find(b => b.id === id); },
 
-  // Personal vinculado: solo puede operar sobre sus propias citas
+  // Personal vinculado: solo puede operar sobre sus propias citas (por id de barbero)
   ownsAppt(id) {
     const a = this.appt(id);
     if (!a) return false;
-    const own = DB.linkedBarberName();
-    return !own || a.barber === own;
+    const own = DB.linkedBarberId();
+    return !own || a.barberId === own;
   },
 
   install() {
@@ -84,17 +83,35 @@ const Guard = {
 
     /* ---- Citas ---- */
     G.wrap(CRM, 'openAppointmentModal', 'appointments.create');
+    const barberName = (id) => { const b = DB.barberById(id); return b ? b.name : ''; };
+    const serviceName = (id) => { const s = DB.serviceById(id); return s ? s.name : ''; };
     G.wrap(CRM, 'saveAppointmentModal', () => {
       if (!Auth.can('appointments.create')) return false;
-      const own = DB.linkedBarberName();
+      const own = DB.linkedBarberId();
       return !own || G.val('m-ap-barber') === own;
     }, () => ({
       action: 'Creó una cita',
-      detail: G.val('m-ap-name') + ' · ' + G.val('m-ap-service') + ' · ' + G.val('m-ap-barber') + ' · ' + G.val('m-ap-date') + ' ' + G.val('m-ap-time')
+      detail: G.val('m-ap-name') + ' · ' + serviceName(G.val('m-ap-service')) + ' · ' + barberName(G.val('m-ap-barber')) + ' · ' + G.val('m-ap-date') + ' ' + G.val('m-ap-time')
     }));
     G.wrap(CRM, 'setApptStatus', (id) => Auth.can('appointments.status') && G.ownsAppt(id), (id, status) => {
       const a = G.appt(id);
       return { action: 'Cambió el estado de una cita', detail: (a ? a.customerName + ' (' + a.date + ' ' + a.time + '): ' + DB.statusLabel(a.status) : id) + ' → ' + DB.statusLabel(status) };
+    }, (id, status) => {
+      const a = G.appt(id);
+      if (!a) return null;
+      const who = a.customerName + ' (' + a.date + ' ' + a.time + ')';
+      if (status === 'CANCELADA') return { title: 'Cancelar cita', message: 'Se cancelará la cita de ' + who + ' y el horario quedará libre. Si el cliente aceptó WhatsApp, se le avisará.', confirmText: 'Cancelar cita', danger: true };
+      if (status === 'NO_ASISTIO') return { title: 'Marcar "No asistió"', message: who + ' no se presentó. La cita no cuenta como venta.', confirmText: 'No asistió', danger: true };
+      return null;
+    });
+    G.wrap(CRM, 'openRescheduleModal', (id) => Auth.can('appointments.status') && G.ownsAppt(id));
+    G.wrap(CRM, 'saveReschedule', (e, id) => {
+      if (!Auth.can('appointments.status') || !G.ownsAppt(id)) return false;
+      const own = DB.linkedBarberId();
+      return !own || G.val('m-rp-barber') === own;
+    }, (e, id) => {
+      const a = G.appt(id);
+      return { action: 'Reprogramó una cita', detail: (a ? a.customerName + ' · ' + a.date + ' ' + a.time + ' · ' + a.barber : id) + ' → ' + G.val('m-rp-date') + ' ' + G.val('m-rp-time') + ' · ' + barberName(G.val('m-rp-barber')) };
     });
     G.wrap(CRM, 'deleteAppt', (id) => Auth.can('appointments.delete') && G.ownsAppt(id), (id) => {
       const a = G.appt(id);
@@ -107,7 +124,7 @@ const Guard = {
     /* ---- Walk-in ---- */
     G.wrap(CRM, 'openWalkInModal', 'walkins.create');
     G.wrap(CRM, 'saveWalkInModal', 'walkins.create', () => ({
-      action: 'Registró un walk-in', detail: G.val('m-wk-name') + ' · ' + G.val('m-wk-service') + ' · ' + G.val('m-wk-barber')
+      action: 'Registró un walk-in', detail: G.val('m-wk-name') + ' · ' + serviceName(G.val('m-wk-service')) + ' · ' + barberName(G.val('m-wk-barber'))
     }));
     G.wrap(CRM, 'setWalkInStatus', 'walkins.status', (id, status) => {
       const w = G.walk(id);
@@ -137,7 +154,7 @@ const Guard = {
       const linked = DB.load().users.filter(u => u.barberId === id).length;
       return {
         title: 'Eliminar barbero',
-        message: 'Se eliminará a ' + (b ? b.name : 'este barbero') + ' y su portafolio.' + (linked ? ' ' + linked + ' usuario(s) del personal quedarán sin barbero vinculado y verán todas las citas.' : ''),
+        message: 'Se eliminará a ' + (b ? b.name : 'este barbero') + ' y su portafolio (sus citas pasadas se conservan).' + (linked ? ' ' + linked + ' usuario(s) del personal quedarán sin barbero vinculado y verán todas las citas.' : ''),
         confirmText: 'Eliminar', danger: true
       };
     });
@@ -157,14 +174,16 @@ const Guard = {
     G.wrap(CRM, 'saveCustomerModal', 'customers.manage', () => ({ action: 'Registró un cliente', detail: G.val('m-cu-name') + ' · ' + G.val('m-cu-phone') }));
     G.wrap(CRM, 'saveSettings', 'settings.manage');
     G.wrap(CRM, 'saveSchedule', 'settings.manage');
+    G.wrap(CRM, 'saveWhatsApp', 'settings.manage');
+    G.wrap(CRM, 'waRemoveOptOut', 'settings.manage');
+    G.wrap(CRM, 'waRequest', 'settings.manage');
+    G.wrap(CRM, 'waTest', 'settings.manage');
     G.wrap(CRM, 'addException', 'settings.manage');
     G.wrap(CRM, 'deleteException', 'settings.manage', null, (id) => {
       const e = (DB.state.scheduleExceptions || []).find(x => x.id === id);
       return { title: 'Quitar fecha especial', message: e ? 'El ' + CRM.fmtLongDate(e.date) + ' volverá al horario semanal de ' + CRM.exceptionWho(e).toLowerCase().replace('toda la barbería', 'la barbería') + '.' : 'La fecha volverá al horario semanal.', confirmText: 'Quitar', danger: true };
     });
     G.wrap(CRM, 'exportJSON', 'settings.manage', () => ({ action: 'Exportó un respaldo', detail: 'Datos de ' + DB.tenant.name }));
-    G.wrap(CRM, 'reloadDemoData', 'system.reset');
-    G.wrap(CRM, 'factoryReset', 'system.reset');
 
     /* ---- Renders de módulos restringidos: no se generan si no hay permiso ---- */
     [['renderSales', 'sales.view'], ['renderCustomers', 'customers.view'], ['renderReports', 'reports.view'],

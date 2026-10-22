@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Barbero sin foto">
+  <rect width="300" height="300" fill="#1a1a1a"/>
+  <circle cx="150" cy="118" r="54" fill="#5a5a5a"/>
+  <path d="M52 300c0-62 44-104 98-104s98 42 98 104z" fill="#5a5a5a"/>
+</svg>

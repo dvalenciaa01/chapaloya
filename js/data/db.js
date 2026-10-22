@@ -13,6 +13,13 @@
      - DB.save() / DB.persist() envían a Supabase SOLO lo que cambió
        (comparando con la última copia recibida). Si el servidor rechaza un
        cambio (horario ocupado, sin permiso…), se avisa y se recargan los datos.
+       DB.save() devuelve una promesa con true (guardado) o false (rechazado):
+       las pantallas muestran "guardado" solo con true.
+     - Guardar y recargar van en UNA sola cola (_chain): una recarga nunca
+       pisa un guardado en curso, y la recarga en tiempo real se aplaza (no se
+       descarta) mientras hay cambios por enviar.
+     - Los borrados NO se deducen comparando copias: solo se borra lo que una
+       acción pidió explícitamente con DB.markDeleted().
      - Las reglas de seguridad viven en la base de datos (RLS y triggers),
        no aquí: este archivo solo organiza los datos para la interfaz.
    ========================================================================== */
@@ -37,7 +44,13 @@ const DB = {
   _knownServices: {},  // servicios (incluidos ocultos) por barbería: nombre ↔ id
   _chain: Promise.resolve(),
   _pending: false,
+  _pendingPromise: null,
+  _syncing: false,
+  _lastSyncOk: true,
   _lastWrite: 0,
+  _gen: 0,             // generación de la copia del servidor (cambia en cada recarga)
+  _deletes: {},        // borrados pedidos explícitamente: { [tenantId]: { [colección]: Set(ids) } }
+  _sessionLost: false,
 
   DEFAULT_SLOTS: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
   TIME_SLOTS: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
@@ -62,14 +75,46 @@ const DB = {
 
   DEFAULT_PALETTE: { primary: '#000000', secondary: '#D79848', tertiary: '#FFFFFF' },
 
-  /* ---------------- Utilidades de fecha y texto (iguales a la demo) ---------------- */
-  todayISO() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  /* ---------------- Fecha y hora de la BARBERÍA ----------------
+     "Hoy" y "ahora" se calculan en la zona horaria de la barbería
+     (DB.tenant.timezone; por defecto America/Lima), no en la del aparato
+     del cliente: un turista con el celular en hora de Madrid ve los mismos
+     horarios que alguien en Lima.
+     En la web pública, además, se corrige el reloj del aparato con la hora
+     del servidor (web_barberia.server_now): _clockOffset = servidor − aparato. */
+  DEFAULT_TZ: 'America/Lima',
+  _clockOffset: 0,
+  _tzFmt: {},
+  timeZone() {
+    const tz = (this.tenant && this.tenant.timezone) || this.DEFAULT_TZ;
+    return this._fmtFor(tz) ? tz : this.DEFAULT_TZ;
   },
+  _fmtFor(tz) {
+    if (this._tzFmt[tz] !== undefined) return this._tzFmt[tz];
+    let f = null;
+    try {
+      f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    } catch (e) { f = null; } // zona no válida → se usa America/Lima
+    this._tzFmt[tz] = f;
+    return f;
+  },
+  // Partes de la fecha/hora actual en la zona de la barbería: { date: 'AAAA-MM-DD', h, m }
+  nowParts() {
+    const now = new Date(Date.now() + (this._clockOffset || 0));
+    const f = this._fmtFor(this.timeZone());
+    if (!f) {
+      return { date: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'),
+        h: now.getHours(), m: now.getMinutes() };
+    }
+    const p = {};
+    f.formatToParts(now).forEach(x => { p[x.type] = x.value; });
+    return { date: p.year + '-' + p.month + '-' + p.day, h: parseInt(p.hour, 10) % 24, m: parseInt(p.minute, 10) };
+  },
+  todayISO() { return this.nowParts().date; },
   nowTimeStr() {
-    const d = new Date();
-    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const n = this.nowParts();
+    return String(n.h).padStart(2, '0') + ':' + String(n.m).padStart(2, '0');
   },
   uid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -108,14 +153,38 @@ const DB = {
   // Mensaje entendible para un error de Supabase
   errorText(err) {
     const m = String((err && (err.message || err.error_description || err.error)) || err || '');
+    // Reglas del servidor (citas, clientes, WhatsApp): ya vienen redactadas en español
+    const code = err && err.code;
+    if ((code === '22023' || code === 'P0001' || code === '23505') && m && !/duplicate key|violates|constraint/i.test(m)) return m;
     if (/row-level security|permission denied|42501/i.test(m)) return 'No tienes permiso para guardar este cambio.';
     if (/customers_tenant_id_phone_key/i.test(m)) return 'Ya existe un cliente con ese celular.';
     if (/schedule_exceptions_tenant_id_barber_id_date_key/i.test(m)) return 'Ya hay una fecha especial para ese día.';
     if (/schedule_valid|ranges_check/i.test(m)) return 'El horario no es válido: revisa que cada tramo empiece antes de terminar.';
-    if (/appointments_no_double_booking|duplicate key/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
+    if (/appointments_no_double_booking/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
+    if (/duplicate key/i.test(m)) return 'Ese registro ya existe.';
     if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
     if (/JWT|token|session/i.test(m)) return 'Tu sesión expiró. Vuelve a ingresar.';
     return m || 'No se pudo guardar el cambio.';
+  },
+
+  // ¿El error indica que la sesión ya no vale (token vencido, 401)?
+  isAuthError(err) {
+    if (!err) return false;
+    const st = Number(err.status || err.statusCode || (err.context && err.context.status) || 0);
+    if (st === 401) return true;
+    if (err.code === 'PGRST301' || err.code === 'PGRST302') return true;
+    const m = String(err.message || err.error_description || err.error || err || '');
+    return /JWT expired|jwt|invalid claim|not authenticated|Auth session missing|refresh token/i.test(m);
+  },
+
+  // Sesión perdida (token vencido, usuario desactivado, barbería suspendida…):
+  // se cierra la sesión y el login muestra el aviso según el código.
+  // Códigos: expired · idle · inactive · noprofile · temp · suspended · noaccess · logout
+  sessionLost(code) {
+    if (this._sessionLost) return;
+    this._sessionLost = true;
+    console.warn('[DB] Sesión cerrada:', code);
+    if (typeof Auth !== 'undefined' && Auth.logout) Auth.logout(code || 'expired');
   },
 
   /* ---------------- Preferencias locales (no son datos del negocio) ---------------- */
@@ -146,7 +215,19 @@ const DB = {
       createdAt: r.created_at, whatsapp: r.whatsapp || null
     };
   },
+  // Datos de la barbería que solo usa el CRM / la consola (fromTenant es compartido con la web pública)
+  fromTenantCrm(r) {
+    const t = this.fromTenant(r);
+    const lead = parseInt(r.booking_lead_minutes, 10);
+    t.leadMinutes = isNaN(lead) ? 15 : Math.min(1440, Math.max(0, lead));
+    return t;
+  },
   tenantRow(t) {
+    const row = this.tenantRowBase(t);
+    if (t.leadMinutes != null && !isNaN(Number(t.leadMinutes))) row.booking_lead_minutes = Math.min(1440, Math.max(0, Math.round(Number(t.leadMinutes))));
+    return row;
+  },
+  tenantRowBase(t) {
     return {
       slug: t.slug, name: t.name, owner_name: t.ownerName || '', owner_email: t.ownerEmail || '',
       owner_phone: t.ownerPhone || '', logo_url: t.logo || null,
@@ -245,21 +326,25 @@ const DB = {
       table: 'appointments',
       from(r) {
         return { id: r.id, code: r.code, customerName: r.customer_name, phone: r.phone || '',
-          service: r.service_name, barber: r.barber_name, date: r.date, time: DB.hhmm(r.time),
+          service: r.service_name, serviceId: r.service_id || null, barber: r.barber_name, barberId: r.barber_id || null,
+          date: r.date, time: DB.hhmm(r.time),
           price: Number(r.price), status: r.status, source: r.source, notes: r.notes || '',
-          waOptIn: !!r.wa_opt_in, createdAt: r.created_at, completedAt: r.completed_at };
+          waOptIn: !!r.wa_opt_in, createdAt: r.created_at, completedAt: r.completed_at,
+          durationMin: r.duration_min != null ? Number(r.duration_min) : undefined };
       },
+      // Barbero y servicio se comparan y guardan por id (los nombres los pone el servidor)
       logical(a) {
-        return { customerName: a.customerName, phone: DB.cleanPhone(a.phone), service: a.service || '',
-          barber: a.barber, date: a.date, time: DB.hhmm(a.time), price: Number(a.price) || 0,
+        return { customerName: a.customerName, phone: DB.cleanPhone(a.phone), serviceId: a.serviceId || null,
+          service: a.service || '', barberId: a.barberId || null, date: a.date, time: DB.hhmm(a.time), price: Number(a.price) || 0,
           status: a.status, notes: a.notes || '', waOptIn: !!a.waOptIn };
       },
-      columns(l, tid) {
+      columns(l) {
         const c = {};
         if ('customerName' in l) c.customer_name = l.customerName;
         if ('phone' in l) c.phone = l.phone;
-        if ('service' in l) { c.service_id = DB.serviceIdByName(tid, l.service); c.service_name = l.service; }
-        if ('barber' in l) c.barber_id = DB.barberIdByName(tid, l.barber);
+        if ('serviceId' in l) c.service_id = l.serviceId;
+        if ('service' in l) c.service_name = l.service;
+        if ('barberId' in l) c.barber_id = l.barberId;
         if ('date' in l) c.date = l.date;
         if ('time' in l) c.time = l.time;
         if ('price' in l) c.price = l.price;
@@ -269,29 +354,37 @@ const DB = {
         return c;
       },
       insertExtra(a, tid) {
-        const phone = DB.cleanPhone(a.phone);
-        const st = DB.root.data[tid];
-        const cust = phone && st ? st.customers.find(c => DB.cleanPhone(c.phone) === phone && DB.isUuid(c.id)) : null;
-        return { source: a.source === 'WEB' ? 'WEB' : 'CRM', customer_id: cust ? cust.id : null };
+        let custId = DB.isUuid(a.customerId) ? a.customerId : null;
+        if (!custId) {
+          const phone = DB.cleanPhone(a.phone);
+          const st = DB.root.data[tid];
+          const cust = phone && st ? st.customers.find(c => DB.cleanPhone(c.phone) === phone && DB.isUuid(c.id)) : null;
+          custId = cust ? cust.id : null;
+        }
+        return { source: a.source === 'WEB' ? 'WEB' : 'CRM', customer_id: custId };
       }
     },
     walkins: {
       table: 'walk_ins',
       from(r) {
-        return { id: r.id, customerName: r.customer_name, service: r.service_name, barber: r.barber_name,
+        return { id: r.id, customerName: r.customer_name, service: r.service_name, serviceId: r.service_id || null,
+          barber: r.barber_name, barberId: r.barber_id || null,
           price: Number(r.price), status: r.status, date: r.date, addedAt: DB.hhmm(r.added_at),
           finishedAt: r.finished_at, notes: r.notes || '' };
       },
       logical(w) {
-        return { customerName: w.customerName, service: w.service || '', barber: w.barber || '',
+        return { customerName: w.customerName, serviceId: w.serviceId || null, service: w.service || '',
+          barberId: w.barberId || null, barber: w.barber || '',
           price: Number(w.price) || 0, status: w.status, date: w.date || DB.todayISO(),
           addedAt: /^\d{2}:\d{2}$/.test(w.addedAt || '') ? w.addedAt : null, finishedAt: w.finishedAt || null, notes: w.notes || '' };
       },
-      columns(l, tid) {
+      columns(l) {
         const c = {};
         if ('customerName' in l) c.customer_name = l.customerName;
-        if ('service' in l) { c.service_id = DB.serviceIdByName(tid, l.service); c.service_name = l.service; }
-        if ('barber' in l) { c.barber_id = l.barber ? DB.barberIdByName(tid, l.barber) : null; c.barber_name = l.barber; }
+        if ('serviceId' in l) c.service_id = l.serviceId;
+        if ('service' in l) c.service_name = l.service;
+        if ('barberId' in l) c.barber_id = l.barberId;
+        if ('barber' in l) c.barber_name = l.barber;
         if ('price' in l) c.price = l.price;
         if ('status' in l) c.status = l.status;
         if ('date' in l) c.date = l.date;
@@ -356,19 +449,26 @@ const DB = {
     ]);
     if (tRes.error) throw tRes.error;
     if (pRes.error) throw pRes.error;
-    const root = { tenants: tRes.data.map(r => this.fromTenant(r)), users: pRes.data.map(r => this.fromProfile(r)), data: {}, audit: [] };
-    this.root = root;
-    this._snapTenants = new Map(root.tenants.map(t => [t.id, JSON.stringify(this.tenantRow(t))]));
+    // Todo se arma en una copia nueva y se cambia de una sola vez al final:
+    // mientras llegan los datos, la pantalla sigue usando la copia anterior.
+    const root = { tenants: tRes.data.map(r => this.fromTenantCrm(r)), users: pRes.data.map(r => this.fromProfile(r)), data: {}, audit: [] };
+    const snaps = {};
     const ids = root.tenants.map(t => t.id);
-    root.tenants.forEach(t => { root.data[t.id] = this.emptyState(t); this._snap[t.id] = this.emptySnap(); });
-    if (ids.length) await this.loadTenantData(ids);
-    await this.loadAudit();
+    root.tenants.forEach(t => { root.data[t.id] = this.emptyState(t); snaps[t.id] = this.emptySnap(); });
+    if (ids.length) await this.loadTenantData(ids, root, snaps);
+    root.audit = await this.loadAudit(root);
+    this.root = root;
+    this._snap = snaps;
+    this._snapTenants = new Map(root.tenants.map(t => [t.id, JSON.stringify(this.tenantRow(t))]));
+    this._deletes = {};
+    this._gen++;
+    if (this.tenant) this.useTenant(this.tenant.id);
     return root;
   },
 
   emptySnap() { const s = {}; this.ORDER.forEach(k => { s[k] = new Map(); }); return s; },
 
-  async loadTenantData(ids) {
+  async loadTenantData(ids, root, snaps) {
     const today = this.todayISO();
     const [barbers, works, services, customers, appts, walks, excs] = await Promise.all([
       this.fetchRows('barbers', ids),
@@ -383,9 +483,9 @@ const DB = {
     ]);
     const S = this.SPECS;
     ids.forEach(tid => {
-      const t = this.tenantById(tid);
+      const t = root.tenants.find(x => x.id === tid);
       if (!t) return;
-      const st = this.root.data[tid] || this.emptyState(t);
+      const st = root.data[tid] || this.emptyState(t);
       const mine = (rows) => rows.filter(r => r.tenant_id === tid);
       const tb = mine(barbers).sort((a, b) => (a.sort - b.sort) || String(a.created_at).localeCompare(String(b.created_at)));
       const tw = mine(works);
@@ -401,19 +501,18 @@ const DB = {
       st.settings.shopName = t.name;
       st.settings.currency = t.currency;
       st.settings.ownerName = t.ownerName;
-      this.sanitize(st);
-      this.root.data[tid] = st;
-      this._snap[tid] = this.snapshotOf(tid);
+      root.data[tid] = st;
+      snaps[tid] = this.snapshotOf(tid, root);
     });
-    if (this.tenant) this.useTenant(this.tenant.id);
   },
 
-  async loadAudit() {
+  async loadAudit(root) {
     const u = (typeof Auth !== 'undefined') ? Auth.user : null;
-    if (!u || !(u.role === 'SUPERADMIN' || (u.role === 'ADMIN' && u.grants && u.grants.audit))) { this.root.audit = []; return; }
+    if (!u || !(u.role === 'SUPERADMIN' || (u.role === 'ADMIN' && u.grants && u.grants.audit))) return [];
     const rows = await this.fetchRows('audit_log', null, { order: 'ts', asc: false, max: this.AUDIT_MAX });
-    this.root.audit = rows.map(r => this.fromAudit(r));
-    this.sanitize(this.root.audit);
+    const names = {};
+    ((root || this.root || {}).tenants || []).forEach(t => { names[t.id] = t.name; });
+    return rows.map(r => Object.assign(this.fromAudit(r), { tenantName: r.tenant_id ? (names[r.tenant_id] || '—') : '—' }));
   },
 
   load() {
@@ -467,26 +566,41 @@ const DB = {
     if (!slug) return { ok: false, slug: null, tenant: null };
 
     const sb = this.client();
+    const t0 = Date.now();
     const { data, error } = await sb.rpc('web_barberia', { p_slug: slug });
     if (error) throw error;
-    if (!data) return { ok: false, slug, tenant: null };
+    if (!data || !data.tenant) return { ok: false, slug, tenant: null };
 
+    // Campos nuevos (migración de correcciones QA). Pueden venir en la raíz o en
+    // "tenant"; si la base es antigua y no los envía, la página sigue como antes.
     const r = data.tenant;
+    const pick = (k) => (data[k] !== undefined && data[k] !== null) ? data[k] : r[k];
+
+    // Reloj: diferencia entre el servidor y este aparato (a mitad del viaje de ida y vuelta)
+    const serverNow = Date.parse(pick('server_now') || '');
+    this._clockOffset = isNaN(serverNow) ? 0 : serverNow - Math.round((t0 + Date.now()) / 2);
+
     const t = this.fromTenant({
       id: r.id, slug: r.slug, name: r.name, logo_url: r.logo_url, palette: r.palette, address: r.address,
-      phone: r.phone, hours: r.hours, city: r.city, currency: r.currency, timezone: r.timezone,
+      phone: r.phone, hours: r.hours, city: r.city, currency: r.currency, timezone: pick('timezone'),
       time_slots: r.time_slots, schedule: r.schedule, status: 'ACTIVE'
     });
+    const lead = parseInt(pick('lead_minutes'), 10);
+    t.leadMinutes = isNaN(lead) ? 0 : Math.min(1440, Math.max(0, lead));
+    t.waEnabled = pick('wa_enabled') !== false;      // sin dato (base antigua) = como antes
+    t.accepting = pick('accepting') !== false;
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
-    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: s.duration_min, desc: s.description || '', featured: !!s.featured }));
+    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
       works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
       schedule: this.normWeek(b.schedule)
     }));
     st.scheduleExceptions = (data.exceptions || []).map(e => this.SPECS.exceptions.from(e));
-    st.walkIns = st.barberProfiles.filter(b => b.inChair).map(b => ({ id: 'live-' + b.id, barber: b.name, status: 'EN_SILLON' }));
+    // "En sillón ahora": la base lo calcula; aquí se fecha con hoy para que solo cuente el día actual
+    const today = this.todayISO();
+    st.walkIns = st.barberProfiles.filter(b => b.inChair).map(b => ({ id: 'live-' + b.id, barber: b.name, barberId: b.id, date: today, status: 'EN_SILLON' }));
     this.root.data[t.id] = st;
     this.sanitize(st);
     this.useTenant(t.id);
@@ -495,14 +609,19 @@ const DB = {
     return { ok: true, slug: t.slug, tenant: t };
   },
 
-  // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario
+  // Web pública: horarios ocupados (sin datos de clientes) para bloquearlos en el formulario.
+  // Cada fila trae su duración (duration_min); sin ella (base antigua) se asume un turno.
   async refreshBusy() {
     if (this.mode !== 'public' || !this.tenant) return;
     const { data, error } = await this.client().rpc('web_ocupados', { p_slug: this.tenant.slug, p_days: this.tenant.schedule.maxDays });
     if (error) throw error;
     const byId = {};
     this.state.barberProfiles.forEach(b => { byId[b.id] = b.name; });
-    this.state.appointments = (data || []).map((r, i) => ({ id: 'busy-' + i, barber: byId[r.barber_id] || '', date: r.date, time: this.hhmm(r.time), status: 'PROGRAMADA' }));
+    this.state.appointments = (data || []).map((r, i) => ({
+      id: 'busy-' + i, barberId: r.barber_id || null, barber: byId[r.barber_id] || '', date: r.date, time: this.hhmm(r.time),
+      durationMin: Number(r.duration_min) || 0, status: 'PROGRAMADA'
+    }));
+    this._busyAt = Date.now();
   },
 
   // Web pública: enviar la reserva (Edge Function "reservar": captcha + crear_reserva)
@@ -537,16 +656,16 @@ const DB = {
      ESCRITURA: guardar = enviar solo lo que cambió
      ================================================================== */
   // Copia "lógica" de los datos de una barbería, para comparar después
-  snapshotOf(tid) {
+  snapshotOf(tid, root) {
     const snap = this.emptySnap();
-    const cur = this.collect(tid);
+    const cur = this.collect(tid, root);
     this.ORDER.forEach(k => cur[k].forEach((v, id) => snap[k].set(id, JSON.stringify(v.logical))));
     return snap;
   },
 
   // Recorre los datos de una barbería. Asigna un id definitivo (UUID) a lo nuevo.
-  collect(tid) {
-    const st = this.root.data[tid];
+  collect(tid, root) {
+    const st = (root || this.root).data[tid];
     const S = this.SPECS;
     const out = {};
     this.ORDER.forEach(k => { out[k] = new Map(); });
@@ -565,6 +684,17 @@ const DB = {
     return out;
   },
 
+  /* Borrado explícito: la acción de la pantalla quita el registro de la lista
+     Y llama a markDeleted. Nunca se borra algo solo porque "falta" en la copia
+     local (por ejemplo, tras una recarga a medias). */
+  markDeleted(kind, id, tenantId) {
+    const tid = tenantId || (this.tenant && this.tenant.id);
+    if (!tid || !id || !this.SPECS[kind]) return;
+    const d = this._deletes[tid] || (this._deletes[tid] = {});
+    (d[kind] || (d[kind] = new Set())).add(id);
+  },
+
+  // Guarda los cambios. Devuelve una promesa: true = el servidor los aceptó.
   save() {
     if (this.state && this.tenant) this.state.settings.shopName = this.tenant.name;
     const p = this.persist();
@@ -575,22 +705,27 @@ const DB = {
 
   // Encola un envío de cambios. Varias llamadas seguidas se agrupan en uno.
   persist() {
-    if (!this.root || this.mode === 'public') return Promise.resolve();
-    this.sanitize(this.root);
+    if (!this.root || this.mode === 'public') return Promise.resolve(true);
     if (this.state && this.tenant) this.pref('quick:' + this.tenant.id, this.state.settings.showQuickStart !== false);
-    if (this._pending) return this._chain;
+    if (this._pending) return this._pendingPromise;
     this._pending = true;
-    this._chain = this._chain.then(() => new Promise(r => setTimeout(r, 0))).then(() => {
-      this._pending = false;
-      return this.sync();
-    });
-    return this._chain;
+    this._pendingPromise = this._chain = this._chain
+      .then(() => new Promise(r => setTimeout(r, 0)))
+      .then(() => {
+        // Una recarga anterior en la cola ya pudo enviar estos cambios (ver _reload)
+        if (!this._pending) return this._lastSyncOk;
+        this._pending = false;
+        return this.sync();
+      });
+    return this._pendingPromise;
   },
 
   whenSaved() { return this._chain; },
 
+  // Envía los cambios. Devuelve true si todo se guardó; si no, avisa, recarga y devuelve false.
   async sync() {
     const sb = this.client();
+    this._syncing = true;
     try {
       // 1. Barberías (alta y edición)
       for (const t of this.root.tenants) {
@@ -604,15 +739,16 @@ const DB = {
         if (before === undefined) {
           const { data, error } = await sb.from('tenants').insert(Object.assign({ id: t.id }, row)).select().single();
           if (error) throw error;
-          Object.assign(t, this.fromTenant(data));
+          Object.assign(t, this.fromTenantCrm(data));
           this._snapTenants.set(t.id, JSON.stringify(this.tenantRow(t)));
           if (!this._snap[t.id]) this._snap[t.id] = this.emptySnap();
         } else if (before !== JSON.stringify(row)) {
           const prev = JSON.parse(before);
           const patch = {};
           Object.keys(row).forEach(k => { if (JSON.stringify(row[k]) !== JSON.stringify(prev[k])) patch[k] = row[k]; });
-          const { error } = await sb.from('tenants').update(patch).eq('id', t.id);
+          const { data, error } = await sb.from('tenants').update(patch).eq('id', t.id).select('id');
           if (error) throw error;
+          if (!data || !data.length) throw new Error('No tienes permiso para guardar este cambio.');
           this._snapTenants.set(t.id, JSON.stringify(row));
         }
       }
@@ -621,10 +757,18 @@ const DB = {
         await this.syncTenant(tid);
       }
       this._lastWrite = Date.now();
+      this._lastSyncOk = true;
+      return true;
     } catch (err) {
       console.error('[DB] Error al guardar', err);
+      this._lastSyncOk = false;
+      this._lastWrite = Date.now();
+      if (this.isAuthError(err)) { this.sessionLost('expired'); return false; }
       this.notify(this.errorText(err), 'error');
-      await this.reload();
+      await this._reload(true);
+      return false;
+    } finally {
+      this._syncing = false;
     }
   },
 
@@ -632,6 +776,7 @@ const DB = {
     const sb = this.client();
     const S = this.SPECS;
     if (!this._snap[tid]) this._snap[tid] = this.emptySnap();
+    const gen = this._gen;
     const snap = this._snap[tid];
     // Fotos nuevas (base64) → Storage; en la base solo se guarda el enlace
     const st = this.root.data[tid];
@@ -642,6 +787,7 @@ const DB = {
       }
     }
     const cur = this.collect(tid);
+    const dels = this._deletes[tid] || {};
 
     for (const k of this.ORDER) {
       const spec = S[k];
@@ -668,36 +814,45 @@ const DB = {
         if (k === 'appointments' && rows.some(r => !r.barber_id)) throw new Error('Selecciona un barbero válido para la cita.');
         const { data, error } = await sb.from(spec.table).insert(rows).select();
         if (error) throw error;
-        this.applyReturned(k, inserts, data, tid);
+        this.applyReturned(k, inserts, data, tid, gen);
       }
       for (const u of updates) {
         const patch = spec.columns(u.changed, tid);
         const { data, error } = await sb.from(spec.table).update(patch).eq('id', u.v.rec.id).select();
         if (error) throw error;
         if (!data || !data.length) throw new Error('No tienes permiso para guardar este cambio.');
-        this.applyReturned(k, [u.v], data, tid);
+        this.applyReturned(k, [u.v], data, tid, gen);
       }
-      // Borrados: barberos y servicios se desactivan (conservan el historial)
-      for (const id of Array.from(snap[k].keys())) {
-        if (cur[k].has(id)) continue;
-        if (spec.soft) {
-          const { error } = await sb.from(spec.table).update({ active: false }).eq('id', id);
-          if (error) throw error;
-          if (k === 'barbers') {
-            await sb.from('profiles').update({ barber_id: null }).eq('barber_id', id);
-            this.root.users.forEach(u => { if (u.barberId === id) u.barberId = null; });
+      // Borrados: SOLO los pedidos con markDeleted. Barberos y servicios se
+      // desactivan (conservan el historial); lo demás se borra de verdad.
+      const want = dels[k] ? Array.from(dels[k]) : [];
+      for (const id of want) {
+        if (cur[k].has(id)) { dels[k].delete(id); continue; }   // volvió a la lista: no se borra
+        if (snap[k].has(id)) {
+          if (spec.soft) {
+            const { data, error } = await sb.from(spec.table).update({ active: false }).eq('id', id).select('id');
+            if (error) throw error;
+            if (!data || !data.length) throw new Error('No tienes permiso para guardar este cambio.');
+            if (k === 'barbers') {
+              await sb.from('profiles').update({ barber_id: null }).eq('barber_id', id);
+              this.root.users.forEach(u => { if (u.barberId === id) u.barberId = null; });
+            }
+          } else {
+            const { data, error } = await sb.from(spec.table).delete().eq('id', id).select('id');
+            if (error) throw error;
+            if (!data || !data.length) throw new Error('No tienes permiso para borrar este registro.');
           }
-        } else {
-          const { error } = await sb.from(spec.table).delete().eq('id', id);
-          if (error) throw error;
+          if (gen === this._gen) snap[k].delete(id);
         }
-        snap[k].delete(id);
+        dels[k].delete(id);
       }
     }
   },
 
-  // Tras guardar: copiar lo que calculó el servidor (código, nombres, precio) y actualizar la copia
-  applyReturned(k, items, rows, tid) {
+  // Tras guardar: copiar lo que calculó el servidor (código, nombres, precio) y actualizar la copia.
+  // Si entretanto llegó una recarga (otra generación), lo devuelto ya no aplica y se descarta.
+  applyReturned(k, items, rows, tid, gen) {
+    if (gen !== undefined && gen !== this._gen) return;
     const spec = this.SPECS[k];
     const snap = this._snap[tid][k];
     const byId = {};
@@ -706,16 +861,30 @@ const DB = {
       const r = byId[v.rec.id];
       if (r && (k === 'appointments' || k === 'walkins')) {
         const fresh = spec.from(r);
-        ['code', 'service', 'barber', 'price', 'createdAt', 'completedAt'].forEach(f => { if (f in fresh) v.rec[f] = fresh[f]; });
-        this.sanitize(v.rec);
+        // status: el servidor revierte CONFIRMADA_WSP → PROGRAMADA al reprogramar
+        ['code', 'status', 'service', 'serviceId', 'barber', 'barberId', 'price', 'durationMin', 'createdAt', 'completedAt'].forEach(f => { if (f in fresh) v.rec[f] = fresh[f]; });
       }
       const logical = k === 'works' ? v.logical : spec.logical(v.rec);
       snap.set(v.rec.id, JSON.stringify(logical));
     });
   },
 
-  // Vuelve a leer todo del servidor y repinta la página
-  async reload() {
+  // Vuelve a leer todo del servidor y repinta la página. Va en la misma cola que
+  // los guardados: nunca corre a la vez que un envío.
+  reload() {
+    this._chain = this._chain.then(() => this._reload(false));
+    return this._chain;
+  },
+
+  async _reload(fromSync) {
+    if (this._sessionLost) return false;
+    // Si hay cambios esperando su turno detrás de esta recarga, se envían antes
+    // (si no, la recarga los pisaría).
+    if (!fromSync && this.mode !== 'public' && this._pending) {
+      this._pending = false;
+      const ok = await this.sync();
+      if (!ok) return false;   // sync ya avisó y recargó
+    }
     const activeId = this.tenant ? this.tenant.id : null;
     try {
       if (this.mode === 'public') await this.refreshBusy();
@@ -725,25 +894,46 @@ const DB = {
       }
     } catch (e) {
       console.error('[DB] Error al recargar', e);
+      if (this.isAuthError(e)) { this.sessionLost('expired'); return false; }
       this.notify(this.errorText(e), 'error');
-      return;
+      return false;
     }
+    if (this.mode !== 'public' && !this.checkAccess()) return false;
     if (typeof this.onReload === 'function') {
       try { this.onReload(); } catch (e) { console.error(e); }
     }
+    return true;
   },
 
-  // Tiempo real: si otra persona (o la web) crea o cambia una cita, se recarga
+  // Tras recargar: ¿el usuario sigue existiendo, activo y con su barbería activa?
+  checkAccess() {
+    const u = (typeof Auth !== 'undefined') ? Auth.user : null;
+    if (!u) return true;
+    const me = this.root.users.find(x => x.id === u.id);
+    if (!me) { this.sessionLost('noprofile'); return false; }
+    if (!me.active) { this.sessionLost('inactive'); return false; }
+    if (me.mustChangePassword) { this.sessionLost('temp'); return false; }
+    if (this.mode === 'crm') {
+      if (!this.tenant) { this.sessionLost(u.role === 'SUPERADMIN' ? 'noaccess' : 'suspended'); return false; }
+      if (u.role !== 'SUPERADMIN' && this.tenant.status !== 'ACTIVE') { this.sessionLost('suspended'); return false; }
+    }
+    return true;
+  },
+
+  // Tiempo real: si otra persona (o la web) crea o cambia una cita, se recarga.
+  // Mientras hay un guardado en curso (o recién hecho) la recarga se APLAZA, no se descarta.
   subscribe() {
     if (this._channel) return;
     try {
-      const reload = () => {
-        clearTimeout(this._rtTimer);
-        this._rtTimer = setTimeout(() => {
-          if (this._pending || Date.now() - this._lastWrite < 2500) return;
-          this.reload();
-        }, 1200);
+      const later = (ms) => { clearTimeout(this._rtTimer); this._rtTimer = setTimeout(tick, ms); };
+      const tick = () => {
+        if (this._sessionLost) return;
+        if (this._pending || this._syncing) return later(1500);
+        const since = Date.now() - this._lastWrite;
+        if (since < 2500) return later(2500 - since);
+        this.reload();
       };
+      const reload = () => later(1200);
       this._channel = this.client().channel('reservalope-cambios')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, reload)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'walk_ins' }, reload)
@@ -768,31 +958,14 @@ const DB = {
     return this.client().storage.from('media').getPublicUrl(path).data.publicUrl;
   },
 
-  /* ---------------- Sanitización (igual que la demo) ----------------
-     Los nombres se usan dentro de atributos onclick: se neutralizan comillas
-     y < > para que ningún texto pueda inyectar código. */
-  SAFE_KEYS: ['photo', 'image', 'src', 'logo', 'refImg', 'clientImg', 'passHash'],
-  sanitize(node) {
-    if (Array.isArray(node)) {
-      node.forEach((v, i) => {
-        if (typeof v === 'string') node[i] = this.cleanText(v, false);
-        else if (v && typeof v === 'object') this.sanitize(v);
-      });
-      return node;
-    }
-    if (node && typeof node === 'object') {
-      Object.keys(node).forEach(k => {
-        const v = node[k];
-        if (typeof v === 'string') node[k] = this.cleanText(v, this.SAFE_KEYS.includes(k));
-        else if (v && typeof v === 'object' && !(v instanceof Date)) this.sanitize(v);
-      });
-    }
-    return node;
-  },
-  cleanText(v, isAsset) {
-    if (isAsset) return v.replace(/["'<>`]/g, '');
-    return v.replace(/[<>`]/g, '').replace(/'/g, '’').replace(/"/g, '”').replace(/\\/g, '/');
-  },
+  /* ---------------- Texto seguro ----------------
+     Los datos se guardan TAL CUAL los escribe el usuario ("D'Leo" sigue
+     siendo "D'Leo"). La protección contra inyección de código está al
+     MOSTRARLOS: toda pantalla escapa el texto con UI.esc() y no arma
+     onclick con nombres (solo con ids UUID).
+     sanitize() se conserva vacío para no romper llamadas antiguas: ya no
+     modifica nada (antes reescribía comillas y provocaba UPDATEs fantasma). */
+  sanitize(node) { return node; },
 
   /* ---------------- Historial de actividad ---------------- */
   log(action, detail, opts) {
@@ -838,10 +1011,15 @@ const DB = {
   },
   dayOfWeek(iso) { return new Date(iso + 'T12:00:00').getDay(); },
   fromMinutes(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); },
-  rangesSlots(ranges, interval) {
+  /* Horas de inicio cada "interval" minutos dentro de cada tramo. "length" es lo
+     que debe caber desde el inicio hasta el fin del tramo (por defecto, un turno):
+     con un servicio de 60 min y turnos de 30, en un tramo 14:00–20:30 la última
+     hora es 19:30. Los descansos son el hueco entre tramos, así que nada los invade. */
+  rangesSlots(ranges, interval, length) {
     const out = [];
+    const len = Math.max(Number(length) || 0, interval);
     this.normRanges(ranges).forEach(r => {
-      for (let m = this.toMinutes(r[0]); m + interval <= this.toMinutes(r[1]); m += interval) out.push(this.fromMinutes(m));
+      for (let m = this.toMinutes(r[0]); m + len <= this.toMinutes(r[1]); m += interval) out.push(this.fromMinutes(m));
     });
     return Array.from(new Set(out)).sort();
   },
@@ -852,18 +1030,42 @@ const DB = {
   exceptionFor(date, barberId) {
     return ((this.state && this.state.scheduleExceptions) || []).find(e => e.date === date && (e.barberId || null) === (barberId || null)) || null;
   },
-  // Horas de inicio disponibles para un barbero (por nombre) en una fecha. Sin barbero = horario de la barbería.
-  slotsFor(date, barberName) {
+  // Barbero por id (preferido) o por nombre (compatibilidad con pantallas antiguas)
+  barberOf(ref) {
+    if (!ref || !this.state) return null;
+    const list = this.state.barberProfiles || [];
+    return list.find(b => b.id === ref) || list.find(b => b.name === ref) || null;
+  },
+  // Minutos que ocupa el servicio elegido (0 = un turno)
+  serviceDuration(ref) {
+    if (!ref || !this.state) return 0;
+    const s = (this.state.services || []).find(x => x.id === ref || x.name === ref);
+    return s ? (Number(s.duration) || 0) : 0;
+  },
+  // Duración de una cita ya registrada: la suya, la de su servicio o un turno
+  apptDuration(a) {
+    const own = Number(a.durationMin || a.duration_min || a.duration) || 0;
+    if (own > 0) return own;
+    const bySrv = this.serviceDuration(a.serviceId) || this.serviceDuration(a.service);
+    if (bySrv > 0) return bySrv;
+    return (this.tenant && this.tenant.schedule ? this.tenant.schedule.interval : 30);
+  },
+  /* Horas de inicio disponibles para un barbero en una fecha.
+     barber: id o nombre (sin barbero = horario de la barbería).
+     durationMin (opcional): duración del servicio elegido; la cita debe terminar
+     antes del cierre y del descanso. Sin duración se exige un turno, como antes. */
+  slotsFor(date, barber, durationMin) {
     if (!this.tenant || !date) return [];
     const sch = this.tenant.schedule || this.normSchedule(null);
+    const len = Math.max(sch.interval, Number(durationMin) || 0);
     const dow = this.dayOfWeek(date);
     const shopExc = this.exceptionFor(date, null);
-    let slots = this.rangesSlots(shopExc ? shopExc.ranges : sch.week[dow], sch.interval);
-    const b = barberName ? (this.state.barberProfiles || []).find(x => x.name === barberName) : null;
+    let slots = this.rangesSlots(shopExc ? shopExc.ranges : sch.week[dow], sch.interval, len);
+    const b = this.barberOf(barber);
     if (b) {
       const bExc = this.exceptionFor(date, b.id);
       const ranges = bExc ? bExc.ranges : (b.schedule ? (b.schedule.week[dow] || []) : null);
-      if (ranges) slots = slots.filter(t => this.slotFits(t, sch.interval, ranges));
+      if (ranges) slots = slots.filter(t => this.slotFits(t, len, ranges));
     }
     return slots;
   },
@@ -876,55 +1078,97 @@ const DB = {
     return n / 7;
   },
 
-  nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); },
+  nowMinutes() { const n = this.nowParts(); return n.h * 60 + n.m; },
   toMinutes(t) { const p = String(t || '0:0').split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); },
+  daysBetweenISO(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); },
   isPastDate(date) { return !date || date < this.todayISO(); },
   isPastSlot(date, time) {
     if (this.isPastDate(date)) return true;
     return date === this.todayISO() && this.toMinutes(time) <= this.nowMinutes();
   },
-  isBusySlot(date, time, barber, excludeId) {
-    return this.state.appointments.some(a =>
-      a.id !== excludeId && a.date === date && a.time === time && a.barber === barber && a.status !== 'CANCELADA');
+  // Web pública: la cita debe pedirse con "lead_minutes" de anticipación (puede cruzar la medianoche)
+  isTooSoon(date, time) {
+    const lead = (this.mode === 'public' && this.tenant) ? (Number(this.tenant.leadMinutes) || 0) : 0;
+    if (!lead) return false;
+    const diff = this.daysBetweenISO(this.todayISO(), date) * 1440 + this.toMinutes(time) - this.nowMinutes();
+    return diff < lead;
   },
-  slotState(date, time, barber, excludeId) {
+  sameBarber(a, b, ref) {
+    if (b) return a.barberId ? a.barberId === b.id : a.barber === b.name;
+    return a.barber === ref || (!!a.barberId && a.barberId === ref);
+  },
+  // Ocupado si el rango [inicio, inicio + duración) se cruza con otra cita vigente del barbero
+  isBusySlot(date, time, barber, excludeId, durationMin) {
+    const b = this.barberOf(barber);
+    const interval = this.tenant && this.tenant.schedule ? this.tenant.schedule.interval : 30;
+    const s = this.toMinutes(time);
+    const e = s + (Number(durationMin) > 0 ? Number(durationMin) : interval);
+    return (this.state.appointments || []).some(a => {
+      if (a.id === excludeId || a.date !== date || a.status === 'CANCELADA' || !this.sameBarber(a, b, barber)) return false;
+      const as = this.toMinutes(a.time);
+      return as < e && s < as + this.apptDuration(a);
+    });
+  },
+  // 'past' | 'soon' (sin la anticipación mínima, solo web) | 'busy' | 'free'
+  slotState(date, time, barber, excludeId, durationMin) {
     if (this.isPastSlot(date, time)) return 'past';
-    if (barber && this.isBusySlot(date, time, barber, excludeId)) return 'busy';
+    if (this.isTooSoon(date, time)) return 'soon';
+    if (barber && this.isBusySlot(date, time, barber, excludeId, durationMin)) return 'busy';
     return 'free';
   },
-  freeSlots(date, barber) { return this.slotsFor(date, barber).filter(t => this.slotState(date, t, barber) === 'free'); },
-  firstBookableDate(barber) {
-    const last = this.maxBookDate();
-    for (let d = this.todayISO(); d <= last; d = this.addDays(d, 1)) {
-      if (this.freeSlots(d, barber).length) return d;
-    }
-    return this.todayISO();
+  freeSlots(date, barber, durationMin) {
+    return this.slotsFor(date, barber, durationMin).filter(t => this.slotState(date, t, barber, null, durationMin) === 'free');
   },
-  validateBooking(date, time, barber, excludeId) {
+  // Primer día con horario libre desde "fromDate" (o hoy); null si no hay ninguno hasta el máximo
+  nextBookableDate(barber, durationMin, fromDate) {
+    const today = this.todayISO();
+    const last = this.maxBookDate();
+    for (let d = (fromDate && fromDate > today) ? fromDate : today; d <= last; d = this.addDays(d, 1)) {
+      if (this.freeSlots(d, barber, durationMin).length) return d;
+    }
+    return null;
+  },
+  firstBookableDate(barber, durationMin, fromDate) {
+    return this.nextBookableDate(barber, durationMin, fromDate) || this.nextBookableDate(barber, durationMin) || this.todayISO();
+  },
+  validateBooking(date, time, barber, excludeId, durationMin) {
     if (!date || !time) return 'Selecciona fecha y hora.';
     if (this.isPastDate(date)) return 'No se puede reservar en una fecha que ya pasó.';
-    if (!this.slotsFor(date, barber).includes(time)) return (barber || 'La barbería') + ' no atiende en ese horario. Elige otro de la lista.';
+    const who = (this.barberOf(barber) || {}).name || barber || 'La barbería';
+    if (!this.slotsFor(date, barber).includes(time)) return who + ' no atiende en ese horario. Elige otro de la lista.';
+    if (!this.slotsFor(date, barber, durationMin).includes(time)) return 'Ese servicio no termina antes del cierre o del descanso. Elige una hora más temprana.';
     if (this.isPastSlot(date, time)) return 'Ese horario ya pasó. Elige uno más tarde.';
-    if (this.isBusySlot(date, time, barber, excludeId)) return 'Ese horario ya está ocupado para ' + barber + '.';
+    if (this.isTooSoon(date, time)) return 'Reserva con al menos ' + this.tenant.leadMinutes + ' minutos de anticipación. Elige una hora más tarde.';
+    if (this.isBusySlot(date, time, barber, excludeId, durationMin)) return 'Ese horario ya está ocupado para ' + who + '.';
     return '';
   },
 
-  /* ---------------- Alcance por usuario ---------------- */
-  linkedBarberName() {
+  /* ---------------- Alcance por usuario ----------------
+     El personal vinculado a un barbero solo ve y opera SUS citas. Se compara
+     por id (barberId): renombrar al barbero no le quita sus citas. */
+  linkedBarberId() {
     const u = (typeof Auth !== 'undefined') ? Auth.user : null;
     if (!u || u.role !== 'STAFF' || !u.barberId || !this.state) return null;
-    const bp = this.state.barberProfiles.find(b => b.id === u.barberId);
+    return this.state.barberProfiles.some(b => b.id === u.barberId) ? u.barberId : null;
+  },
+  linkedBarberName() {
+    const id = this.linkedBarberId();
+    const bp = id ? this.state.barberProfiles.find(b => b.id === id) : null;
     return bp ? bp.name : null;
   },
   visibleAppointments() {
-    const own = this.linkedBarberName();
-    return own ? this.state.appointments.filter(a => a.barber === own) : this.state.appointments;
+    const own = this.linkedBarberId();
+    return own ? this.state.appointments.filter(a => a.barberId === own) : this.state.appointments;
   },
+  // Barberos que el usuario puede asignar: [{ id, name }]
   assignableBarbers() {
-    const own = this.linkedBarberName();
-    return own ? [own] : this.getBarberNames();
+    const own = this.linkedBarberId();
+    const list = this.state.barberProfiles.map(b => ({ id: b.id, name: b.name }));
+    return own ? list.filter(b => b.id === own) : list;
   },
   getBarberNames() { return this.state.barberProfiles.map(b => b.name); },
+  barberById(id) { return (this.state && this.state.barberProfiles.find(b => b.id === id)) || null; },
+  serviceById(id) { return (this.state && this.state.services.find(s => s.id === id)) || null; },
 
   statusLabel(status) {
     const map = {
@@ -934,17 +1178,33 @@ const DB = {
     return map[status] || status;
   },
 
-  ensureCustomer(name, phone, notes = '') {
-    if (!name) return;
-    const cleanName = name.trim();
+  /* Cliente por celular (único por barbería). Lo crea el servidor con la RPC
+     cliente_asegurar: busca SOLO por teléfono, no renombra a uno existente y
+     devuelve su id. Sin celular válido no se crea ficha. Devuelve el id o null. */
+  async ensureCustomer(name, phone) {
+    const cleanName = String(name || '').trim();
     const p = this.cleanPhone(phone);
-    const existing = this.state.customers.find(c =>
-      c.name.toLowerCase() === cleanName.toLowerCase() || (p && this.cleanPhone(c.phone) === p));
-    if (existing) {
-      if (notes) existing.notes = notes;
-    } else {
-      this.state.customers.unshift({ id: this.uid(), name: cleanName, phone: p || '—', notes: notes || 'Registrado automáticamente' });
+    if (!cleanName || !p || !this.tenant) return null;
+    const known = this.state.customers.find(c => this.cleanPhone(c.phone) === p && this.isUuid(c.id));
+    if (known) return known.id;
+    // p_tenant_id es obligatorio para el superadministrador; para el resto debe ser su barbería
+    const { data, error } = await this.client().rpc('cliente_asegurar', { p_name: cleanName, p_phone: p, p_tenant_id: this.tenant.id });
+    if (error) {
+      if (this.isAuthError(error)) this.sessionLost('expired');
+      throw error;
     }
+    const id = typeof data === 'string' ? data : (data && (data.id || data.cliente_asegurar)) || null;
+    if (!this.isUuid(id)) return null;
+    // Solo quien ve la cartera de clientes la tiene en memoria
+    const canSee = typeof Auth === 'undefined' || Auth.can('customers.view');
+    if (canSee && !this.state.customers.some(c => c.id === id)) {
+      const rec = { id, name: cleanName, phone: p, notes: '' };
+      this.state.customers.unshift(rec);
+      // Ya existe en el servidor: se anota en la copia para no insertarlo otra vez
+      const snap = this._snap[this.tenant.id] || (this._snap[this.tenant.id] = this.emptySnap());
+      snap.customers.set(id, JSON.stringify(this.SPECS.customers.logical(rec)));
+    }
+    return id;
   },
 
   /* Catálogo base para una barbería nueva */

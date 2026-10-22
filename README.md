@@ -1,8 +1,8 @@
-# Reservalope · Sistema para barberías (demo)
+# Reservalope · Sistema para barberías
 
 Plataforma web para administrar **varias barberías** desde un solo sistema: cada barbería tiene su propia web de reservas con su marca, un CRM para su equipo y, por encima de todas, **Reservalope**, la consola del superadministrador con dashboard global, alertas y reportes.
 
-Es una **demo que funciona 100 % en el navegador**: HTML, CSS y JavaScript sin frameworks ni servidor. Los datos se guardan en el `localStorage` de cada navegador.
+El frontend es HTML, CSS y JavaScript sin frameworks (se publica como sitio estático). Los datos, las cuentas, las fotos y las reglas de acceso viven en **Supabase** (Postgres con RLS, Auth, Storage y Realtime); el navegador solo guarda la sesión. Los mensajes de WhatsApp los envía un bot aparte (ver [bot/](bot/)).
 
 ![Dashboard global de Reservalope](docs/capturas/reservalope-dashboard.png)
 
@@ -30,7 +30,7 @@ Es una **demo que funciona 100 % en el navegador**: HTML, CSS y JavaScript sin f
 - **Superadministrador:** acceso total; crea barberías y usuarios.
 - **Administrador:** solo su barbería; crea personal; módulos extra según lo que le otorgue el superadministrador.
 - **Personal:** ve el panel, crea y gestiona citas y walk-in (solo sus propias citas si está vinculado a un barbero).
-- Contraseñas con sal y hash, bloqueo tras 5 intentos, cambio obligatorio de contraseña temporal, sesión con caducidad e historial de actividad.
+- Cuentas en Supabase Auth, cambio obligatorio de contraseña temporal, sesión con caducidad y cierre por inactividad, e historial de actividad.
 
 **Reservalope · consola del superadministrador** (`reservalope.html`)
 - Dashboard global con comparación contra el periodo anterior, ranking de barberías, ingresos por suscripciones.
@@ -69,16 +69,12 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 | Página | Enlace (sobre la URL publicada) |
 |---|---|
 | Web de Golden Barbería | `index.html?b=golden` |
-| Web de Navaja Norte (demo) | `index.html?b=navaja-norte` |
+| Web de cualquier otra barbería | `index.html?b=ENLACE-DE-LA-BARBERIA` |
 | Ingreso al CRM / Reservalope | `login.html` |
 
 ### Cuentas
 
-Las contraseñas de las cuentas de demostración ya no se publican en este repositorio. Pídelas al responsable del proyecto.
-
-En producción las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel de Supabase y él crea a los administradores y al personal (ver [supabase/README.md](supabase/README.md)).
-
-La demo trae 90 días de historial de ejemplo. Se borra desde **Reservalope → Plataforma → Borrar datos demo**.
+Las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel de Supabase y él crea a los administradores y al personal (ver [supabase/README.md](supabase/README.md)). Las contraseñas nunca se publican en este repositorio.
 
 ---
 
@@ -95,7 +91,7 @@ La demo trae 90 días de historial de ejemplo. Se borra desde **Reservalope → 
 │   ├── variables.css, components.css, layout.css, main.css
 │   └── pages/                               Estilos por página (crm, reservalope, reports, analytics…)
 ├── js/
-│   ├── data/      db.js (datos y reglas de agenda) · demo-seed.js (datos de ejemplo)
+│   ├── data/      db.js (conexión con Supabase, datos y reglas de agenda)
 │   ├── core/      auth, guard (permisos), tenant-brand (marca), analytics, charts, reports, report-export
 │   ├── pages/     lógica de cada página
 │   ├── components/ modal, WhatsApp, constructor de reportes
@@ -106,13 +102,10 @@ La demo trae 90 días de historial de ejemplo. Se borra desde **Reservalope → 
 
 ---
 
-## Limitaciones de la demo
+## Seguridad
 
-- **Los datos viven en el navegador.** No se comparten entre computadoras ni celulares, y se pierden si se borra el historial del navegador.
-- **El login no es una barrera de seguridad real**: quien tenga acceso al equipo puede modificar los datos con las herramientas del navegador.
-- El espacio del navegador es limitado (~5 MB); muchas fotos grandes pueden llenarlo.
-
-**Para producción** se reemplazan `js/data/db.js` y `js/core/auth.js` por un backend real (por ejemplo, Supabase o una API propia) con base de datos y autenticación en el servidor. La interfaz, los roles y las reglas ya están separados para que ese cambio sea acotado.
+- Los permisos que muestra la interfaz son solo comodidad: quien decide qué se puede leer o escribir es la base de datos (RLS y funciones de Supabase).
+- La clave pública de Supabase (`anon`) que lleva el sitio no da acceso por sí sola; sin sesión solo se pueden usar las funciones públicas de reserva.
 
 ---
 
