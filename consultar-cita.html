@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi cita | Reservas en línea</title>
+  <title data-v-fmt="Mi {appointment} | Reservas en línea">Mi cita | Reservas en línea</title>
   <meta name="description" content="Consulta la fecha, hora y estado de tu reserva con tu celular y tu código." data-v-attr="content:Consulta la fecha, hora y estado de tu {appointment} con tu celular y tu código." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Consulta tu cita" />
@@ -29,16 +29,16 @@
         <a class="pub-nav-btn" data-pub="inicio" href="index.html">Inicio</a>
         <a class="pub-nav-btn" data-pub="servicios" href="servicios.html"><span data-v="ServicePlural">Servicios</span></a>
         <a class="pub-nav-btn" data-pub="barberos" href="barberos.html">Equipo</a>
-        <a class="pub-nav-btn active" data-pub="mi-cita" href="consultar-cita.html" aria-current="page">Mi cita</a>
+        <a class="pub-nav-btn active" data-pub="mi-cita" href="consultar-cita.html" aria-current="page"><span>Mi <span data-v="appointment">cita</span></span></a>
         <div class="nav-mobile-extra">
-          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i>Reservar cita</a>
+          <a class="btn btn-accent btn-lg" href="reservar.html"><i data-icon="calendar"></i><span>Reservar <span data-v="appointment">cita</span></span></a>
           <a class="staff-link" href="crm.html"><i data-icon="lock"></i>Acceso del equipo</a>
         </div>
       </nav>
 
       <div class="header-actions">
         <a class="staff-link" href="crm.html" title="Acceso para el equipo del negocio"><i data-icon="lock"></i><span>Acceso</span></a>
-        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> cita</span></span></a>
+        <a class="btn btn-accent header-cta" href="reservar.html"><span>Reservar<span class="cta-long"> <span data-v="appointment">cita</span></span></span></a>
         <button type="button" class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Abrir menú"><i data-icon="menu"></i></button>
       </div>
     </div>
@@ -48,9 +48,9 @@
     <section id="pub-mi-cita" class="page-view">
       <section class="page-hero on-brand">
         <div class="container">
-          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Mi cita</span></nav>
+          <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page"><span>Mi <span data-v="appointment">cita</span></span></span></nav>
           <span class="eyebrow">Consulta rápida</span>
-          <h1>Consulta tu cita</h1>
+          <h1 data-v-fmt="Consulta tu {appointment}">Consulta tu cita</h1>
           <p>Verifica la fecha, hora y estado de tu reserva con tu celular y tu código de reserva.</p>
         </div>
       </section>
@@ -77,7 +77,7 @@
             <span>¿Necesitas ayuda?</span>
             <span data-t-row>Llámanos al <a data-t="phone" href="#"></a></span>
             <span aria-hidden="true">·</span>
-            <a href="reservar.html">Reservar una nueva cita</a>
+            <a href="reservar.html">Hacer una nueva reserva</a>
           </div>
         </div>
       </div>
@@ -99,8 +99,8 @@
             <li><a href="index.html">Inicio</a></li>
             <li><a href="servicios.html"><span data-v="ServicePlural">Servicios</span></a></li>
             <li><a href="barberos.html">Equipo</a></li>
-            <li><a href="reservar.html">Reservar cita</a></li>
-            <li><a href="consultar-cita.html">Consultar mi cita</a></li>
+            <li><a href="reservar.html"><span>Reservar <span data-v="appointment">cita</span></span></a></li>
+            <li><a href="consultar-cita.html"><span>Consultar mi <span data-v="appointment">cita</span></span></a></li>
             <li><a href="privacidad.html">Privacidad</a></li>
           </ul>
         </nav>

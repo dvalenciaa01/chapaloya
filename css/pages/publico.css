@@ -329,6 +329,16 @@ strong { font-weight: 600; }
 .hero-info a { text-decoration: none; }
 .hero-info a:hover { text-decoration: underline; }
 @media (max-width: 480px) { .hero-actions .btn { flex: 1 1 100%; } }
+/* Portada con imagen del negocio: foto decorativa + capa oscura; el texto pasa a
+   blanco (contraste ≥ 4.5:1 aunque la foto sea clara: el fondo nunca supera ~#5a5a5a) */
+.hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.hero.has-image {
+  --on-brand: #FFFFFF; --on-brand-2: rgba(255, 255, 255, 0.9); --on-brand-3: rgba(255, 255, 255, 0.82);
+  --line-dark: rgba(255, 255, 255, 0.18); --line-dark-strong: rgba(255, 255, 255, 0.4);
+  color: var(--on-brand-2); background-color: #1a1a1a;
+}
+.hero.has-image::before { z-index: 1; background: linear-gradient(180deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.74)); }
+.hero.has-image .hero-grid { z-index: 2; }
 
 .hero-card {
   position: relative;
@@ -598,6 +608,12 @@ select.input option:disabled { color: #8a8f96; }
   background: var(--accent-tint); color: var(--text); font-size: var(--fs-sm);
 }
 .notes-field { margin-top: var(--s4); }
+/* Campos propios del negocio (paso 1) */
+.extra-fields { margin-top: var(--s4); }
+.extra-fields .field-wide { grid-column: 1 / -1; }
+textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
+.extra-check .check-line { padding-bottom: 0; color: var(--text); }
+.extra-check .check-line input[aria-invalid="true"] { outline: 2px solid var(--err-text); outline-offset: 2px; }
 .captcha-box { margin: var(--s2) 0 var(--s4); min-height: 0; }
 .booking-submit-btn { width: 100%; }
 .form-legal { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--text-3); }
@@ -618,7 +634,8 @@ select.input option:disabled { color: #8a8f96; }
 .booking-summary-body { padding: var(--s3) var(--s5) var(--s5); }
 .booking-summary-row { display: flex; justify-content: space-between; gap: var(--s4); padding: var(--s3) 0; border-bottom: 1px solid var(--line-dark); font-size: 0.95rem; }
 .booking-summary-row span { color: var(--on-brand-3); }
-.booking-summary-row strong { text-align: right; overflow-wrap: anywhere; }
+.booking-summary-row strong { text-align: right; overflow-wrap: anywhere; flex-shrink: 0; max-width: 62%; }
+.booking-summary-row span { min-width: 0; }
 .booking-summary-total { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding-top: var(--s4); }
 .booking-summary-total span:first-child { color: var(--on-brand-2); font-weight: 600; }
 .booking-total-amount { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--accent); }
