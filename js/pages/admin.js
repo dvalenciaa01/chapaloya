@@ -459,6 +459,10 @@ const AdminUI = {
             '<span class="field-hint">Solo minúsculas, números y guiones.</span></div>' +
           '<div><label class="field-lbl" for="m-tn-rubro">Rubro <span class="req">*</span></label><select id="m-tn-rubro" class="input-dark">' + rubroOpts + '</select>' +
             '<span class="field-hint">Define las palabras que se ven (barbero, doctor, paciente…). El negocio puede personalizarlas en su Configuración.</span></div>' +
+          '<div><label class="field-lbl" for="m-tn-appt">Palabra para la reserva</label>' +
+            '<div class="form-grid-2" style="gap:8px;"><input type="text" id="m-tn-appt" class="input-dark" maxlength="40" placeholder="cita" aria-label="Palabra para la reserva, singular" value="' + UI.esc(t && t.labels && t.labels.appointment || '') + '" />' +
+            '<input type="text" id="m-tn-appts" class="input-dark" maxlength="40" placeholder="citas" aria-label="Palabra para la reserva, plural" value="' + UI.esc(t && t.labels && t.labels.appointmentPlural || '') + '" /></div>' +
+            '<span class="field-hint">Opcional: singular y plural (p. ej. turno / turnos). Vacío usa la del rubro.</span></div>' +
           '<div><label class="field-lbl" for="m-tn-owner">Propietario</label><input type="text" id="m-tn-owner" class="input-dark" value="' + v('ownerName') + '" /></div>' +
           '<div><label class="field-lbl" for="m-tn-currency">Moneda</label><select id="m-tn-currency" class="input-dark">' +
             ['S/', '$', '€'].map(c => '<option value="' + c + '"' + ((t ? t.currency : 'S/') === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
@@ -603,6 +607,14 @@ const AdminUI = {
 
     const rubroEl = document.getElementById('m-tn-rubro');
     const businessType = rubroEl && rubroEl.value ? rubroEl.value : 'barberia';
+    // Palabra para la reserva (cita/turno): se guarda en labels solo si se escribe
+    const word = { appointment: g('m-tn-appt') || '', appointmentPlural: g('m-tn-appts') || '' };
+    if (Object.values(word).some(w => w.length > 40 || /[<>"]/.test(w))) { err.textContent = 'La palabra para la reserva admite hasta 40 caracteres, sin < > ".'; return; }
+    if (!word.appointment !== !word.appointmentPlural) { err.textContent = 'Escribe la palabra para la reserva en singular y en plural (o deja ambas vacías).'; return; }
+    const prevT = editId ? DB.tenantById(editId) : null;
+    const prevLabels = prevT && prevT.labels ? prevT.labels : {};
+    const labels = Object.assign({}, prevLabels);
+    Object.keys(word).forEach(k => { if (word[k]) labels[k] = word[k]; else delete labels[k]; });
     const fields = {
       name, slug, palette, accent: palette.secondary, businessType,
       ownerName: g('m-tn-owner'),
@@ -613,6 +625,8 @@ const AdminUI = {
       subscriptionEnd: g('m-tn-end') || DB.addDays(DB.todayISO(), 30),
       ownerEmail: oemail, ownerPhone: g('m-tn-ophone')
     };
+    // labels solo cambia si cambió la palabra (así editar otros datos no reenvía labels)
+    if (JSON.stringify(labels) !== JSON.stringify(prevLabels)) fields.labels = labels;
     const root = DB.load();
     if (editId) {
       const t = DB.tenantById(editId);

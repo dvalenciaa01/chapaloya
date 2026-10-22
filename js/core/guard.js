@@ -20,6 +20,8 @@ const Guard = {
     ['[onclick*="CRM.openBarberProfileModal"], [onclick*="CRM.openAddHaircutPhotoModal"], [onclick*="CRM.deleteHaircutPhoto"], [onclick*="CRM.deleteBarberProfile"]', 'barbers.manage'],
     ['[onclick*="CRM.openServiceModal"], [onclick*="CRM.deleteService"]', 'services.manage'],
     ['[onclick*="CRM.openCustomerModal"]', 'customers.manage'],
+    ['[onclick*="CRM.exportCustomersCSV"]', 'customers.view'],
+    ['[onclick*="CRM.exportApptsCSV"]', 'appointments.view'],
     ['[onclick*="CRM.exportJSON"]', 'settings.manage']
   ],
 
@@ -123,6 +125,14 @@ const Guard = {
       return { title: 'Eliminar cita', message: 'Se eliminará la cita de ' + (a ? a.customerName + ' (' + a.date + ' ' + a.time + ')' : UI.v('{este:client} {client}')) + '. Esta acción no se puede deshacer.', confirmText: 'Eliminar', danger: true };
     });
 
+    // Ficha de la cita: notas y campos propios (el personal vinculado, solo las suyas)
+    G.wrap(CRM, 'openApptDetail', (id) => Auth.can('appointments.view') && G.ownsAppt(id));
+    G.wrap(CRM, 'saveApptDetail', (e, id) => Auth.can('appointments.status') && G.ownsAppt(id), (e, id) => {
+      const a = G.appt(id);
+      return { action: UI.v('Editó los datos de {un:appointment} {appointment}'), detail: a ? a.customerName + ' · ' + a.date + ' ' + a.time : id };
+    });
+    G.wrap(CRM, 'exportApptsCSV', 'appointments.view', () => ({ action: UI.v('Exportó {appointmentPlural} (CSV)'), detail: DB.tenant.name }));
+
     /* ---- Walk-in ---- */
     G.wrap(CRM, 'openWalkInModal', 'walkins.create');
     G.wrap(CRM, 'saveWalkInModal', 'walkins.create', () => ({
@@ -173,7 +183,8 @@ const Guard = {
     G.wrap(CRM, 'deleteService', 'services.manage');
     G.wrap(CRM, 'refreshApptSlots', 'appointments.create');
     G.wrap(CRM, 'openCustomerModal', 'customers.manage');
-    G.wrap(CRM, 'saveCustomerModal', 'customers.manage', () => ({ action: UI.v('Registró {un:client} {client}'), detail: G.val('m-cu-name') + ' · ' + G.val('m-cu-phone') }));
+    G.wrap(CRM, 'saveCustomerModal', 'customers.manage', (e, editId) => ({ action: UI.v(editId ? 'Editó la ficha de {un:client} {client}' : 'Registró {un:client} {client}'), detail: G.val('m-cu-name') + (G.val('m-cu-phone') ? ' · ' + G.val('m-cu-phone') : '') }));
+    G.wrap(CRM, 'exportCustomersCSV', 'customers.view', () => ({ action: UI.v('Exportó {clientPlural} (CSV)'), detail: DB.tenant.name }));
     G.wrap(CRM, 'saveSettings', 'settings.manage');
     G.wrap(CRM, 'saveRubro', 'settings.manage');
     G.wrap(CRM, 'saveSchedule', 'settings.manage');
