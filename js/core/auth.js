@@ -334,12 +334,15 @@ const Auth = {
   can(perm, user) {
     const u = user || this.user;
     if (!u || !this.featureOn(perm)) return false;
+    // Módulo oculto por el superadministrador en este negocio (crm_config.modules): no existe para nadie
+    if (window.CrmConfig && typeof DB !== 'undefined' && DB.tenant && !CrmConfig.permAllowed(perm)) return false;
     if (u.role === 'SUPERADMIN') return true;
     return this.permissionsOf(u).includes(perm);
   },
 
   canTab(tab) {
     const perm = this.TAB_PERM[tab];
+    if (window.CrmConfig && typeof DB !== 'undefined' && DB.tenant && !CrmConfig.tabAllowed(tab)) return false;
     return perm ? this.can(perm) : false;
   },
 

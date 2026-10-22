@@ -135,6 +135,13 @@ const DB = {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   },
   hhmm(t) { return t ? String(t).slice(0, 5) : ''; },
+  // Campos propios (extra jsonb): objeto plano con las claves en orden (para comparar copias)
+  normExtra(v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+    const out = {};
+    Object.keys(v).sort().forEach(k => { const x = v[k]; if (x !== null && x !== undefined && x !== '') out[k] = x; });
+    return out;
+  },
   cleanPhone(p) { const d = String(p || '').replace(/\D/g, ''); return /^[0-9]{9,15}$/.test(d) ? d : null; },
 
   /* ---------------- Cliente de Supabase ---------------- */
@@ -237,6 +244,9 @@ const DB = {
     const t = this.fromTenant(r);
     const lead = parseInt(r.booking_lead_minutes, 10);
     t.leadMinutes = isNaN(lead) ? 15 : Math.min(1440, Math.max(0, lead));
+    // CRM personalizable (migración 12): lo edita solo el superadministrador desde la consola.
+    // No va en tenantRow: se guarda aparte (Reservalope.saveCrmConfig), nunca con DB.save().
+    t.crmConfig = (r.crm_config && typeof r.crm_config === 'object' && !Array.isArray(r.crm_config)) ? r.crm_config : {};
     return t;
   },
   tenantRow(t) {
@@ -334,10 +344,19 @@ const DB = {
         return c;
       }
     },
+    // email, birthdate, document, address y extra: migración 12 (CRM personalizable)
     customers: {
       table: 'customers',
-      from(r) { return { id: r.id, name: r.name, phone: r.phone || '—', notes: r.notes || '' }; },
-      logical(c) { return { name: c.name, phone: DB.cleanPhone(c.phone), notes: c.notes || '' }; },
+      from(r) {
+        return { id: r.id, name: r.name, phone: r.phone || '—', notes: r.notes || '',
+          email: r.email || '', birthdate: r.birthdate || '', document: r.document || '', address: r.address || '',
+          extra: DB.normExtra(r.extra) };
+      },
+      logical(c) {
+        return { name: c.name, phone: DB.cleanPhone(c.phone), notes: c.notes || '',
+          email: c.email || null, birthdate: c.birthdate || null, document: c.document || null, address: c.address || null,
+          extra: DB.normExtra(c.extra) };
+      },
       columns(l) { return Object.assign({}, l); }
     },
     appointments: {
@@ -348,13 +367,14 @@ const DB = {
           date: r.date, time: DB.hhmm(r.time),
           price: Number(r.price), status: r.status, source: r.source, notes: r.notes || '',
           waOptIn: !!r.wa_opt_in, createdAt: r.created_at, completedAt: r.completed_at,
-          durationMin: r.duration_min != null ? Number(r.duration_min) : undefined };
+          durationMin: r.duration_min != null ? Number(r.duration_min) : undefined,
+          extra: DB.normExtra(r.extra) };
       },
       // Barbero y servicio se comparan y guardan por id (los nombres los pone el servidor)
       logical(a) {
         return { customerName: a.customerName, phone: DB.cleanPhone(a.phone), serviceId: a.serviceId || null,
           service: a.service || '', barberId: a.barberId || null, date: a.date, time: DB.hhmm(a.time), price: Number(a.price) || 0,
-          status: a.status, notes: a.notes || '', waOptIn: !!a.waOptIn };
+          status: a.status, notes: a.notes || '', waOptIn: !!a.waOptIn, extra: DB.normExtra(a.extra) };
       },
       columns(l) {
         const c = {};
@@ -369,6 +389,7 @@ const DB = {
         if ('status' in l) c.status = l.status;
         if ('notes' in l) c.notes = l.notes;
         if ('waOptIn' in l) c.wa_opt_in = l.waOptIn;
+        if ('extra' in l) c.extra = l.extra;
         return c;
       },
       insertExtra(a, tid) {
@@ -1220,7 +1241,7 @@ const DB = {
     // Solo quien ve la cartera de clientes la tiene en memoria
     const canSee = typeof Auth === 'undefined' || Auth.can('customers.view');
     if (canSee && !this.state.customers.some(c => c.id === id)) {
-      const rec = { id, name: cleanName, phone: p, notes: '' };
+      const rec = { id, name: cleanName, phone: p, notes: '', email: '', birthdate: '', document: '', address: '', extra: {} };
       this.state.customers.unshift(rec);
       // Ya existe en el servidor: se anota en la copia para no insertarlo otra vez
       const snap = this._snap[this.tenant.id] || (this._snap[this.tenant.id] = this.emptySnap());
