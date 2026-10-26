@@ -1013,7 +1013,6 @@ const CRM = {
     const s = editId ? DB.state.services.find(x => x.id === editId) : null;
     if (editId && !s) return;
     const cats = Array.from(new Set(DB.state.services.map(x => x.category).filter(Boolean)));
-    const durations = [15, 20, 30, 45, 60, 75, 90, 120];
     const v = (k, d) => UI.esc(s && s[k] != null ? s[k] : d);
     const hid = (k) => (this.fshow('services', k) ? '' : ' hidden');
     ModalComponent.open(
@@ -1024,8 +1023,9 @@ const CRM = {
           '<div' + hid('category') + '><label class="field-lbl" for="m-sv-cat">Categoría</label><input type="text" id="m-sv-cat" class="input-dark" list="m-sv-cats" value="' + v('category', Vocab.type() === 'barberia' ? 'Cortes' : 'General') + '" maxlength="30" />' +
             '<datalist id="m-sv-cats">' + cats.map(c => '<option value="' + UI.esc(c) + '"></option>').join('') + '</datalist></div>' +
           '<div><label class="field-lbl" for="m-sv-price">Precio (' + this.cur() + ') <span class="req">*</span></label><input type="number" id="m-sv-price" class="input-dark" min="0" step="1" inputmode="numeric" value="' + v('price', '45') + '" required /></div>' +
-          '<div' + hid('duration') + '><label class="field-lbl" for="m-sv-duration">Duración</label><select id="m-sv-duration" class="input-dark">' +
-            durations.map(d => '<option value="' + d + '"' + ((s ? Number(s.duration) : 45) === d ? ' selected' : '') + '>' + d + ' minutos</option>').join('') + '</select></div>' +
+          // Duración a mano, en minutos (la base acepta de 5 a 480)
+          '<div' + hid('duration') + '><label class="field-lbl" for="m-sv-duration">Duración (minutos) <span class="req">*</span></label><input type="number" id="m-sv-duration" class="input-dark" min="5" max="480" step="1" inputmode="numeric" placeholder="Ej.: 40" value="' + v('duration', '') + '" required />' +
+            '<span class="field-hint">De 5 a 480 minutos (8 horas).</span></div>' +
           '<div style="grid-column:1/-1;"' + hid('description') + '><label class="field-lbl" for="m-sv-desc">Descripción <span class="text-grey" style="font-weight:400;">(se muestra en la web)</span></label><textarea id="m-sv-desc" class="input-dark" maxlength="220">' + v('desc', '') + '</textarea></div>' +
         '</div>' +
         (s ? '<p class="form-note">' + ic('alert') + 'Si cambias el nombre o el precio, se actualizarán las citas futuras pendientes. Las citas pasadas conservan sus datos originales.</p>' : '') +
@@ -1041,10 +1041,15 @@ const CRM = {
     const name = document.getElementById('m-sv-name').value.trim();
     const category = document.getElementById('m-sv-cat').value.trim() || 'General';
     const price = Number(document.getElementById('m-sv-price').value);
-    const duration = Number(document.getElementById('m-sv-duration').value) || 45;
+    // Si el superadmin ocultó el campo, se conserva la duración que tenía (o 30, la de la base)
+    const durRaw = document.getElementById('m-sv-duration').value.trim();
+    const prevDur = editId ? Number((DB.state.services.find(x => x.id === editId) || {}).duration) || 30 : 30;
+    const duration = this.fshow('services', 'duration') ? Number(durRaw) : prevDur;
     const desc = document.getElementById('m-sv-desc').value.trim();
     if (!name) { err.textContent = UI.v('Escribe el nombre {del:service} {service}.'); return false; }
     if (!isFinite(price) || price < 0) { err.textContent = 'Escribe un precio válido (0 o más).'; return false; }
+    if (!durRaw && this.fshow('services', 'duration')) { err.textContent = UI.v('Escribe cuántos minutos dura {el:service} {service}.'); return false; }
+    if (!Number.isInteger(duration) || duration < 5 || duration > 480) { err.textContent = 'La duración debe ser un número entero de minutos, entre 5 y 480.'; return false; }
     const dup = DB.state.services.find(x => x.name.toLowerCase() === name.toLowerCase() && x.id !== editId);
     if (dup) { err.textContent = UI.v('Ya existe {un:service} {service} con ese nombre.'); return false; }
 
