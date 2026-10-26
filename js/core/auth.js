@@ -178,12 +178,10 @@ const Auth = {
     let tab = '';
     try { tab = new URLSearchParams(window.location.search).get('tab') || ''; } catch (e) { tab = ''; }
     let brand = '';
-    try { brand = /reservalope\.html$/.test(window.location.pathname) ? '' : (localStorage.getItem(this.LOGIN_BRAND_KEY) || ''); } catch (e) { brand = ''; }
-    const q = [];
-    if (brand && /^[a-z0-9-]{1,60}$/.test(brand)) q.push('b=' + encodeURIComponent(brand));
-    if (c) q.push('msg=' + c);
-    if (tab) q.push('tab=' + encodeURIComponent(tab));
-    return 'login.html' + (q.length ? '?' + q.join('&') : '');
+    // En la consola de Reservalope (reservalope.html o /admin) el login es el del superadministrador
+    try { brand = /\/(reservalope(\.html)?|admin)\/?$/.test(window.location.pathname) ? '' : (Routes.pathSlug() || localStorage.getItem(this.LOGIN_BRAND_KEY) || ''); } catch (e) { brand = ''; }
+    if (!/^[a-z0-9-]{1,60}$/.test(brand)) brand = '';
+    return Routes.login(brand, { msg: c, tab: tab });
   },
 
   writeSession() {

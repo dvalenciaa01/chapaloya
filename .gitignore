@@ -27,3 +27,6 @@ bot/auth_info*/
 Reporte-*.pdf
 Reporte-*.xlsx
 *.csv
+
+# Caché de `wrangler pages dev` (pruebas locales de Cloudflare Pages)
+.wrangler/

@@ -409,7 +409,7 @@ const AdminUI = {
         '<div class="tenant-card-body">' +
           '<div class="tenant-card-top"><h3>' + UI.esc(t.name) + '</h3>' +
             (active ? '<span class="st-badge st-COMPLETADA">Activo</span>' : '<span class="st-badge st-CANCELADA">Suspendido</span>') + '</div>' +
-          '<a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">' + ic('external') + 'index.html?b=' + UI.esc(t.slug) + '</a>' +
+          '<a class="tenant-link" href="' + UI.esc(Routes.web(t.slug)) + '" target="_blank" rel="noopener">' + ic('external') + UI.esc(Routes.display(Routes.web(t.slug))) + '</a>' +
           '<ul class="tenant-stats">' +
             '<li><strong>' + (st.barberProfiles || []).length + '</strong>' + UI.esc(UI.vFor(t, '{staffPlural}')) + '</li>' +
             '<li><strong>' + users.length + '</strong>usuarios</li>' +
@@ -455,7 +455,7 @@ const AdminUI = {
         '<div class="form-grid-2">' +
           '<div><label class="field-lbl" for="m-tn-name">Nombre del negocio <span class="req">*</span></label><input type="text" id="m-tn-name" class="input-dark" value="' + v('name') + '" oninput="AdminUI.onTenantNameInput()" required /></div>' +
           '<div><label class="field-lbl" for="m-tn-slug">Enlace público <span class="req">*</span></label>' +
-            '<div class="input-prefix"><span>?b=</span><input type="text" id="m-tn-slug" class="input-dark" value="' + v('slug') + '" data-touched="' + (t ? '1' : '') + '" oninput="this.dataset.touched=\'1\'" required /></div>' +
+            '<div class="input-prefix"><span>' + UI.esc(Routes.pretty() ? location.host + '/' : '?b=') + '</span><input type="text" id="m-tn-slug" class="input-dark" value="' + v('slug') + '" data-touched="' + (t ? '1' : '') + '" oninput="this.dataset.touched=\'1\'" required /></div>' +
             '<span class="field-hint">Solo minúsculas, números y guiones.</span></div>' +
           '<div><label class="field-lbl" for="m-tn-rubro">Rubro <span class="req">*</span></label><select id="m-tn-rubro" class="input-dark">' + rubroOpts + '</select>' +
             '<span class="field-hint">Define las palabras que se ven (barbero, doctor, paciente…). El negocio puede personalizarlas en su Configuración.</span></div>' +
@@ -593,6 +593,7 @@ const AdminUI = {
     const palette = this.readPalette();
     if (!name) { err.textContent = 'Escribe el nombre del negocio.'; return; }
     if (!slug) { err.textContent = 'Escribe un enlace público válido.'; return; }
+    if (Routes.RESERVED.includes(slug)) { err.textContent = 'El enlace «' + slug + '» lo usa el sistema. Elige otro.'; return; }
     const dup = DB.tenantBySlug(slug);
     if (dup && dup.id !== editId) { err.textContent = 'Ese enlace ya lo usa otro negocio.'; return; }
     // C1: cada color debe ser exactamente #RRGGBB (la base también lo exige)

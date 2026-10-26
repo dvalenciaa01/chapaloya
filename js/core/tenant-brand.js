@@ -184,6 +184,8 @@ const TenantBrand = {
 
   withSlug(href, slug) {
     if (!href || !slug) return href;
+    // Con direcciones limpias el negocio ya va en la ruta (/<enlace>/servicios.html)
+    if (Routes.pretty() && Routes.pathSlug() === slug) return href;
     if (/^(https?:|mailto:|tel:|#|javascript:)/i.test(href)) return href;
     if (!/\.html(\?|#|$)/.test(href)) return href;
     if (/^(crm|login)\.html/.test(href)) return href;
@@ -253,12 +255,17 @@ const TenantBrand = {
     this.applyPalette(this.paletteOf(t));
     this.swapLogos(t);
     const pub = document.getElementById('crm-public-link');
-    if (pub) pub.setAttribute('href', 'index.html?b=' + encodeURIComponent(t.slug));
+    if (pub) pub.setAttribute('href', Routes.web(t.slug));
     const brand = document.getElementById('crm-brand-link');
-    if (brand) brand.setAttribute('href', 'index.html?b=' + encodeURIComponent(t.slug));
+    if (brand) brand.setAttribute('href', Routes.web(t.slug));
     const side = document.getElementById('crm-sidebar-shopname');
     if (side) side.textContent = t.name;
     document.title = 'CRM | ' + t.name;
+    // /crm/<otro-enlace>/ abierto con la sesión de este negocio: corregir la dirección
+    const ps = Routes.pathSlug();
+    if (ps && ps !== t.slug && location.pathname.indexOf('/crm/') === 0) {
+      history.replaceState(null, '', Routes.crm(t.slug) + location.search + location.hash);
+    }
   },
 
   showUnavailable(info) {
@@ -271,7 +278,7 @@ const TenantBrand = {
           '<h1>' + (suspended ? 'Reservas no disponibles' : 'No encontramos este negocio') + '</h1>' +
           '<p>' + (suspended
             ? 'Este negocio no está recibiendo reservas en línea por el momento.'
-            : 'Revisa el enlace que te compartieron. Debe tener la forma <strong>index.html?b=nombre-del-negocio</strong>.') + '</p>' +
+            : 'Revisa el enlace que te compartieron. Debe tener la forma <strong>' + (Routes.pretty() ? location.host + '/nombre-del-negocio' : 'index.html?b=nombre-del-negocio') + '</strong>.') + '</p>' +
         '</div>' +
       '</section>';
     if (main) main.innerHTML = html;

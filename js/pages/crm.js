@@ -1126,7 +1126,7 @@ const CRM = {
     const nameEl = document.getElementById('set-tenant-name');
     if (nameEl) nameEl.textContent = t.name;
     const linkEl = document.getElementById('set-public-link');
-    if (linkEl) { linkEl.href = 'index.html?b=' + encodeURIComponent(t.slug); linkEl.textContent = 'index.html?b=' + t.slug; }
+    if (linkEl) { linkEl.href = Routes.web(t.slug); linkEl.textContent = Routes.display(Routes.web(t.slug)); }
     this.renderRubro();
     this.renderSchedule();
     this.renderExceptions();

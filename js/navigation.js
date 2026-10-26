@@ -10,12 +10,12 @@ const AppRouter = {
   goPublic(viewId, params = {}) {
     const targetFile = this.pageMap[viewId] || 'index.html';
     const p = Object.assign({}, params);
-    // Mantener la barbería activa en la web pública (?b=slug)
+    // Mantener la barbería activa en la web pública (?b=slug o /<enlace>/)
     const slug = (typeof DB !== 'undefined' && DB.tenant) ? DB.tenant.slug : null;
-    if (slug && !p.b) p.b = slug;
     if (Object.keys(params).length > 0) {
       sessionStorage.setItem('GOLDEN_NAV_PARAMS', JSON.stringify(params));
     }
+    if (slug && !p.b) { window.location.href = Routes.web(slug, targetFile, p); return; }
     const query = new URLSearchParams(p).toString();
     window.location.href = targetFile + (query ? '?' + query : '');
   },
@@ -32,8 +32,7 @@ const AppRouter = {
       return;
     }
 
-    const query = defaultTab ? '?tab=' + encodeURIComponent(defaultTab) : '';
-    window.location.href = 'crm.html' + query;
+    window.location.href = Routes.crm(Routes.pathSlug(), { tab: defaultTab });
   },
 
   consumeNavParams() {

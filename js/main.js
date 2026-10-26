@@ -65,7 +65,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   if (!res.ok) {
     // Raíz del sitio sin negocio (ni ?b= ni defaultSlug): se muestra la landing de Reservalope
-    if (!res.slug && activePage === 'inicio') { window.location.replace('landing/'); return; }
+    if (!res.slug && activePage === 'inicio') { window.location.replace(Routes.home()); return; }
     TenantBrand.showUnavailable(res);
     return;
   }

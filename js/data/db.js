@@ -594,12 +594,13 @@ const DB = {
     this.subscribe();
   },
 
-  /* Web pública: la barbería la define el enlace (?b=slug) */
+  /* Web pública: la barbería la define el enlace (?b=slug o /<enlace>/ con direcciones limpias) */
   async initPublic() {
     this.mode = 'public';
     const cfg = window.RESERVALOPE_CONFIG || {};
     let slug = null;
     try { slug = new URLSearchParams(window.location.search).get('b'); } catch (e) { slug = null; }
+    if (!slug) slug = Routes.pathSlug();
     if (!slug) { try { slug = sessionStorage.getItem(this.PUBLIC_SLUG_KEY); } catch (e) { slug = null; } }
     if (!slug) slug = cfg.defaultSlug || null;
     if (!slug) return { ok: false, slug: null, tenant: null };

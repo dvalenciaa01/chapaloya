@@ -1,0 +1,51 @@
+# ==========================================================================
+# Direcciones limpias de Reservalope (Cloudflare Pages)
+# --------------------------------------------------------------------------
+#   /                       landing de Reservalope
+#   /admin                  consola del superadministrador
+#   /<enlace>/              web del negocio (/<enlace>/servicios.html, …)
+#   /crm/<enlace>/          CRM del negocio (sin sesión lleva a /crm/<enlace>/ingresar)
+#
+# GitHub Pages ignora este archivo: allí siguen las direcciones con ?b=<enlace>.
+# Los nombres de primer tramo que usa el sitio (crm, admin, css, js…) no
+# pueden ser enlace de un negocio: ver Routes.RESERVED en js/core/routes.js
+# y la migración 13.
+#
+# Gana la primera regla que coincide y un :nombre cubre un solo tramo, así
+# que el orden importa: primero lo más concreto.
+# /<enlace> (sin barra final) no tiene regla: Pages sirve index.html y
+# js/core/routes.js le agrega la barra.
+# ==========================================================================
+
+/                              /landing/            200
+/admin                         /reservalope         200
+
+# --- CRM de cada negocio ---------------------------------------------------
+/crm/:slug                     /crm/:slug/          301
+/crm/:slug/                    /crm                 200
+/crm/:slug/ingresar            /login               200
+/crm/:slug/crm.html            /crm/:slug/          301
+/crm/:slug/login.html          /crm/:slug/ingresar  301
+/crm/:slug/index.html          /:slug/              301
+/crm/:slug/reservalope.html    /admin               301
+/crm/:slug/css/*               /css/:splat          200
+/crm/:slug/js/*                /js/:splat           200
+/crm/:slug/assets/*            /assets/:splat       200
+/crm/:slug/:page               /:page               200
+
+# --- Web de cada negocio ---------------------------------------------------
+/:slug/css/*                   /css/:splat          200
+/:slug/js/*                    /js/:splat           200
+/:slug/assets/*                /assets/:splat       200
+/:slug/index.html              /                    200
+/:slug/index                   /                    200
+/:slug/servicios.html          /servicios           200
+/:slug/servicios               /servicios           200
+/:slug/barberos.html           /barberos            200
+/:slug/barberos                /barberos            200
+/:slug/reservar.html           /reservar            200
+/:slug/reservar                /reservar            200
+/:slug/consultar-cita.html     /consultar-cita      200
+/:slug/consultar-cita          /consultar-cita      200
+/:slug/privacidad.html         /privacidad          200
+/:slug/privacidad              /privacidad          200

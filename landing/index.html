@@ -20,6 +20,10 @@
 <meta name="theme-color" content="#FFFFFF" />
 <link rel="icon" href="../assets/icons/favicon.png" type="image/png" />
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
+<script>
+/* Con direcciones limpias la raíz es esta landing: un enlace antiguo (/?b=negocio) va a /negocio/ */
+(function(){try{var b=new URLSearchParams(location.search).get('b');if(b&&location.pathname==='/'&&/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b))location.replace('/'+b+'/');}catch(e){}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap">

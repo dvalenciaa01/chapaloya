@@ -42,10 +42,10 @@ const Login = {
      color y palabras del rubro. Sin ?b= es el ingreso de Reservalope (superadministrador):
      el <head> ya marcó html[data-login="reservalope"] y aquí no se cambia nada. */
   async applyBrand() {
-    const slug = new URLSearchParams(window.location.search).get('b');
+    const slug = new URLSearchParams(window.location.search).get('b') || Routes.pathSlug();
     if (!slug) {
       const back = document.getElementById('login-back');
-      if (back) back.href = 'landing/';
+      if (back) back.href = Routes.home();
       return;
     }
     let data = null;
@@ -59,7 +59,7 @@ const Login = {
     if (t.logo) box.innerHTML = '<img class="login-logo-img" src="' + UIx.esc(t.logo) + '" alt="' + UIx.esc(t.name) + '" />';
     else box.innerHTML = '<span class="brand-wordmark is-lg">' + UIx.esc(t.name) + '</span>';
     const back = document.getElementById('login-back');
-    if (back) back.href = 'index.html?b=' + encodeURIComponent(t.slug);
+    if (back) back.href = Routes.web(t.slug);
   },
 
   /* ?msg= solo acepta códigos conocidos con textos fijos (B13): un enlace con
@@ -171,13 +171,13 @@ const Login = {
     const u = Auth.user;
     // Recordar el enlace de ingreso del negocio para volver a él al cerrar sesión
     try {
-      const slug = new URLSearchParams(window.location.search).get('b');
+      const slug = new URLSearchParams(window.location.search).get('b') || Routes.pathSlug();
       if (u && u.role !== 'SUPERADMIN' && slug) localStorage.setItem(Auth.LOGIN_BRAND_KEY, slug);
       else if (u && u.role === 'SUPERADMIN') localStorage.removeItem(Auth.LOGIN_BRAND_KEY);
     } catch (e) { /* sin almacenamiento */ }
     // El superadministrador trabaja en su propia consola (Reservalope)
-    if (u && u.role === 'SUPERADMIN' && (!this.nextTab || this.nextTab === 'dashboard')) return window.location.replace('reservalope.html');
-    window.location.replace('crm.html' + (this.nextTab ? '?tab=' + encodeURIComponent(this.nextTab) : ''));
+    if (u && u.role === 'SUPERADMIN' && (!this.nextTab || this.nextTab === 'dashboard')) return window.location.replace(Routes.admin());
+    window.location.replace(Routes.crm(Routes.pathSlug(), { tab: this.nextTab }));
   }
 };
 

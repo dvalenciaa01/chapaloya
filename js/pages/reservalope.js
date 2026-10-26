@@ -403,6 +403,11 @@ const Reservalope = {
     return { primary: ok(p.primary, d.primary), secondary: ok(p.secondary, d.secondary), tertiary: ok(p.tertiary, d.tertiary) };
   },
 
+  // Ingreso al CRM del negocio: /crm/<enlace>/ o login.html?b=<enlace>
+  crmEntry(t) {
+    return Routes.pretty() ? Routes.crm(t.slug) : Routes.login(t.slug);
+  },
+
   swatches(t) {
     const p = this.safePalette(t);
     return '<span class="rl-swatches" title="' + UI.esc('Primario ' + p.primary + ' · Secundario ' + p.secondary + ' · Terciario ' + p.tertiary) + '">' +
@@ -451,7 +456,7 @@ const Reservalope = {
       const m = Analytics.tenantMetrics(t, r), pm = Analytics.tenantMetrics(t, p);
       const lost = m.appts ? (m.cancelled + m.noShow) / m.appts : null;
       return '<tr>' +
-        '<td data-label="Negocio"><div class="rl-tenant-cell">' + this.swatches(t) + '<div><strong>' + UI.esc(t.name) + '</strong><br/><a class="tenant-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">?b=' + UI.esc(t.slug) + '</a></div></div></td>' +
+        '<td data-label="Negocio"><div class="rl-tenant-cell">' + this.swatches(t) + '<div><strong>' + UI.esc(t.name) + '</strong><br/><a class="tenant-link" href="' + UI.esc(Routes.web(t.slug)) + '" target="_blank" rel="noopener">' + UI.esc(Routes.pretty() ? '/' + t.slug : '?b=' + t.slug) + '</a></div></div></td>' +
         '<td data-label="Rubro"><span class="rl-rubro">' + (window.Vocab ? Vocab.icon('', t.businessType || 'barberia') : '') + UI.esc(this.rubroLabel(t)) + '</span></td>' +
         '<td data-label="Estado">' + (t.status === 'ACTIVE' ? '<span class="st-badge st-COMPLETADA">Activo</span>' : '<span class="st-badge st-CANCELADA">Suspendido</span>') + '</td>' +
         '<td data-label="Plan"><strong>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + '</strong><br/><span class="text-grey" style="font-size:0.8rem;">S/ ' + UI.esc(t.planFee) + '/mes</span></td>' +
@@ -491,13 +496,14 @@ const Reservalope = {
             '<div><dt>Plan</dt><dd>' + UI.esc((DB.PLANS[t.plan] || {}).label || t.plan) + ' · S/ ' + UI.esc(t.planFee) + '/mes</dd></div>' +
             '<div><dt>Suscripción</dt><dd>' + this.subBadge(t) + ' <span class="text-grey">' + UI.esc(t.subscriptionEnd) + '</span>' + this.subNote(t) + '</dd></div>' +
             '<div><dt>Dueño</dt><dd>' + UI.esc(t.ownerName || '—') + (t.ownerEmail ? ' · <a class="inline-link" href="mailto:' + UI.esc(t.ownerEmail) + '">' + UI.esc(t.ownerEmail) + '</a>' : '') + (t.ownerPhone ? ' · ' + UI.esc(t.ownerPhone) : '') + '</dd></div>' +
-            '<div><dt>Web</dt><dd><a class="inline-link" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">index.html?b=' + UI.esc(t.slug) + '</a></dd></div>' +
+            '<div><dt>Web</dt><dd><a class="inline-link" href="' + UI.esc(Routes.web(t.slug)) + '" target="_blank" rel="noopener">' + UI.esc(Routes.display(Routes.web(t.slug))) + '</a></dd></div>' +
+            '<div><dt>CRM</dt><dd><a class="inline-link" href="' + UI.esc(this.crmEntry(t)) + '" target="_blank" rel="noopener">' + UI.esc(Routes.display(this.crmEntry(t))) + '</a></dd></div>' +
             '<div><dt>Alta</dt><dd>' + UI.esc(UI.fmtDateTime(t.createdAt)) + '</dd></div>' +
           '</dl>' +
           '<div class="row-actions">' +
             '<button type="button" class="btn-golden btn-xs" onclick="AdminUI.switchTenant(\'' + t.id + '\')">' + ic('arrowRight') + 'Entrar al CRM</button>' +
             '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.go(\'reports\', \'' + t.id + '\')">' + ic('download') + 'Reportes</button>' +
-            '<a class="btn-dark btn-xs" href="index.html?b=' + encodeURIComponent(t.slug) + '" target="_blank" rel="noopener">' + ic('external') + 'Ver web</a>' +
+            '<a class="btn-dark btn-xs" href="' + UI.esc(Routes.web(t.slug)) + '" target="_blank" rel="noopener">' + ic('external') + 'Ver web</a>' +
             '<button type="button" class="btn-dark btn-xs" onclick="AdminUI.openTenantModal(\'' + t.id + '\')">' + ic('edit') + 'Editar</button>' +
             (this.ceIsSA() ? '<button type="button" class="btn-dark btn-xs" id="rl-crm-custom" onclick="Reservalope.openCrmEditor(\'' + t.id + '\')">' + ic('sliders') + 'Personalizar CRM</button>' : '') +
             (active ? '<button type="button" class="btn-danger btn-xs" onclick="AdminUI.toggleTenant(\'' + t.id + '\')">Suspender</button>'

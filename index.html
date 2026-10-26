@@ -3,13 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="js/core/routes.js"></script>
   <script src="js/config.js"></script>
   <script>
     /* Raíz del sitio sin negocio (sin ?b=, sin negocio recordado y sin defaultSlug):
-       se va a la landing de Reservalope en vez de mostrar "No encontramos este negocio". */
+       se va a la landing de Reservalope en vez de mostrar "No encontramos este negocio".
+       Con direcciones limpias, /<enlace> pasa a /<enlace>/ (para que carguen css/ y js/)
+       y cualquier dirección que no sea de un negocio va a la landing. */
     (function () {
       try {
         var slug = new URLSearchParams(location.search).get('b');
+        if (!slug && Routes.pretty()) {
+          var ps = Routes.pathSlug();
+          if (!ps) location.replace('/');
+          else if (location.pathname === '/' + ps) location.replace('/' + ps + '/' + location.search + location.hash);
+          return;
+        }
         var saved = null;
         try { saved = sessionStorage.getItem('BARBERSUITE_PUBLIC_SLUG'); } catch (e) { saved = null; }
         var cfg = window.RESERVALOPE_CONFIG || {};

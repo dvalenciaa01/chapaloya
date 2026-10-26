@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="js/core/routes.js"></script>
   <title>Ingresar al CRM</title>
   <meta name="robots" content="noindex" />
   <meta name="theme-color" content="#111418" />
@@ -13,10 +14,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script>
-    /* Sin ?b= es el ingreso de Reservalope (superadministrador): su propia marca, antes de pintar */
+    /* Sin ?b= (ni /crm/<enlace>/ingresar) es el ingreso de Reservalope (superadministrador):
+       su propia marca, antes de pintar */
     (function () {
       try {
-        if (!new URLSearchParams(location.search).get('b')) {
+        if (!new URLSearchParams(location.search).get('b') && !Routes.pathSlug()) {
           document.documentElement.setAttribute('data-login', 'reservalope');
           /* mismo modo claro/oscuro que eligió la persona en la landing */
           var t = null; try { t = localStorage.getItem('reservalope-theme'); } catch (e) { t = null; }

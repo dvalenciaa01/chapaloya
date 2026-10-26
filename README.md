@@ -79,6 +79,24 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 | Ingreso del superadministrador (marca Reservalope) | `login.html` |
 | Ingreso al CRM del equipo de un negocio (con su marca; enlace que se le entrega al cliente) | `login.html?b=ENLACE-DEL-NEGOCIO` |
 
+### Publicarlo con Cloudflare Pages (direcciones limpias)
+
+Con Cloudflare Pages cada negocio tiene direcciones propias, sin `?b=`. Las define el archivo [`_redirects`](_redirects) (GitHub Pages lo ignora, así que allí todo sigue como arriba).
+
+1. En Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**, elige este repositorio y la rama `main`.
+2. Sin comando de build y con **Build output directory** `/`. Cada push a `main` se publica solo.
+3. Queda en `https://NOMBRE-DEL-PROYECTO.pages.dev`. Cuando compres el dominio, agrégalo en **Custom domains** (`reservalope.com` ya está en `PRETTY_HOSTS` de [`js/core/routes.js`](js/core/routes.js); otro dominio hay que añadirlo ahí).
+4. Aplica la migración 13 en Supabase (impide que un negocio se llame `crm`, `admin`, `css`…).
+
+| Página | Dirección |
+|---|---|
+| Landing de Reservalope | `/` |
+| Web de un negocio | `/ENLACE-DEL-NEGOCIO/` (y `/ENLACE-DEL-NEGOCIO/servicios.html`, `reservar.html`…) |
+| CRM de un negocio (sin sesión abre su login con su marca) | `/crm/ENLACE-DEL-NEGOCIO/` |
+| Consola del superadministrador | `/admin` (ingreso en `/login`) |
+
+Los enlaces antiguos con `?b=` siguen funcionando. Para probarlo en tu PC: `npx wrangler pages dev . --port 8788`.
+
 ### Cuentas
 
 Las cuentas viven en Supabase Auth: el superadministrador se crea desde el panel de Supabase y él crea a los administradores y al personal (ver [supabase/README.md](supabase/README.md)). Las contraseñas nunca se publican en este repositorio.

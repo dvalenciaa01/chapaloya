@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="js/core/routes.js"></script>
   <title>CRM</title>
   <meta name="theme-color" content="#000000" />
   <meta name="robots" content="noindex" />
@@ -26,7 +27,8 @@
           var q = [];
           if (s && s.userId) q.push('msg=expired');
           if (t) q.push('tab=' + encodeURIComponent(t));
-          location.replace('login.html' + (q.length ? '?' + q.join('&') : ''));
+          var ps = Routes.pathSlug();
+          location.replace((ps ? Routes.login(ps) : 'login.html') + (q.length ? '?' + q.join('&') : ''));
         }
       } catch (e) { location.replace('login.html'); }
     })();
