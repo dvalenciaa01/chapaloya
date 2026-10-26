@@ -136,18 +136,21 @@ const CRM = {
 
   /* ---------- M13: marcar formularios con cambios sin guardar ---------- */
   bindDirtyGuards() {
-    const pane = document.getElementById('crm-pane-settings');
-    if (!pane || pane.dataset.dirtyBound) return;
-    pane.dataset.dirtyBound = '1';
     const mark = (e) => {
       const id = (e.target && e.target.id) || '';
       if (/^set-(owner-name|currency|address|phone|hours|city|lead)$/.test(id)) this.setDirty = true;
       else if (id.indexOf('set-sch-') === 0 || id.indexOf('set-sch-on-') === 0) this.schDirty = true;
       else if (id.indexOf('wa-') === 0 && id !== 'wa-test-num') this.waDirty = true;
     };
-    pane.addEventListener('input', mark);
-    pane.addEventListener('change', mark);
-    pane.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#set-sch-week .sch-copy')) this.schDirty = true; });
+    // Configuración, Horario de atención y WhatsApp son apartados separados
+    ['settings', 'schedule', 'whatsapp'].forEach(tab => {
+      const pane = document.getElementById('crm-pane-' + tab);
+      if (!pane || pane.dataset.dirtyBound) return;
+      pane.dataset.dirtyBound = '1';
+      pane.addEventListener('input', mark);
+      pane.addEventListener('change', mark);
+      pane.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#set-sch-week .sch-copy')) this.schDirty = true; });
+    });
   },
 
   /* ---------- Barberos y portafolio ---------- */
@@ -1430,10 +1433,10 @@ const CRM = {
     this.waPoll(true);
   },
 
-  // Estado del WhatsApp y últimos envíos: se consultan solo con Configuración abierta
+  // Estado del WhatsApp y últimos envíos: se consultan solo con el apartado WhatsApp abierto
   waPoll(now) {
     clearTimeout(this.waTimer);
-    if (this.currentTab !== 'settings' || !DB.tenant) return;
+    if (this.currentTab !== 'whatsapp' || !DB.tenant) return;
     const s = this.waSession;
     const waiting = s && (s.requested_action || s.status === 'WAITING_QR');
     const due = now ? 0 : (this.waLastFetch || 0) + (waiting ? 3000 : 20000) - Date.now();
@@ -1441,7 +1444,7 @@ const CRM = {
   },
 
   async waFetch() {
-    if (this.currentTab !== 'settings' || !DB.tenant) return;
+    if (this.currentTab !== 'whatsapp' || !DB.tenant) return;
     const tid = DB.tenant.id;
     this.waLastFetch = Date.now();
     try {

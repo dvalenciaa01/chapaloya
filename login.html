@@ -10,6 +10,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    /* Sin ?b= es el ingreso de Reservalope (superadministrador): su propia marca, antes de pintar */
+    (function () {
+      try {
+        if (!new URLSearchParams(location.search).get('b')) {
+          document.documentElement.setAttribute('data-login', 'reservalope');
+          /* mismo modo claro/oscuro que eligió la persona en la landing */
+          var t = null; try { t = localStorage.getItem('reservalope-theme'); } catch (e) { t = null; }
+          if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (e) { /* navegador antiguo */ }
+    })();
+  </script>
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/pages/login.css" />
 </head>
@@ -21,6 +35,7 @@
         <div class="login-logo" id="login-logo">
           <span class="login-mark" data-v-icon><i data-icon="calendar"></i></span>
         </div>
+        <div class="rl-logo"><img src="assets/icons/reservalope-isotipo.webp" alt="" width="40" height="40" /><span>reservalope</span></div>
         <h1 class="login-brand-title">Panel de gestión<br/><span class="hl">de citas</span></h1>
         <ul class="login-points">
           <li><i data-icon="calendar"></i><span data-v-fmt="Citas, atención sin cita y agenda de cada {staff}">Citas, atención sin cita y agenda de cada profesional</span></li>

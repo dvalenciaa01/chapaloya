@@ -28,7 +28,7 @@
     { key: 'staff', label: '{StaffPlural} y portafolio', tab: 'barbers' },
     { key: 'sales', label: 'Ventas', tab: 'sales' },
     { key: 'reports', label: 'Reportes', tab: 'reports' },
-    { key: 'whatsapp', label: 'WhatsApp', tab: null },
+    { key: 'whatsapp', label: 'WhatsApp', tab: 'whatsapp' },
     { key: 'audit', label: 'Historial', tab: 'audit' }
   ];
 
@@ -96,7 +96,9 @@
   const THEME_DEFAULT = { mode: 'dark', primary: null, accent: null, font: 'barlow', density: 'comfortable', radius: 'soft', logoInNav: true };
   const THEME_ENUM = { mode: ['dark', 'light', 'auto'], font: ['barlow', 'inter', 'jakarta', 'system'], density: ['comfortable', 'compact'], radius: ['sharp', 'soft', 'round'] };
   const FONTS = {
-    barlow: { label: 'Barlow (de la marca)', display: "'Barlow Condensed', 'Arial Narrow', sans-serif", body: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif" },
+    // La clave 'barlow' se conserva porque la base de datos valida esta lista
+    // (migración 12); hoy es la fuente de la marca: Urbanist, como la landing.
+    barlow: { label: 'Urbanist (de la marca)', display: "'Urbanist', system-ui, sans-serif", body: "'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif" },
     inter: { label: 'Inter', display: "'Inter', system-ui, sans-serif", body: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
       href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
     jakarta: { label: 'Plus Jakarta Sans', display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",

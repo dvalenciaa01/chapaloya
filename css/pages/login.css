@@ -181,3 +181,115 @@ body[data-page="login"] .login-pass-wrap, body[data-page="login"] .login-submit-
   .login-title { font-size: 1.8rem; }
   .login-brand-title { font-size: 1.9rem; }
 }
+
+/* ==========================================================================
+   Diseño del ingreso (mismo lenguaje que la landing). Sin ?b= es el de Reservalope
+   (html[data-login="reservalope"], su azul y su logo); con ?b= el del equipo de un
+   negocio, con su logo y sus colores. Mismo lenguaje que la landing:
+   Urbanist, azul como único acento, campos y botones en píldora, panel negro y
+   listas con líneas finas (sin íconos decorativos, brillos ni anillos).
+   ========================================================================== */
+.rl-logo { display: none; }
+/* Login del equipo (?b=): mismos tokens con los colores del negocio */
+html {
+  --rl-blue: var(--yellow); --rl-blue-hover: var(--yellow-hover); --rl-on-blue: var(--black); --rl-accent-dark: var(--yellow);
+  --rl-bg: var(--white); --rl-soft: color-mix(in srgb, var(--white) 95%, var(--black)); --rl-ink: var(--black); --rl-ink-2: var(--on-light-md); --rl-ink-3: var(--on-light-lo);
+  --rl-line: var(--line-light); --rl-line-2: var(--line-light-strong); --rl-night: var(--black); --rl-night-line: var(--line-dark-strong); --rl-night-muted: var(--on-dark-md);
+  --rl-danger: #B91C1C; --rl-on-night: var(--white);
+}
+/* Login de Reservalope (sin ?b=) */
+[data-login="reservalope"] {
+  --rl-blue: #3B3BF2; --rl-blue-hover: #2E2EDB; --rl-on-blue: #FFFFFF; --rl-accent-dark: #9A9AFF;
+  --rl-bg: #FFFFFF; --rl-soft: #F5F5F7; --rl-ink: #0E0E12; --rl-ink-2: #4B4F5A; --rl-ink-3: #6B7080;
+  --rl-line: #E4E4EA; --rl-line-2: #C9CAD3; --rl-night: #0B0B0E; --rl-night-line: #2A2A31; --rl-night-muted: #A9ACB8;
+  --rl-danger: #C0262D; --rl-on-night: #FFFFFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  [data-login="reservalope"]:not([data-theme="light"]) {
+    --rl-blue: #7373FF; --rl-blue-hover: #8A8AFF; --rl-on-blue: #0B0B0E;
+    --rl-bg: #0C0C0F; --rl-soft: #16161B; --rl-ink: #F2F2F5; --rl-ink-2: #C2C4CC; --rl-ink-3: #9A9DA8;
+    --rl-line: #26262D; --rl-line-2: #3A3A44; --rl-night: #000000; --rl-night-line: #26262D; --rl-danger: #F87171;
+    color-scheme: dark;
+  }
+}
+[data-login="reservalope"][data-theme="dark"] {
+  --rl-blue: #7373FF; --rl-blue-hover: #8A8AFF; --rl-on-blue: #0B0B0E;
+  --rl-bg: #0C0C0F; --rl-soft: #16161B; --rl-ink: #F2F2F5; --rl-ink-2: #C2C4CC; --rl-ink-3: #9A9DA8;
+  --rl-line: #26262D; --rl-line-2: #3A3A44; --rl-night: #000000; --rl-night-line: #26262D; --rl-danger: #F87171;
+  color-scheme: dark;
+}
+body[data-page="login"] {
+  --font-display: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--rl-bg); color: var(--rl-ink); font-size: 17px;
+}
+body[data-page="login"] h1,
+body[data-page="login"] h2 { font-weight: 600; letter-spacing: -0.03em; }
+
+.login-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 12px; }
+
+/* Panel de marca: bloque negro redondeado */
+.login-brand {
+  background: var(--rl-night); border: 1px solid var(--rl-night-line); border-radius: 28px;
+  padding: clamp(32px, 5vw, 64px); align-items: stretch;
+}
+.login-brand::after { content: none; }
+.login-brand-inner { display: flex; flex-direction: column; max-width: 500px; width: 100%; }
+[data-login="reservalope"] .login-logo { display: none; }
+.login-logo { margin-bottom: auto; padding-bottom: 48px; }
+.login-logo .brand-wordmark.is-lg { font-family: 'Urbanist', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; text-transform: none; white-space: normal; overflow: visible; color: var(--rl-on-night); }
+[data-login="reservalope"] .rl-logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: auto; padding-bottom: 48px; }
+.rl-logo img { width: 40px; height: 40px; border-radius: 10px; background: #040B2C; }
+.rl-logo span { font-family: 'Urbanist', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; color: #FFFFFF; }
+.login-brand-title { color: var(--rl-on-night); font-weight: 500; font-size: clamp(2.6rem, 4.4vw, 3.8rem); line-height: 1.04; letter-spacing: -0.04em; margin-bottom: 40px; }
+.login-brand-title .hl { color: var(--rl-accent-dark); }
+.login-points { gap: 0; border-top: 1px solid var(--rl-night-line); }
+.login-points li { display: block; padding: 14px 0; border-bottom: 1px solid var(--rl-night-line); color: var(--rl-night-muted); font-size: 1rem; }
+.login-points .ic,
+.login-points [data-icon] { display: none; }
+
+/* Formulario directo sobre el fondo, sin tarjeta */
+.login-panel { background: transparent; padding: clamp(32px, 5vw, 64px) 20px; gap: 28px; }
+.login-card { background: transparent; color: var(--rl-ink); box-shadow: none; border-radius: 0; padding: 0; max-width: 400px; }
+.login-kicker { font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: .95rem; letter-spacing: 0; text-transform: none; color: var(--rl-ink-3); }
+.login-kicker::before { content: none; }
+.login-title { font-size: clamp(2.1rem, 3.4vw, 2.6rem); color: var(--rl-ink); margin: 6px 0 10px; }
+.login-sub { color: var(--rl-ink-2) !important; font-size: 1rem; margin-bottom: 28px; }
+.login-msg { background: var(--rl-soft); color: var(--rl-ink); border-left: 0; border-radius: 16px; padding: 12px 16px; }
+.surface-light .field-lbl { color: var(--rl-ink); font-size: .95rem; }
+.input-dark {
+  background: var(--rl-bg); color: var(--rl-ink); border: 1.5px solid var(--rl-line-2); border-radius: 999px;
+  min-height: 52px; padding: 0 20px; font-family: 'Urbanist', sans-serif; font-weight: 500; font-size: 1rem;
+}
+.input-dark::placeholder { color: var(--rl-ink-3); }
+.input-dark:hover { border-color: var(--rl-ink-3); }
+.input-dark:focus { border-color: var(--rl-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rl-blue) 22%, transparent); }
+.pass-wrap .input-dark { padding-right: 56px; }
+.pass-toggle { right: 6px; color: var(--rl-ink-3); border-radius: 50%; }
+.pass-toggle:hover,
+.pass-toggle[aria-pressed="true"] { color: var(--rl-ink); }
+.login-error { color: var(--rl-danger); padding-left: 20px; }
+.btn-black.login-submit-btn {
+  background: var(--rl-blue); border-color: var(--rl-blue); color: var(--rl-on-blue); border-radius: 999px;
+  min-height: 52px; font-family: 'Urbanist', sans-serif; font-weight: 600; font-size: 1.05rem; text-transform: none; letter-spacing: 0;
+}
+.btn-black.login-submit-btn:hover { background: var(--rl-blue-hover); border-color: var(--rl-blue-hover); }
+.surface-light :focus-visible { outline-color: var(--rl-blue); }
+.pass-rules { color: var(--rl-ink-3); }
+.pass-rules .ic { background: var(--rl-soft); }
+.login-help { border-top-color: var(--rl-line); margin-top: 28px; padding-top: 18px; }
+.login-help summary { color: var(--rl-ink); min-height: 44px; }
+.login-help p { color: var(--rl-ink-2) !important; font-size: .95rem; }
+.login-link { color: var(--rl-ink-2); }
+.login-back { color: var(--rl-ink-2); font-size: .95rem; font-weight: 600; }
+.login-back:hover { color: var(--rl-ink); text-decoration: underline; text-underline-offset: 4px; }
+
+@media (max-width: 900px) {
+  .login-shell { grid-template-columns: 1fr; }
+  .login-brand { padding: 28px 24px; }
+  .rl-logo, .login-logo { padding-bottom: 28px; }
+  .login-brand-title { font-size: 2.2rem; margin-bottom: 0; }
+  .login-points { display: none; }
+  .login-panel { padding-top: 32px; }
+}

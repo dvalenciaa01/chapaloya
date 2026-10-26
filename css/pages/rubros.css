@@ -1,0 +1,261 @@
+/* ==========================================================================
+   Web pública: toque por rubro. Se carga después de publico.css.
+   --------------------------------------------------------------------------
+   La base es común para todos (fondo claro, líneas finas, píldoras, sin
+   sombras ni adornos). Cada rubro solo añade su toque: tipografía, forma de
+   botones y tarjetas (--btn-r, --r-*) y uno o dos detalles propios.
+   Vocab.set() escribe html[data-rubro="..."] y TenantBrand.applyRubroFonts()
+   descarga solo la tipografía de ese rubro. Los colores son los del negocio:
+   --black = principal (cabecera, pie, bloques), --white = texto sobre él,
+   --yellow = acento (solo relleno de botones, nunca texto sobre fondo claro).
+   ========================================================================== */
+
+/* ==========================================================================
+   BARBERÍA · cartel de taller clásico
+   ========================================================================== */
+html[data-rubro="barberia"] {
+  --font-display: 'Alfa Slab One', 'Rockwell', Georgia, serif;
+  --font-body: 'Work Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 4px; --r: 6px; --r-lg: 8px; --r-xl: 12px; --btn-r: 4px;
+}
+[data-rubro="barberia"] h1,
+[data-rubro="barberia"] h2,
+[data-rubro="barberia"] h3 { font-weight: 400; letter-spacing: 0.005em; }
+[data-rubro="barberia"] h1 { text-transform: uppercase; line-height: 1; }
+[data-rubro="barberia"] .hero-sub,
+[data-rubro="barberia"] .booking-total-amount,
+[data-rubro="barberia"] .service-price { font-family: var(--font-body); font-weight: 600; }
+[data-rubro="barberia"] .brand-wordmark { font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; }
+[data-rubro="barberia"] .btn { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem; font-weight: 700; }
+/* Franja de barbero en el borde del bloque de color y del panel final */
+[data-rubro="barberia"] .hero-card::before {
+  background:
+    repeating-linear-gradient(-45deg, var(--accent) 0 12px, var(--white) 12px 24px, var(--black) 24px 36px) bottom / 100% 10px no-repeat,
+    var(--black);
+}
+[data-rubro="barberia"] .cta-band-inner { border-top: 10px solid transparent; border-image: repeating-linear-gradient(-45deg, var(--accent) 0 12px, var(--white) 12px 24px, var(--black) 24px 36px) 10; border-radius: 0; }
+[data-rubro="barberia"] .service-foot { border-top-style: dotted; border-top-width: 2px; }
+[data-rubro="barberia"] .team-photo img,
+[data-rubro="barberia"] .barber-portrait-frame img { filter: grayscale(1) contrast(1.06); transition: filter 400ms ease; }
+[data-rubro="barberia"] .team-card:hover .team-photo img,
+[data-rubro="barberia"] .barber-showcase-block:hover .barber-portrait-frame img { filter: none; }
+
+/* ==========================================================================
+   SALÓN DE BELLEZA · revista de moda
+   ========================================================================== */
+html[data-rubro="salon"] {
+  --font-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --font-body: 'Jost', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 0; --r: 0; --r-lg: 0; --r-xl: 0; --btn-r: 999px;
+}
+[data-rubro="salon"] h1,
+[data-rubro="salon"] h2,
+[data-rubro="salon"] h3 { font-weight: 500; letter-spacing: -0.015em; }
+[data-rubro="salon"] h1 { font-style: italic; line-height: 0.98; }
+[data-rubro="salon"] .hero-sub { font-family: var(--font-body); font-weight: 400; }
+[data-rubro="salon"] .brand-wordmark { font-style: italic; font-weight: 700; }
+[data-rubro="salon"] .btn { font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.8rem; }
+/* Servicios como índice de revista: 01, 02... */
+[data-rubro="salon"] .services-grid { counter-reset: srv; }
+[data-rubro="salon"] .service-card { counter-increment: srv; border-width: 1px 0 0; border-color: var(--text); padding-inline: 0; background: transparent; }
+[data-rubro="salon"] .service-card::before {
+  content: counter(srv, decimal-leading-zero); position: absolute; top: var(--s4); right: 0;
+  font-family: var(--font-display); font-style: italic; font-size: 2.2rem; line-height: 1; color: var(--text-3);
+}
+[data-rubro="salon"] .service-card-top,
+[data-rubro="salon"] .service-name { padding-right: 60px; }
+[data-rubro="salon"] .service-name { font-style: italic; font-size: 1.5rem; }
+[data-rubro="salon"] .team-photo,
+[data-rubro="salon"] .barber-portrait-frame { border-radius: 999px 999px 0 0; }
+[data-rubro="salon"] .team-body h3 { font-style: italic; }
+
+/* ==========================================================================
+   SPA Y ESTÉTICA · calma
+   ========================================================================== */
+html[data-rubro="spa"] {
+  --font-display: 'Cormorant Garamond', 'Garamond', Georgia, serif;
+  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 12px; --r: 18px; --r-lg: 28px; --r-xl: 36px; --btn-r: 999px;
+}
+[data-rubro="spa"] h1,
+[data-rubro="spa"] h2,
+[data-rubro="spa"] h3 { font-weight: 600; letter-spacing: -0.005em; }
+[data-rubro="spa"] h1 { font-size: clamp(2.9rem, 7vw, 5rem); line-height: 1; }
+[data-rubro="spa"] h3 { font-size: 1.5rem; }
+[data-rubro="spa"] .hero-sub { font-style: italic; font-size: 1.6rem; }
+[data-rubro="spa"] .service-price { font-weight: 700; }
+/* Tarjeta en arco y tarjetas con forma de hoja */
+[data-rubro="spa"] .hero-card { border-radius: 220px 220px var(--r-xl) var(--r-xl); padding-top: 64px; }
+[data-rubro="spa"] .hero-card::before { border-radius: 240px 240px calc(var(--r-xl) + 8px) calc(var(--r-xl) + 8px); inset: 0 -20px -20px -20px; }
+[data-rubro="spa"] .hero-card-head { flex-direction: column; text-align: center; }
+[data-rubro="spa"] .service-card { border-radius: 32px 6px 32px 6px; }
+[data-rubro="spa"] .team-photo,
+[data-rubro="spa"] .barber-portrait-frame { border-radius: 50%; aspect-ratio: 1; }
+[data-rubro="spa"] .section { padding: 120px 0; }
+@media (max-width: 959px) { [data-rubro="spa"] .section { padding: 80px 0; } }
+
+/* ==========================================================================
+   UÑAS / NAIL BAR · pop
+   ========================================================================== */
+html[data-rubro="unas"] {
+  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 12px; --r: 16px; --r-lg: 24px; --r-xl: 32px; --btn-r: 999px;
+}
+[data-rubro="unas"] h1 { font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; font-size: clamp(2.3rem, 6vw, 4.2rem); }
+[data-rubro="unas"] h2 { font-weight: 600; letter-spacing: -0.035em; }
+[data-rubro="unas"] h3 { font-weight: 600; letter-spacing: -0.02em; font-size: 1.1rem; }
+[data-rubro="unas"] .hero-sub { font-family: var(--font-body); font-weight: 500; }
+/* Sello "24/7" sobre la tarjeta de reserva */
+[data-rubro="unas"] .hero-card::after {
+  content: "24/7"; content: "24/7" / "";
+  position: absolute; top: -24px; right: 16px;
+  display: flex; align-items: center; justify-content: center;
+  width: 76px; height: 76px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent); border: 3px solid var(--card);
+  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; letter-spacing: -0.04em;
+  transform: rotate(-12deg);
+}
+[data-rubro="unas"] .hero-card-head { padding-right: 72px; }
+[data-rubro="unas"] .team-card:nth-child(odd) .team-photo { transform: rotate(-1.5deg); }
+[data-rubro="unas"] .team-card:nth-child(even) .team-photo { transform: rotate(1.5deg); }
+
+/* ==========================================================================
+   CONSULTORIO MÉDICO · ficha clínica
+   ========================================================================== */
+html[data-rubro="consultorio"] {
+  --font-display: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --r-sm: 4px; --r: 6px; --r-lg: 8px; --r-xl: 12px; --btn-r: 8px;
+}
+[data-rubro="consultorio"] h1,
+[data-rubro="consultorio"] h2,
+[data-rubro="consultorio"] h3 { font-weight: 600; letter-spacing: -0.02em; }
+[data-rubro="consultorio"] h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); line-height: 1.08; }
+/* Datos (precios, horas, códigos) en monoespaciada, como una ficha */
+[data-rubro="consultorio"] .service-price,
+[data-rubro="consultorio"] .service-duration,
+[data-rubro="consultorio"] .booking-total-amount,
+[data-rubro="consultorio"] .booking-code-value,
+[data-rubro="consultorio"] .lookup-date,
+[data-rubro="consultorio"] .pick-slots .pick,
+[data-rubro="consultorio"] .step-dot,
+[data-rubro="consultorio"] .form-step-num { font-family: var(--font-mono); font-weight: 500; letter-spacing: -0.01em; }
+[data-rubro="consultorio"] .service-card { border-left: 4px solid var(--black); }
+
+/* ==========================================================================
+   CLÍNICA DENTAL · fresco y redondeado
+   ========================================================================== */
+html[data-rubro="dental"] {
+  --font-display: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 14px; --r: 20px; --r-lg: 28px; --r-xl: 36px; --btn-r: 999px;
+}
+[data-rubro="dental"] h1 { font-weight: 600; letter-spacing: -0.04em; }
+[data-rubro="dental"] h2 { font-weight: 600; letter-spacing: -0.03em; }
+[data-rubro="dental"] .team-card { align-items: center; text-align: center; }
+[data-rubro="dental"] .team-photo { width: 72%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 6px var(--paper-2); }
+[data-rubro="dental"] .team-body { align-items: center; }
+[data-rubro="dental"] .team-link { align-self: center; }
+[data-rubro="dental"] .barber-portrait-frame { border-radius: 50%; }
+
+/* ==========================================================================
+   PSICOLOGÍA Y TERAPIA · cuaderno cálido
+   ========================================================================== */
+html[data-rubro="psicologia"] {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 10px; --r: 14px; --r-lg: 20px; --r-xl: 26px; --btn-r: 14px;
+}
+[data-rubro="psicologia"] body { line-height: 1.7; }
+[data-rubro="psicologia"] h1,
+[data-rubro="psicologia"] h2,
+[data-rubro="psicologia"] h3 { font-weight: 500; letter-spacing: -0.015em; }
+[data-rubro="psicologia"] .hero-sub { font-style: italic; }
+/* Subrayado a mano bajo el nombre, en el color principal */
+[data-rubro="psicologia"] .hero-title::after {
+  content: ""; display: block; width: min(200px, 55%); height: 14px; margin-top: var(--s3);
+  background: var(--black);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16'%3E%3Cpath d='M3 10c17-8 27-8 41-1s26 6 42-1 26-6 42 1 28 5 44-2 22-4 25 0' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16'%3E%3Cpath d='M3 10c17-8 27-8 41-1s26 6 42-1 26-6 42 1 28 5 44-2 22-4 25 0' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+[data-rubro="psicologia"] .hero.has-image .hero-title::after { background: var(--on-brand); }
+
+/* ==========================================================================
+   VETERINARIA · amigable y robusta
+   ========================================================================== */
+html[data-rubro="veterinaria"] {
+  --font-display: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 12px; --r: 16px; --r-lg: 24px; --r-xl: 32px; --btn-r: 999px;
+}
+[data-rubro="veterinaria"] h1 { font-weight: 600; letter-spacing: -0.015em; }
+[data-rubro="veterinaria"] h2,
+[data-rubro="veterinaria"] h3 { font-weight: 600; letter-spacing: -0.01em; }
+/* Tarjetas con borde grueso y sombra sólida del color principal */
+[data-rubro="veterinaria"] .service-card,
+[data-rubro="veterinaria"] .booking-form-card,
+[data-rubro="veterinaria"] .lookup-card,
+[data-rubro="veterinaria"] .barber-showcase-block { border: 2px solid var(--black); box-shadow: 5px 5px 0 var(--black); }
+[data-rubro="veterinaria"] .team-photo,
+[data-rubro="veterinaria"] .barber-portrait-frame { border-radius: 46% 54% 42% 58% / 50% 46% 54% 50%; aspect-ratio: 1; }
+
+/* ==========================================================================
+   ESTUDIO DE TATUAJES · hoja de flash
+   ========================================================================== */
+html[data-rubro="tatuajes"] {
+  --font-display: 'Pirata One', 'Old English Text MT', Georgia, serif;
+  --font-body: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 0; --r: 0; --r-lg: 0; --r-xl: 0; --btn-r: 0;
+}
+[data-rubro="tatuajes"] h1,
+[data-rubro="tatuajes"] h2 { font-weight: 400; letter-spacing: 0.01em; }
+[data-rubro="tatuajes"] h1 { font-size: clamp(3rem, 8.5vw, 6rem); line-height: 0.95; }
+[data-rubro="tatuajes"] h3,
+[data-rubro="tatuajes"] .hero-sub,
+[data-rubro="tatuajes"] .hero-card-head strong,
+[data-rubro="tatuajes"] .service-price,
+[data-rubro="tatuajes"] .booking-total-amount { font-family: var(--font-body); font-weight: 700; }
+[data-rubro="tatuajes"] .brand-wordmark { font-weight: 400; font-size: 1.6rem; }
+[data-rubro="tatuajes"] .btn { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem; font-weight: 700; }
+/* Láminas numeradas con borde grueso */
+[data-rubro="tatuajes"] .services-grid { counter-reset: flash; }
+[data-rubro="tatuajes"] .service-card { counter-increment: flash; border: 2px solid var(--text); }
+[data-rubro="tatuajes"] .service-card::before {
+  content: "Nº " counter(flash); position: absolute; top: 12px; right: 14px;
+  font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--text-3);
+}
+[data-rubro="tatuajes"] .service-card-top { padding-right: 56px; }
+[data-rubro="tatuajes"] .hero-card { border: 2px solid var(--text); }
+[data-rubro="tatuajes"] .team-photo img,
+[data-rubro="tatuajes"] .work-photo-img-box img { filter: grayscale(1) contrast(1.15); transition: filter 400ms ease, transform 400ms ease; }
+[data-rubro="tatuajes"] .team-card:hover .team-photo img,
+[data-rubro="tatuajes"] .work-photo-card:hover img { filter: none; }
+
+/* ==========================================================================
+   ENTRENADOR / ESTUDIO FITNESS · cartel deportivo
+   ========================================================================== */
+html[data-rubro="fitness"] {
+  --font-display: 'Big Shoulders Display', 'Impact', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-sm: 2px; --r: 4px; --r-lg: 6px; --r-xl: 8px; --btn-r: 4px;
+}
+[data-rubro="fitness"] h1,
+[data-rubro="fitness"] h2,
+[data-rubro="fitness"] h3 { text-transform: uppercase; letter-spacing: 0.005em; }
+[data-rubro="fitness"] h1 { font-weight: 900; line-height: 0.9; font-size: clamp(3.2rem, 9.5vw, 6.6rem); }
+[data-rubro="fitness"] h2 { font-weight: 800; line-height: 0.95; }
+[data-rubro="fitness"] h3 { font-weight: 800; font-size: 1.45rem; }
+[data-rubro="fitness"] .hero-sub { font-family: var(--font-body); font-weight: 600; }
+[data-rubro="fitness"] .brand-wordmark { font-weight: 900; text-transform: uppercase; }
+[data-rubro="fitness"] .btn { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; font-size: 0.85rem; }
+[data-rubro="fitness"] .service-price { font-weight: 900; font-size: 2.1rem; }
+/* Corte diagonal en el bloque de color y en el panel final */
+[data-rubro="fitness"] .hero-card::before { clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%); border-radius: 0; }
+[data-rubro="fitness"] .cta-band-inner { clip-path: polygon(0 18px, 100% 0, 100% 100%, 0 100%); padding-top: calc(clamp(28px, 5vw, 56px) + 12px); }
+
+/* ---------------- Movimiento reducido ---------------- */
+@media (prefers-reduced-motion: reduce) {
+  [data-rubro] .team-photo { transform: none !important; }
+}

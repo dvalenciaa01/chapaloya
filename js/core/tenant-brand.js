@@ -209,10 +209,36 @@ const TenantBrand = {
     Vocab.apply(root || document);
   },
 
+  /* Estilo por rubro (css/pages/rubros.css usa html[data-rubro]): cada rubro
+     tiene su propia tipografía y solo se descarga la del negocio activo. */
+  RUBRO_FONTS: {
+    barberia: 'Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700',
+    salon: 'Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,500;1,6..96,700&family=Jost:wght@400;500;600',
+    spa: 'Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Figtree:wght@400;500;600;700',
+    unas: 'Unbounded:wght@500;700;800&family=DM+Sans:wght@400;500;600;700',
+    consultorio: 'IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600',
+    dental: 'Outfit:wght@400;500;600;700;800',
+    psicologia: 'Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700',
+    veterinaria: 'Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800',
+    tatuajes: 'Pirata+One&family=Space+Grotesk:wght@400;500;600;700',
+    fitness: 'Big+Shoulders+Display:wght@700;800;900&family=Inter+Tight:wght@400;500;600;700;800'
+  },
+  applyRubroFonts() {
+    const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
+    const fam = type && this.RUBRO_FONTS[type];
+    if (!fam || document.getElementById('rubro-fonts')) return;
+    const link = document.createElement('link');
+    link.id = 'rubro-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + fam + '&display=swap';
+    document.head.appendChild(link);
+  },
+
   /* ---------------- Aplicación ---------------- */
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
+    this.applyRubroFonts();
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);
