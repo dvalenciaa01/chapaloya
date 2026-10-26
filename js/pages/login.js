@@ -38,11 +38,16 @@ const Login = {
     document.getElementById('login-email').focus();
   },
 
-  /* Marca: si se llega desde la web de un negocio, se muestra su logo, color y palabras del rubro */
+  /* Marca: con el enlace de ingreso del negocio (login.html?b=enlace) se muestra su logo,
+     color y palabras del rubro. Sin ?b= es el ingreso de Reservalope (superadministrador):
+     el <head> ya marcó html[data-login="reservalope"] y aquí no se cambia nada. */
   async applyBrand() {
-    let slug = new URLSearchParams(window.location.search).get('b');
-    if (!slug) { try { slug = sessionStorage.getItem(DB.PUBLIC_SLUG_KEY); } catch (e) { slug = null; } }
-    if (!slug) return;
+    const slug = new URLSearchParams(window.location.search).get('b');
+    if (!slug) {
+      const back = document.getElementById('login-back');
+      if (back) back.href = 'landing/';
+      return;
+    }
     let data = null;
     try { data = (await DB.client().rpc('web_barberia', { p_slug: slug })).data; } catch (e) { data = null; }
     if (!data || !data.tenant) return;
@@ -164,6 +169,12 @@ const Login = {
   go() {
     try { sessionStorage.setItem('BARBERSUITE_WELCOME', '1'); } catch (e) { /* sin almacenamiento */ }
     const u = Auth.user;
+    // Recordar el enlace de ingreso del negocio para volver a él al cerrar sesión
+    try {
+      const slug = new URLSearchParams(window.location.search).get('b');
+      if (u && u.role !== 'SUPERADMIN' && slug) localStorage.setItem(Auth.LOGIN_BRAND_KEY, slug);
+      else if (u && u.role === 'SUPERADMIN') localStorage.removeItem(Auth.LOGIN_BRAND_KEY);
+    } catch (e) { /* sin almacenamiento */ }
     // El superadministrador trabaja en su propia consola (Reservalope)
     if (u && u.role === 'SUPERADMIN' && (!this.nextTab || this.nextTab === 'dashboard')) return window.location.replace('reservalope.html');
     window.location.replace('crm.html' + (this.nextTab ? '?tab=' + encodeURIComponent(this.nextTab) : ''));

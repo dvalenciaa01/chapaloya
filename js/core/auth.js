@@ -34,7 +34,7 @@ const Auth = {
     { key: 'sales', label: 'Ventas', hint: 'Ingresos, ticket promedio y ventas por {staff}.' },
     { key: 'customers', label: '{ClientPlural}', hint: 'Cartera de {clientPlural} y su historial.' },
     { key: 'reports', label: 'Reportes', hint: 'Reportes con filtros, exportables a PDF y Excel.' },
-    { key: 'settings', label: 'Configuración', hint: 'Datos públicos {del:business} {business}, rubro y WhatsApp.' },
+    { key: 'settings', label: 'Configuración', hint: 'Datos públicos {del:business} {business}, rubro, horario de atención y WhatsApp.' },
     { key: 'audit', label: 'Historial de actividad', hint: 'Registro de acciones de su {business}.' }
   ],
 
@@ -73,6 +73,8 @@ const Auth = {
     'services': 'services.manage',
     'reports': 'reports.view',
     'settings': 'settings.manage',
+    'schedule': 'settings.manage',
+    'whatsapp': 'settings.manage',
     'users': 'users.manage',
     'tenants': 'tenants.manage',
     'audit': 'audit.view'
@@ -167,11 +169,18 @@ const Auth = {
     const c = this.MSG_ALIAS[code] || code;
     return this.MSG_CODES.includes(c) ? c : '';
   },
+  /* Enlace de ingreso de cada negocio (login.html?b=enlace): se recuerda para que, al
+     cerrar sesión o expirar, el equipo vuelva a su login con marca. Sin él, el login
+     usa la marca de Reservalope (ingreso del superadministrador). */
+  LOGIN_BRAND_KEY: 'RESERVALOPE_LOGIN_BRAND',
   loginUrl(code) {
     const c = this.msgCode(code);
     let tab = '';
     try { tab = new URLSearchParams(window.location.search).get('tab') || ''; } catch (e) { tab = ''; }
+    let brand = '';
+    try { brand = /reservalope\.html$/.test(window.location.pathname) ? '' : (localStorage.getItem(this.LOGIN_BRAND_KEY) || ''); } catch (e) { brand = ''; }
     const q = [];
+    if (brand && /^[a-z0-9-]{1,60}$/.test(brand)) q.push('b=' + encodeURIComponent(brand));
     if (c) q.push('msg=' + c);
     if (tab) q.push('tab=' + encodeURIComponent(tab));
     return 'login.html' + (q.length ? '?' + q.join('&') : '');

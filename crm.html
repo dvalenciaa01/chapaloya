@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/icons/Logo-golden.jpg" type="image/jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/pages/barberos.css" />
   <link rel="stylesheet" href="css/pages/crm.css" />
@@ -126,6 +126,12 @@
             </button>
             <button type="button" class="crm-nav-btn" data-crm="settings" onclick="CRM.switchTab('settings')">
               <span class="crm-nav-label"><i data-icon="sliders"></i>Configuración</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="schedule" onclick="CRM.switchTab('schedule')">
+              <span class="crm-nav-label"><i data-icon="clock"></i>Horario de atención</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-crm="whatsapp" onclick="CRM.switchTab('whatsapp')">
+              <span class="crm-nav-label"><i data-icon="message"></i>WhatsApp</span>
             </button>
           </nav>
         </div>
@@ -382,7 +388,7 @@
                 </div>
                 <div><label class="field-lbl" for="set-address">Dirección</label><input type="text" id="set-address" class="input-dark" /></div>
                 <div><label class="field-lbl" for="set-phone">Teléfono / WhatsApp</label><input type="tel" id="set-phone" class="input-dark" /></div>
-                <div><label class="field-lbl" for="set-hours">Horario</label><input type="text" id="set-hours" class="input-dark" placeholder="Citas de 9:00 a 20:00" /></div>
+                <div><label class="field-lbl" for="set-hours">Horario (texto que se muestra en la web)</label><input type="text" id="set-hours" class="input-dark" placeholder="Citas de 9:00 a 20:00" /></div>
                 <div><label class="field-lbl" for="set-city">Ciudad</label><input type="text" id="set-city" class="input-dark" placeholder="Lima, Perú" /></div>
                 <div>
                   <label class="field-lbl" for="set-lead">Anticipación mínima para reservar en línea (min)</label>
@@ -428,8 +434,19 @@
             <p class="form-error" id="set-rubro-error" role="alert"></p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveRubro()"><i data-icon="check"></i>Guardar rubro</button></div>
           </div>
+        </div>
+
+        <!-- ================= HORARIO DE ATENCIÓN ================= -->
+        <div id="crm-pane-schedule" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden" data-v="Business">Negocio</span>
+              <h1 class="crm-title">Horario de atención</h1>
+              <p class="crm-lead">Días y horas en que se puede reservar, y las fechas especiales.</p>
+            </div>
+          </div>
           <div class="crm-section-card sch-card">
-            <div class="card-head"><h3>Horario de atención</h3></div>
+            <div class="card-head"><h3>Horario semanal</h3></div>
             <p class="card-text"><span data-vx="Define qué días y en qué horas se puede reservar. Cada {staff} puede tener sus propios días y horas desde su ficha en">Define qué días y en qué horas se puede reservar. Cada profesional puede tener sus propios días y horas desde su ficha en</span> <strong data-v="StaffPlural">Profesionales</strong>, siempre dentro de este horario.</p>
             <div class="form-grid-2">
               <div>
@@ -469,9 +486,19 @@
             <p class="form-error" id="set-exc-error" role="alert"></p>
             <div id="set-exc-list"></div>
           </div>
+        </div>
 
+        <!-- ================= WHATSAPP ================= -->
+        <div id="crm-pane-whatsapp" class="crm-pane">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden" data-v="Business">Negocio</span>
+              <h1 class="crm-title">WhatsApp</h1>
+              <p class="crm-lead">Vinculación, mensajes automáticos y recordatorios.</p>
+            </div>
+          </div>
           <div class="crm-section-card sch-card" id="wa-card">
-            <div class="card-head"><h3>WhatsApp</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
+            <div class="card-head"><h3>Vinculación y mensajes</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
             <p class="card-text" data-vx="Con el WhatsApp {del:business} {business} se envían la confirmación y los recordatorios a los {clientPlural} que lo aceptan, y un aviso al equipo por cada reserva. El {client} confirma su asistencia respondiendo CONFIRMAR.">Con el WhatsApp del negocio se envían la confirmación y los recordatorios a los clientes que lo aceptan, y un aviso al equipo por cada reserva. El cliente confirma su asistencia respondiendo CONFIRMAR.</p>
             <div class="wa-link">
               <div class="wa-qr" id="wa-qr" hidden></div>

@@ -8,7 +8,44 @@
 var Guard = window.Guard || { deny(msg) { UI.toast(msg || 'No tienes permiso para realizar esta acción.', 'error'); } };
 
 const Reservalope = {
-  PALETTE: { primary: '#000000', secondary: '#FFD503', tertiary: '#FFFFFF' },
+  /* Paleta de la marca Reservalope, igual que la landing: fondo claro y azul; en
+     modo oscuro, fondo casi negro y azul más claro. La elección se comparte con la
+     landing (localStorage 'reservalope-theme'); sin elección, sigue al sistema. */
+  PALETTES: {
+    light: { primary: '#FFFFFF', secondary: '#3B3BF2', tertiary: '#0E0E12' },
+    dark: { primary: '#0C0C0F', secondary: '#7373FF', tertiary: '#F2F2F5' }
+  },
+  THEME_KEY: 'reservalope-theme',
+  themeMode() {
+    let t = null;
+    try { t = localStorage.getItem(this.THEME_KEY); } catch (e) { t = null; }
+    if (t === 'light' || t === 'dark') return t;
+    return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  },
+  applyTheme() {
+    const mode = this.themeMode();
+    TenantBrand.applyPalette(this.PALETTES[mode]);
+    // Colores de estado legibles en cada modo (los mismos que usa el CRM)
+    const light = mode === 'light';
+    const st = document.documentElement.style;
+    st.setProperty('--success-text', light ? '#166534' : '#4ADE80');
+    st.setProperty('--danger-text', light ? '#B91C1C' : '#F87171');
+    st.setProperty('--warn-text', light ? '#92400E' : '#FBBF24');
+    document.documentElement.setAttribute('data-crm-mode', mode);
+    document.documentElement.style.colorScheme = mode;
+    const btn = document.getElementById('rl-theme-toggle');
+    if (btn) {
+      btn.setAttribute('aria-pressed', String(mode === 'dark'));
+      btn.setAttribute('aria-label', mode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+      btn.innerHTML = ic(mode === 'dark' ? 'sun' : 'moon');
+    }
+  },
+  toggleTheme() {
+    const next = this.themeMode() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem(this.THEME_KEY, next); } catch (e) { /* sin almacenamiento */ }
+    this.applyTheme();
+    if (typeof this.refresh === 'function') this.refresh();   // los gráficos leen los colores al pintarse
+  },
   pane: 'dashboard',
   preset: '30d',
   from: null,
@@ -31,7 +68,7 @@ const Reservalope = {
       return;
     }
     DB.onReload = () => { AdminUI.renderHeader(); this.refresh(); };
-    TenantBrand.applyPalette(this.PALETTE);
+    this.applyTheme();
     // Vocabulario genérico de plataforma (cada ficha usa el de su negocio)
     if (window.Vocab) Vocab.set({ businessType: 'otro' });
     UI.applyVocab(document);

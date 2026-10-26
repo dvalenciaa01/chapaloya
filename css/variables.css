@@ -1,5 +1,8 @@
 /* ==========================================================================
-   GOLDEN — Design Tokens
+   CRM y consola — Design Tokens
+   Lenguaje visual de la landing de Reservalope: Urbanist, títulos en minúscula
+   de peso medio, botones y campos en píldora, tarjetas planas sin sombras,
+   etiquetas en texto simple. Los colores los pone CrmConfig.themeVars().
    Paleta de marca (regla 60 / 30 / 10):
      Primario   #000000  → superficies dominantes (60%)
      Terciario  #FFFFFF  → texto y secciones de respiro (30%)
@@ -50,8 +53,8 @@
   --danger-text: #F87171;
 
   /* --- Tipografía ------------------------------------------------------- */
-  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --fs-xs: 0.75rem;
   --fs-sm: 0.875rem;
@@ -73,13 +76,14 @@
   --space-8: 64px;
   --space-9: 96px;
 
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
   --radius-pill: 999px;
+  --radius-btn: 999px;   /* botones, chips y campos de una línea */
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-sm: none;
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -140,14 +144,14 @@ a { color: inherit; }
 
 h1, h2, h3, h4, .title-font {
   font-family: var(--font-display);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
   color: inherit;
   text-wrap: balance;
 }
-h1 { font-size: var(--fs-3xl); font-weight: 800; line-height: 0.95; letter-spacing: -0.005em; }
+h1 { font-size: var(--fs-3xl); font-weight: 500; line-height: 1.04; letter-spacing: -0.035em; }
 h2 { font-size: var(--fs-2xl); }
 h3 { font-size: var(--fs-lg); }
 h4 { font-size: var(--fs-md); }
@@ -191,16 +195,17 @@ strong { font-weight: 600; }
 }
 
 /* Utilidades */
+/* Etiqueta sobre el título: texto simple, sin color de acento ni mayúsculas */
 .eyebrow-golden {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--yellow);
-  font-family: var(--font-display);
+  color: var(--on-dark-lo);
+  font-family: var(--font-body);
   font-weight: 600;
-  font-size: var(--fs-sm);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 0.92rem;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .text-golden { color: var(--yellow); }
 .text-light { color: var(--on-dark-md); }

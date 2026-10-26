@@ -676,6 +676,53 @@ const PublicBooking = {
     set('pb-sum-price', srvObj ? (cur + ' ' + srvObj.price) : (cur + ' 0'));
     const sumExtra = document.getElementById('pb-sum-extra');
     if (sumExtra) sumExtra.innerHTML = this.extraSummaryHTML();
+    this.renderPickers();
+  },
+
+  /* Selectores en chips ({service}, {staff} y horas). El <select> sigue siendo la
+     fuente de verdad (lo llenan renderBookingForm y refreshTimes, lo lee submit);
+     los chips solo lo muestran y, al pulsarlos, cambian su valor y disparan 'change'.
+     Se repintan aquí porque todo cambio de selección termina en updateSummary. */
+  PICKERS: [['pb-service', 'pick-chips'], ['pb-barber', 'pick-chips'], ['pb-time', 'pick-slots']],
+  renderPickers() {
+    const cur = DB.state.settings.currency;
+    this.PICKERS.forEach(([id, cls]) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      let box = document.getElementById(id + '-pick');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = id + '-pick';
+        box.className = cls;
+        box.setAttribute('role', 'group');
+        box.setAttribute('aria-labelledby', id + '-lbl');
+        sel.classList.add('pick-native');
+        sel.setAttribute('tabindex', '-1');
+        sel.setAttribute('aria-hidden', 'true');
+        sel.after(box);
+        box.addEventListener('click', (e) => {
+          const b = e.target.closest('button[data-val]');
+          if (!b || b.disabled || sel.value === b.dataset.val) return;
+          sel.value = b.dataset.val;
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
+      // Las horas ocupadas o pasadas no se ofrecen (el <select> las conserva deshabilitadas)
+      const opts = [...sel.options].filter(o => o.value && !(id === 'pb-time' && o.disabled));
+      if (!opts.length) {
+        box.innerHTML = id === 'pb-time' ? '<p class="pick-empty">No hay horas libres este día. Prueba con otra fecha.</p>' : '';
+        return;
+      }
+      box.innerHTML = opts.map(o => {
+        const on = o.value === sel.value;
+        let label = this.esc(o.textContent);
+        if (id === 'pb-service') {
+          const s = DB.state.services.find(x => x.id === o.value);
+          if (s) label = '<span class="pick-name">' + this.esc(s.name) + '</span><span class="pick-meta">' + this.esc(cur) + ' ' + this.esc(s.price) + (s.duration ? ' · ' + this.esc(s.duration) + ' min' : '') + '</span>';
+        }
+        return '<button type="button" class="pick' + (on ? ' is-on' : '') + '" data-val="' + this.esc(o.value) + '" aria-pressed="' + on + '"' + (o.disabled ? ' disabled' : '') + '>' + label + '</button>';
+      }).join('');
+    });
   },
 
   clearPhoneError() {

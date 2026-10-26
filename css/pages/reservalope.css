@@ -7,10 +7,13 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 
 /* Marca */
 .rl-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--white); }
-.rl-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--yellow); color: var(--black); display: inline-flex; align-items: center; justify-content: center; }
-.rl-mark .ic { width: 20px; height: 20px; }
-.rl-wordmark { font-family: var(--font-display); font-weight: 800; font-size: 1.55rem; letter-spacing: 0.02em; text-transform: none; line-height: 1; }
-.rl-brand-icon { background: var(--yellow); color: var(--black); border-color: var(--yellow); }
+.rl-mark { width: 36px; height: 36px; border-radius: 10px; background: #040B2C; overflow: hidden; display: inline-flex; flex-shrink: 0; }
+.rl-mark img { width: 100%; height: 100%; display: block; }
+.rl-wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -0.02em; text-transform: none; line-height: 1; color: var(--yellow); }
+/* Botón de modo claro / oscuro (mismo que la landing) */
+.rl-theme-toggle { display: inline-grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--line-dark-strong); background: transparent; color: var(--white); cursor: pointer; }
+.rl-theme-toggle:hover { border-color: var(--on-dark-md); }
+.rl-theme-toggle .ic { width: 20px; height: 20px; }
 .rl-alert-count.has-alerts { background: var(--danger); color: var(--white); }
 .crm-nav-btn.active .rl-alert-count.has-alerts { background: var(--black); color: var(--danger-text); }
 .rl-back { margin-bottom: var(--space-3); padding-left: 0; }
@@ -34,7 +37,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .rl-head-top { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .rl-head-top .crm-title { margin: 0; }
 .rl-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-5); }
-.rl-facts dt { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--on-dark-lo); font-weight: 600; }
+.rl-facts dt { font-size: var(--fs-sm); text-transform: none; letter-spacing: 0; color: var(--on-dark-lo); font-weight: 600; }
 .rl-facts dd { font-size: var(--fs-sm); color: var(--on-dark-md); overflow-wrap: anywhere; }
 
 .meter { display: inline-block; vertical-align: middle; width: 90px; height: 8px; background: var(--ink-700); border-radius: var(--radius-pill); overflow: hidden; margin-right: 8px; }
@@ -47,7 +50,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .rl-list { list-style: none; display: grid; gap: 8px; }
 .rl-list li { display: flex; align-items: center; gap: var(--space-3); padding: 10px 12px; background: var(--ink-800); border: 1px solid var(--line-dark); border-radius: var(--radius); }
 .rl-when { display: flex; flex-direction: column; align-items: center; min-width: 54px; font-size: var(--fs-sm); color: var(--on-dark-md); }
-.rl-when strong { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--yellow); }
+.rl-when strong { font-size: var(--fs-sm); text-transform: none; letter-spacing: 0; color: var(--on-dark-md); }
 .rl-what { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .rl-what strong { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-what small { font-size: var(--fs-xs); color: var(--on-dark-lo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -138,7 +141,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .ce-check input { width: 18px; height: 18px; accent-color: var(--yellow); flex: 0 0 auto; }
 .ce-check input:disabled + span { opacity: 0.5; }
 .ce-fieldset { border: 1px solid var(--line-dark); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin: 0 0 var(--space-4); min-width: 0; }
-.ce-fieldset legend { padding: 0 6px; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--on-dark-lo); }
+.ce-fieldset legend { padding: 0 6px; font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--on-dark-lo); }
 .ce-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-3); align-items: center; border-bottom: 1px solid var(--line-dark); }
 .ce-row:last-child { border-bottom: 0; }
 .ce-row-lbl { font-size: var(--fs-sm); color: var(--white); }
@@ -167,7 +170,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .ce-preview { border: 1px solid var(--line-dark-strong); border-radius: var(--radius-lg); overflow: hidden; background: var(--ink-900); color: var(--white); font-family: var(--font-body); font-size: 0.8rem; }
 .ce-preview .cep-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--black); border-bottom: 1px solid var(--line-dark); min-height: 44px; }
 .ce-preview .cep-logo { max-height: 26px; max-width: 120px; }
-.ce-preview .cep-name { font-family: var(--font-display); font-weight: 800; font-size: 1rem; color: var(--white); text-transform: uppercase; letter-spacing: 0.04em; }
+.ce-preview .cep-name { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--white); text-transform: none; letter-spacing: -0.01em; }
 .ce-preview .cep-shell { display: grid; grid-template-columns: 112px minmax(0, 1fr); }
 .ce-preview .cep-nav { display: grid; align-content: start; gap: 2px; padding: 8px 6px; background: var(--black); border-right: 1px solid var(--line-dark); }
 .ce-preview .cep-nav-item { padding: 7px 8px; border-radius: var(--radius-sm); color: var(--on-dark-md); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

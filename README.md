@@ -76,7 +76,8 @@ Luego abre <http://localhost:8000>. En VS Code también sirve la extensión **Li
 | Página principal de Reservalope (landing) | `landing/` |
 | Web de Golden Barbería | `index.html?b=golden` |
 | Web de cualquier otro negocio | `index.html?b=ENLACE-DEL-NEGOCIO` |
-| Ingreso al CRM / Reservalope | `login.html` |
+| Ingreso del superadministrador (marca Reservalope) | `login.html` |
+| Ingreso al CRM del equipo de un negocio (con su marca; enlace que se le entrega al cliente) | `login.html?b=ENLACE-DEL-NEGOCIO` |
 
 ### Cuentas
 
