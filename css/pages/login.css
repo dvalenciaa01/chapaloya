@@ -240,7 +240,7 @@ body[data-page="login"] h2 { font-weight: 600; letter-spacing: -0.03em; }
 .login-logo { margin-bottom: auto; padding-bottom: 48px; }
 .login-logo .brand-wordmark.is-lg { font-family: 'Urbanist', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; text-transform: none; white-space: normal; overflow: visible; color: var(--rl-on-night); }
 [data-login="reservalope"] .rl-logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: auto; padding-bottom: 48px; }
-.rl-logo img { width: 40px; height: 40px; border-radius: 10px; background: #040B2C; }
+.rl-logo img { width: 40px; height: 40px; border-radius: 10px; }
 .rl-logo span { font-family: 'Urbanist', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; color: #FFFFFF; }
 .login-brand-title { color: var(--rl-on-night); font-weight: 500; font-size: clamp(2.6rem, 4.4vw, 3.8rem); line-height: 1.04; letter-spacing: -0.04em; margin-bottom: 40px; }
 .login-brand-title .hl { color: var(--rl-accent-dark); }
