@@ -119,6 +119,16 @@ const TenantBrand = {
         el.outerHTML = '<span class="brand-wordmark' + (lg ? ' is-lg' : '') + '" data-brand-slot="1">' + UIx.esc(t.name) + '</span>';
       }
     });
+    document.querySelectorAll('img.brand-img').forEach(img => this.markLogoShape(img));
+  },
+
+  /* Forma del logo (data-shape): los cuadrados o altos se muestran algo más
+     grandes que los horizontales, para que todos pesen lo mismo a la vista */
+  markLogoShape(img) {
+    const set = () => {
+      if (img.naturalWidth && img.naturalHeight) img.dataset.shape = img.naturalWidth / img.naturalHeight < 1.6 ? 'compact' : 'wide';
+    };
+    if (img.complete) set(); else img.addEventListener('load', set, { once: true });
   },
 
   /* ---------------- Textos y enlaces ---------------- */

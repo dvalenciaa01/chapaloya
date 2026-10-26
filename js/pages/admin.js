@@ -488,7 +488,7 @@ const AdminUI = {
           '<div class="logo-actions"><button type="button" class="btn-dark btn-xs" onclick="document.getElementById(\'m-tn-logo-file\').click()">' + ic('upload') + 'Subir</button>' +
           '<button type="button" class="btn-dark btn-xs" onclick="AdminUI.clearTenantLogo()">Quitar</button></div>' +
           '<input type="file" id="m-tn-logo-file" accept="image/*" hidden onchange="AdminUI.onTenantLogo(this)" /></div>' +
-        '<span class="field-hint">Ideal horizontal, con fondo del color primario o transparente. Sin logo se muestra el nombre.</span>' +
+        '<span class="field-hint">PNG, JPG, WebP o SVG; mejor con fondo transparente. El sistema recorta el margen vacío y lo ajusta sin deformarlo. Sin logo se muestra el nombre.</span>' +
 
         '<p class="perm-section-title">Contacto público (web)</p>' +
         '<div class="form-grid-2">' +
@@ -572,7 +572,8 @@ const AdminUI = {
   async onTenantLogo(input) {
     const f = input.files && input.files[0];
     if (!f) return;
-    const data = await readAndCompressImage(f, 640, 0.85);
+    let data = null;
+    try { data = await readLogoImage(f); } catch (e) { data = null; }
     if (!data) return UI.toast('No se pudo leer la imagen.', 'error');
     this._tenantLogo = data;
     document.getElementById('m-tn-logo-preview').innerHTML = '<img class="tenant-logo" src="' + data + '" alt="Vista previa del logo" />';

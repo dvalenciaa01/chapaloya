@@ -85,17 +85,22 @@ body.nav-open .site-header::before { background-color: var(--black); }
   color: var(--white);
   line-height: 1;
 }
-/* Logo de marca (imagen recortada sin margen negro) */
+/* Logo del negocio: cualquier proporción, sin deformar (alto fijo, ancho
+   máximo y object-fit). Los logos cuadrados (data-shape="compact", lo pone
+   TenantBrand.markLogoShape) van un poco más altos. */
 .brand-img {
   display: block;
   height: 46px;
   width: auto;
-  max-width: none;
-  aspect-ratio: 640 / 267;
+  max-width: 220px;
+  object-fit: contain;
+  object-position: left center;
 }
-.brand-img-lg { height: 64px; }
+.brand-img[data-shape="compact"] { height: 52px; }
+.brand-img-lg { height: 64px; max-width: 260px; }
 @media (max-width: 480px) {
-  .brand-img { height: 38px; }
+  .brand-img { height: 38px; max-width: 170px; }
+  .brand-img[data-shape="compact"] { height: 44px; }
   .brand-img-lg { height: 56px; }
 }
 

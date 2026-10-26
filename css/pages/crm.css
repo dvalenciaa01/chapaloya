@@ -364,7 +364,8 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
    CRM — responsive adicional
    ========================================================================== */
 .brand-img + .crm-tag { margin-left: 2px; }
-.crm-header .brand-img { height: 40px; }
+.crm-header .brand-img { height: 40px; max-width: 180px; }
+.crm-header .brand-img[data-shape="compact"] { height: 46px; }
 
 /* Menú horizontal: degradado que indica que hay más opciones al deslizar */
 @media (max-width: 980px) {
@@ -422,7 +423,8 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
 }
 
 @media (max-width: 640px) {
-  .crm-header .brand-img { height: 34px; }
+  .crm-header .brand-img { height: 34px; max-width: 140px; }
+  .crm-header .brand-img[data-shape="compact"] { height: 40px; }
   .crm-header .btn-golden span { display: none; }
   .crm-header .btn-golden { width: 44px; min-height: 44px; padding: 0; }
   .crm-title { font-size: 2rem; }
@@ -672,9 +674,9 @@ body.auth-ok .crm-boot { display: none; }
 .color-field input[type="color"] { width: 56px; min-height: 48px; padding: 4px; border: 1px solid var(--line-dark-strong); border-radius: var(--radius); background: var(--ink-900); cursor: pointer; }
 .color-field .input-dark { margin-top: 0; font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
 .logo-upload { display: flex; gap: var(--space-3); align-items: center; margin-top: 6px; }
-.logo-preview { flex: 1; min-height: 72px; background: var(--black); border: 1px dashed var(--line-dark-strong); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; }
+.logo-preview { flex: 1; min-height: 72px; background: repeating-conic-gradient(#C9CAD3 0 25%, #EDEDF1 0 50%) 0 0 / 16px 16px; /* cuadros: se ven logos claros, oscuros y la transparencia */ border: 1px dashed var(--line-dark-strong); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; }
 .logo-preview .tenant-logo { max-height: 56px; }
-.logo-preview .brand-wordmark { font-size: 1.1rem; color: var(--on-dark-lo); }
+.logo-preview .brand-wordmark { font-size: 1.1rem; color: #4B4F5A; }
 .logo-actions { display: flex; flex-direction: column; gap: 6px; }
 
 @media (max-width: 760px) {

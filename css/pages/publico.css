@@ -229,8 +229,14 @@ strong { font-weight: 600; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .brand-wordmark.is-lg { font-size: 1.5rem; white-space: normal; }
-.brand-img { height: 40px; width: auto; max-width: 200px; object-fit: contain; object-position: left center; }
-.brand-img-lg { height: 56px; max-width: 240px; }
+.brand-img { height: 44px; width: auto; max-width: 220px; object-fit: contain; object-position: left center; }
+.brand-img[data-shape="compact"] { height: 52px; }
+.brand-img-lg { height: 56px; max-width: 260px; }
+.brand-img-lg[data-shape="compact"] { height: 68px; }
+@media (max-width: 480px) {
+  .brand-img { height: 38px; max-width: 170px; }
+  .brand-img[data-shape="compact"] { height: 44px; }
+}
 
 .site-nav { display: flex; align-items: center; gap: var(--s1); }
 .pub-nav-btn {
