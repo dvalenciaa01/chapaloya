@@ -454,9 +454,29 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
 /* ==========================================================================
    Acceso, usuarios, barberías e historial
    ========================================================================== */
-/* El CRM no se muestra hasta validar la sesión */
+/* El CRM no se muestra hasta validar la sesión y aplicar la marca del negocio:
+   mientras tanto, la pantalla de carga de Reservalope (colores de la landing) */
 body[data-page="crm"]:not(.auth-ok) .crm-shell,
-body[data-page="crm"]:not(.auth-ok) .crm-header .header-actions { visibility: hidden; }
+body[data-page="crm"]:not(.auth-ok) .crm-header { visibility: hidden; }
+.crm-boot {
+  --boot-bg: #FFFFFF; --boot-ink: #4B4F5A; --boot-accent: #3B3BF2; --boot-track: #E4E4EA;
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: var(--boot-bg); color: var(--boot-ink);
+  font-family: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1rem; font-weight: 500;
+}
+@media (prefers-color-scheme: dark) {
+  .crm-boot { --boot-bg: #0C0C0F; --boot-ink: #C2C4CC; --boot-accent: #7373FF; --boot-track: #26262D; }
+}
+body.auth-ok .crm-boot { display: none; }
+.crm-boot img { width: 56px; height: 56px; }
+.crm-boot-spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid var(--boot-track); border-top-color: var(--boot-accent);
+  animation: crm-boot-spin 0.8s linear infinite;
+}
+@keyframes crm-boot-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .crm-boot-spinner { animation-duration: 2.4s; } }
 
 /* Selector de barbería (superadmin) */
 .tenant-switch { position: relative; display: flex; align-items: center; }

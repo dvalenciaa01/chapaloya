@@ -36,12 +36,19 @@
 </head>
 <body data-page="crm">
 
+  <!-- Mientras se valida la sesión y llega la marca del negocio: pantalla de Reservalope -->
+  <div class="crm-boot" role="status" aria-live="polite">
+    <img src="assets/icons/reservalope-isotipo.webp" alt="" width="56" height="56" />
+    <span class="crm-boot-spinner" aria-hidden="true"></span>
+    <span class="crm-boot-text">Cargando tu CRM…</span>
+  </div>
+
   <a class="skip-link" href="#crm-main">Saltar al contenido</a>
 
   <header class="site-header crm-header">
     <div class="crm-header-inner">
       <a class="brand-logo" href="index.html" id="crm-brand-link" aria-label="Ir al sitio público">
-        <img class="brand-img" src="assets/icons/logo-golden-header.jpg" alt="" width="640" height="267" />
+        <span class="brand-wordmark" data-brand-slot="1"></span>
         <span class="crm-brand-text title-font" id="crm-brand-text"></span>
         <span class="crm-tag">CRM</span>
       </a>
