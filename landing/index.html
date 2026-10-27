@@ -174,10 +174,9 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 .hidden-step{opacity:0;transform:translateY(8px)}
 /* Entrada del teléfono (estilo motion graphics): el bloque azul crece, el teléfono sube girando y aparecen tarjetas flotantes */
 .phone-stage.pre::before{transform:translateX(-50%) scaleY(0)}
-.phone-stage.pre .phone,.phone-stage.pre .chip-ctl{opacity:0}
+.phone-stage.pre .phone{opacity:0}
 .phone-stage.enter::before{transform-origin:50% 100%;animation:blockIn .9s cubic-bezier(.7,0,.2,1) both}
 .phone-stage.enter .phone{animation:phoneIn 1.2s cubic-bezier(.2,.9,.25,1.05) .2s both}
-.phone-stage.enter .chip-ctl{animation:fade .5s 1.1s ease both}
 @keyframes blockIn{from{transform:translateX(-50%) scaleY(0)}to{transform:translateX(-50%) scaleY(1)}}
 @keyframes phoneIn{from{opacity:0;transform:perspective(1400px) translateY(90px) rotateX(22deg) rotateY(-16deg) scale(.9)}to{opacity:1;transform:none}}
 .phone{transition:transform .5s cubic-bezier(.2,.8,.2,1);will-change:transform}
@@ -603,7 +602,6 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#3B3BF2"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
         <div class="float f2" aria-hidden="true"><span class="fi" style="--c:#167A43"><svg><use href="#i-check"/></svg></span><div><b>Asistencia confirmada</b><small>Sebastián · K7Q2MP</small></div></div>
         <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
-        <button class="chip-ctl" type="button" id="replay"><svg aria-hidden="true"><use href="#i-play"/></svg>Ver los mensajes en orden</button>
       </div>
     </div>
   </section>
@@ -925,7 +923,6 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   stage.classList.add('pre');
   // Entrada: bloque azul, teléfono girando y luego arranca la conversación
   loaded.then(()=>{stage.classList.remove('pre');stage.classList.add('enter');setTimeout(()=>{stage.classList.remove('enter');new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible&&!playing)play()},{threshold:.35}).observe(chat)},1400)});
-  document.getElementById('replay').addEventListener('click',play);
   // Inclinación 3D del teléfono siguiendo el mouse (solo con mouse)
   if(matchMedia('(hover:hover) and (pointer:fine)').matches){
     stage.addEventListener('pointermove',e=>{if(stage.classList.contains('enter'))return;const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;phone.style.transform=`perspective(1400px) rotateY(${x*10}deg) rotateX(${-y*8}deg)`});
