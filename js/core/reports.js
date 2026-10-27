@@ -320,7 +320,7 @@ const Reports = {
       title: rep.global ? 'Reporte comparativo de negocios' : 'Reporte de ' + name,
       name,
       slug: rep.global ? 'reservalope' : (t0 ? t0.slug : 'negocio'),
-      palette: rep.global ? { primary: '#0E0E12', secondary: '#3B3BF2', tertiary: '#FFFFFF' } : TenantBrand.paletteOf(t0),
+      palette: rep.global ? { primary: '#0B1F1A', secondary: '#8B5CF6', tertiary: '#FFFFFF' } : TenantBrand.paletteOf(t0),
       logo: !rep.global && t0 && t0.logo ? t0.logo : null,
       filters,
       activeFilters: filters.slice(2).filter(x => !/^Tod/.test(x[1]) && x[1] !== this.KINDS[0].label).length,

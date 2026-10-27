@@ -8,12 +8,12 @@
 var Guard = window.Guard || { deny(msg) { UI.toast(msg || 'No tienes permiso para realizar esta acción.', 'error'); } };
 
 const Reservalope = {
-  /* Paleta de la marca Reservalope, igual que la landing: fondo claro y azul; en
-     modo oscuro, fondo casi negro y azul más claro. La elección se comparte con la
+  /* Paleta de la marca Reservalope, igual que la landing: fondo claro y morado (un tono
+     más oscuro que #8B5CF6 para llegar a 4.5:1); en modo oscuro, verde oscuro y morado claro. La elección se comparte con la
      landing (localStorage 'reservalope-theme'); sin elección, sigue al sistema. */
   PALETTES: {
-    light: { primary: '#FFFFFF', secondary: '#3B3BF2', tertiary: '#0E0E12' },
-    dark: { primary: '#0C0C0F', secondary: '#7373FF', tertiary: '#F2F2F5' }
+    light: { primary: '#F8FAFC', secondary: '#7C3AED', tertiary: '#0B1F1A' },
+    dark: { primary: '#0B1F1A', secondary: '#A78BFA', tertiary: '#F8FAFC' }
   },
   THEME_KEY: 'reservalope-theme',
   themeMode() {
