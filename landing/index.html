@@ -171,6 +171,34 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 .chat-foot i{width:38px;height:38px;border-radius:50%;background:#0F5E3B;display:grid;place-items:center;color:#fff}
 .chat-foot i svg{width:18px;height:18px}
 .hidden-step{opacity:0;transform:translateY(8px)}
+/* Chat animado: cada mensaje entra con un pequeño rebote y el chat se desplaza solo */
+.chat-body.playing{justify-content:flex-end}
+.chat-body.playing .hidden-step{display:none}
+.b.pop{animation:pop .38s cubic-bezier(.2,.9,.3,1.25) both}
+.b.out.pop{transform-origin:100% 0}.b.in.pop,.typing.pop{transform-origin:0 0}
+.day-pill.pop{animation:fade .3s ease both}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.chat-body.fading{opacity:0;transition:opacity .45s ease}
+.chat-foot span.typed{color:var(--ink)}
+.chat-foot span.typed::after{content:"";display:inline-block;width:1.5px;height:1em;margin-left:1px;vertical-align:-2px;background:var(--wa);animation:caret .8s steps(1) infinite}
+.chat-foot i.sent{animation:press .3s ease}
+@keyframes caret{50%{opacity:0}}
+@keyframes press{50%{transform:scale(.86)}}
+
+/* Preloader con el logo: tapa la página hasta que carga (máximo ~4 s) */
+.preloader{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--bg);transition:opacity .5s ease,visibility .5s ease;animation:pl-out .01s 6s forwards}
+.preloader.done{opacity:0;visibility:hidden}
+.pl-mark{display:grid;justify-items:center;gap:16px}
+.pl-iso{width:72px;height:72px;border-radius:20px;overflow:hidden;animation:pl-pulse 1.3s ease-in-out infinite;box-shadow:0 10px 30px color-mix(in srgb,var(--blue) 30%,transparent)}
+.pl-iso img{width:100%;height:100%;display:block}
+.pl-mark .word{font-size:1.6rem;animation:fade .6s .15s ease both}
+.pl-bar{width:120px;height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.pl-bar i{display:block;width:40%;height:100%;border-radius:3px;background:var(--blue);animation:pl-slide 1.1s ease-in-out infinite}
+@keyframes pl-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes pl-slide{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+@keyframes pl-out{to{opacity:0;visibility:hidden}}
+html.is-loading{overflow:hidden}
 .chip-ctl{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid var(--line-2);background:var(--bg);color:var(--ink);font-weight:600;font-size:.92rem;cursor:pointer}
 .chip-ctl:hover{border-color:var(--ink)}
 .chip-ctl svg{width:15px;height:15px}
@@ -404,6 +432,14 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 </style>
 </head>
 <body>
+<div class="preloader" id="preloader" role="status" aria-label="Cargando Reservalope">
+  <div class="pl-mark" aria-hidden="true">
+    <span class="pl-iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="72" height="72"></span>
+    <span class="word">reserva<span>lope</span></span>
+    <span class="pl-bar"><i></i></span>
+  </div>
+</div>
+<script>document.documentElement.classList.add('is-loading');setTimeout(function(){document.documentElement.classList.remove('is-loading')},6000)</script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -504,7 +540,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
           <div class="screen">
             <div class="chat-head">
               <span class="av">NN</span>
-              <div><b>Navaja Norte</b><small>Barbería de demostración</small></div>
+              <div><b>Navaja Norte</b><small id="chat-status">Barbería de demostración</small></div>
             </div>
             <div class="chat-body" id="chat">
               <span class="day-pill">Domingo 18 de octubre</span>
@@ -517,7 +553,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
               <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Los Olivos. ¡Te esperamos!<time>11:00</time></div>
               <div class="typing" id="typing" aria-hidden="true"><i></i><i></i><i></i></div>
             </div>
-            <div class="chat-foot" aria-hidden="true"><span>Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
+            <div class="chat-foot" aria-hidden="true"><span id="chat-input">Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
           </div>
         </div>
         <button class="chip-ctl" type="button" id="replay"><svg aria-hidden="true"><use href="#i-play"/></svg>Ver los mensajes en orden</button>
@@ -792,21 +828,63 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const single=(wrap,btn)=>{wrap.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));btn.setAttribute('aria-pressed','true')};
 
-  /* Chat del hero: completo en reposo; el botón lo reproduce en orden */
-  const steps=[...document.querySelectorAll('#chat [data-step]')], typing=document.getElementById('typing');
-  let timers=[];
-  document.getElementById('replay').addEventListener('click',()=>{
-    timers.forEach(clearTimeout); timers=[]; typing.style.display='none';
-    if(reduce){steps.forEach(s=>s.classList.remove('hidden-step'));return}
-    steps.forEach(s=>s.classList.add('hidden-step'));
-    let t=300;
-    steps.forEach(s=>{
-      const incoming=s.classList.contains('in');
-      if(incoming){timers.push(setTimeout(()=>{s.before(typing);typing.style.display='flex'},t)); t+=1000}
-      timers.push(setTimeout(()=>{typing.style.display='none';s.classList.remove('hidden-step')},t));
-      t+=incoming?1000:700;
-    });
-  });
+  /* Preloader: se va cuando la página terminó de cargar (o a los 4 s como máximo) */
+  const pre=document.getElementById('preloader'), shown=Date.now();
+  let ready;
+  const loaded=new Promise(r=>{ready=r});
+  const hidePre=()=>{if(!pre||pre.classList.contains('done'))return;pre.classList.add('done');document.documentElement.classList.remove('is-loading');setTimeout(()=>pre.remove(),600);ready()};
+  const onLoad=()=>setTimeout(hidePre,Math.max(0,(reduce?0:700)-(Date.now()-shown)));
+  if(document.readyState==='complete') onLoad(); else addEventListener('load',onLoad);
+  setTimeout(hidePre,4000);
+
+  /* Chat del hero: se escribe solo, mensaje por mensaje, mientras está a la vista y se repite en bucle */
+  const chat=document.getElementById('chat'), steps=[...chat.querySelectorAll('[data-step]')], typing=document.getElementById('typing');
+  const status=document.getElementById('chat-status'), input=document.getElementById('chat-input'), sendBtn=input.nextElementSibling;
+  const statusText=status.textContent, inputText=input.textContent;
+  let timers=[], run=0, visible=false, playing=false;
+  const wait=ms=>new Promise(r=>timers.push(setTimeout(r,ms)));
+  const stop=()=>{run++;timers.forEach(clearTimeout);timers=[];playing=false};
+  const showAll=()=>{chat.classList.remove('playing','fading');steps.forEach(st=>st.classList.remove('hidden-step','pop'));typing.style.display='none';status.textContent=statusText;input.textContent=inputText;input.classList.remove('typed')};
+  const show=st=>{st.classList.remove('hidden-step','pop');void st.offsetWidth;st.classList.add('pop')};
+
+  async function play(){
+    stop(); const id=run; playing=true;
+    const alive=()=>id===run;
+    while(alive()){
+      chat.classList.remove('fading'); chat.classList.add('playing');
+      steps.forEach(st=>{st.classList.add('hidden-step');st.classList.remove('pop')});
+      typing.style.display='none';
+      await wait(500); if(!alive())return;
+      for(const st of steps){
+        if(st.classList.contains('in')){
+          st.before(typing); typing.style.display='flex'; typing.classList.remove('pop');void typing.offsetWidth;typing.classList.add('pop');
+          status.textContent='escribiendo…';
+          await wait(st.textContent.length>120?1600:1100); if(!alive())return;
+          typing.style.display='none'; status.textContent='en línea'; show(st);
+          await wait(1300);
+        }else if(st.classList.contains('out')){
+          // El cliente escribe su respuesta en la barra de abajo y la envía
+          const txt=st.firstChild.textContent.trim(); input.classList.add('typed'); input.textContent='';
+          for(let i=1;i<=txt.length;i++){input.textContent=txt.slice(0,i);await wait(90);if(!alive())return}
+          await wait(350); if(!alive())return;
+          sendBtn.classList.remove('sent');void sendBtn.offsetWidth;sendBtn.classList.add('sent');
+          input.textContent=inputText; input.classList.remove('typed'); show(st);
+          await wait(900);
+        }else{ show(st); await wait(700) }
+        if(!alive())return;
+      }
+      status.textContent=statusText;
+      await wait(5000); if(!alive())return;
+      if(!visible){playing=false;return}
+      chat.classList.add('fading'); await wait(500);
+    }
+  }
+  if(!reduce){
+    steps.forEach(st=>st.classList.add('hidden-step')); chat.classList.add('playing');
+    const io=new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible&&!playing)loaded.then(()=>{if(visible&&!playing)play()})},{threshold:.35});
+    io.observe(chat);
+  }
+  document.getElementById('replay').addEventListener('click',()=>{if(reduce){showAll();return}play()});
 
   /* Demo reserva → agenda (servicios y barberos de Navaja Norte, citas de 9:00 a 20:00) */
   const START=9*60, END=20*60, PX=0.9;
