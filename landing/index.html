@@ -181,6 +181,16 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 @keyframes blockIn{from{transform:translateX(-50%) scaleY(0)}to{transform:translateX(-50%) scaleY(1)}}
 @keyframes phoneIn{from{opacity:0;transform:perspective(1400px) translateY(90px) rotateX(22deg) rotateY(-16deg) scale(.9)}to{opacity:1;transform:none}}
 .phone{transition:transform .5s cubic-bezier(.2,.8,.2,1);will-change:transform}
+/* Logo de WhatsApp sobre la esquina del teléfono, con ondas que laten */
+.wa-badge{position:absolute;z-index:3;top:3%;left:calc(50% + min(170px,50% - 18px) - 30px);width:62px;height:62px;border-radius:50%;background:#25D366;color:#fff;display:grid;place-items:center;box-shadow:0 12px 28px rgba(18,140,70,.35)}
+.wa-badge svg{width:36px;height:36px}
+.wa-badge::before,.wa-badge::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #25D366;animation:ring 2.4s ease-out infinite}
+.wa-badge::after{animation-delay:1.2s}
+@keyframes ring{from{transform:scale(1);opacity:.7}to{transform:scale(1.9);opacity:0}}
+.phone-stage.pre .wa-badge{opacity:0}
+.phone-stage.enter .wa-badge{animation:waIn .8s cubic-bezier(.2,1.6,.4,1) .9s both}
+@keyframes waIn{from{opacity:0;transform:scale(0) rotate(-90deg)}to{opacity:1;transform:none}}
+@media (max-width:480px){.wa-badge{width:50px;height:50px;left:auto;right:4px}.wa-badge svg{width:28px;height:28px}}
 .float{position:absolute;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px 10px 10px;border-radius:16px;background:var(--card);color:var(--ink);box-shadow:0 14px 34px rgba(14,14,40,.18),0 0 0 1px var(--line);font-size:.8rem;line-height:1.25;opacity:0;transform:translateY(14px) scale(.6);pointer-events:none;white-space:nowrap}
 .float b{display:block;font-size:.84rem;font-weight:700}
 .float small{color:var(--ink-3);font-size:.74rem}
@@ -188,7 +198,7 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 .float .fi svg{width:17px;height:17px}
 .float.on{animation:fIn .7s cubic-bezier(.2,1.5,.4,1) both,bob 4.5s ease-in-out .7s infinite}
 .float.off{animation:fOut .35s ease both}
-.f1{left:0;top:5%}.f2{right:0;top:47%}.f3{left:2%;bottom:17%}
+.f1{left:0;top:13%}.f2{right:0;top:47%}.f3{left:2%;bottom:17%}
 @keyframes fIn{from{opacity:0;transform:translateY(14px) scale(.6) rotate(-4deg)}to{opacity:1;transform:none}}
 @keyframes fOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-10px) scale(.9)}}
 @keyframes bob{0%,100%{opacity:1;transform:translateY(0)}50%{opacity:1;transform:translateY(-8px)}}
@@ -477,6 +487,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <symbol id="i-wa" viewBox="0 0 32 32"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" d="M16 3.5A12.5 12.5 0 0 0 5.2 22.3L3.6 28.4l6.3-1.6A12.5 12.5 0 1 0 16 3.5Z"/><path fill="currentColor" d="M11.9 9.6c.3 0 .6 0 .8.6l1.1 2.6c.1.3 0 .6-.1.8l-.8 1c-.2.2-.2.5 0 .8.6 1 1.4 1.9 2.3 2.6.7.5 1.4.9 2.2 1.2.3.1.6 0 .8-.2l1-1.2c.2-.3.5-.3.8-.2l2.5 1.2c.3.1.5.3.5.6 0 .6-.1 1.5-.8 2.1-.7.6-1.8 1-3 .8-1.6-.3-3.5-1.2-5.2-2.8-1.7-1.6-2.9-3.4-3.4-5-.4-1.3-.1-2.4.5-3.3.4-.5.8-.6 1.1-.6Z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
     <symbol id="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
@@ -554,7 +565,6 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <span class="tag"><b><svg aria-hidden="true"><use href="#i-msg"/></svg>WhatsApp</b>Confirmaciones y recordatorios automáticos</span>
         <h1>Agenda fácil. <em>Negocios que crecen.</em></h1>
         <p class="lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
         <div class="cta-row">
@@ -589,6 +599,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
             <div class="chat-foot" aria-hidden="true"><span id="chat-input">Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
           </div>
         </div>
+        <span class="wa-badge" aria-hidden="true"><svg><use href="#i-wa"/></svg></span>
         <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#3B3BF2"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
         <div class="float f2" aria-hidden="true"><span class="fi" style="--c:#167A43"><svg><use href="#i-check"/></svg></span><div><b>Asistencia confirmada</b><small>Sebastián · K7Q2MP</small></div></div>
         <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
