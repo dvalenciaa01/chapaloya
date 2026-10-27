@@ -258,7 +258,7 @@ html.is-loading{overflow:hidden}
 .sp-tatuajes .sp-name{font-family:"Pirata One",serif;font-size:1.8rem}
 .sp-fitness .sp-name{font-family:"Big Shoulders Display",sans-serif;font-weight:900;text-transform:uppercase;font-size:1.8rem;line-height:1}
 .rub-note{margin-top:20px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-2);font-size:1rem;display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap;align-items:center}
-@media (max-width:1080px){.spec{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:900px){.spec{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.spec{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}}
 
 /* Problema: título a la izquierda, lista con líneas a la derecha */
@@ -621,6 +621,25 @@ footer .word{color:var(--night-ink)}
 .hero-card.in .spark{opacity:1;transform:none;transition:opacity .4s ease .9s,transform .7s cubic-bezier(.2,1.6,.4,1) .9s}
 
 /* Las animaciones son parte del diseño (pedido de la marca): con "reducir movimiento" solo se quita el desplazamiento suave */
+/* Responsivo: la agenda cabe sin scroll lateral y el encabezado no se desborda */
+@media (max-width:520px){
+  .cal-scroll{overflow-x:visible}
+  .cal-grid{grid-template-columns:38px repeat(3,minmax(0,1fr));min-width:0}
+  .cal-col-h{padding:8px 6px;font-size:.78rem;gap:5px;min-width:0;overflow:hidden;white-space:nowrap}
+  .cal-col-h i{width:20px;height:20px;font-size:.52rem;flex:none}
+  .hours span{right:4px;font-size:.64rem}
+  .appt{left:3px;right:3px;padding:3px 6px;font-size:.66rem;border-left-width:2px}
+  .appt b{font-size:.68rem}
+  .appt span{display:block;overflow:hidden;text-overflow:ellipsis}
+  .appt.short span{display:inline}
+  .appt.short{gap:4px}
+  .cal-top{padding:16px}
+  .sp{padding:16px 14px 18px}
+}
+@media (max-width:380px){
+  .nav .word{display:none}
+  .spec{grid-template-columns:1fr}
+}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
