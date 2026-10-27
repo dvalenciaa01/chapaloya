@@ -331,6 +331,12 @@ html.is-loading{overflow:hidden}
 .conv .av svg{width:18px;height:18px}
 .conv b{display:block;font-size:.95rem;font-weight:600}
 .conv p{font-size:.86rem;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv.anim li{opacity:0;transform:translateX(-16px)}
+.conv.anim li.in{opacity:1;transform:none;transition:opacity .45s ease,transform .5s cubic-bezier(.2,.9,.3,1.15)}
+.conv.anim li.in .av{animation:pop .45s cubic-bezier(.2,.9,.3,1.25) both}
+.conv .st2.wait{background:var(--soft);color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line-2)}
+.conv .st2.wait::after{content:"";display:inline-block;width:5px;height:5px;margin-left:5px;border-radius:50%;background:currentColor;vertical-align:1px;animation:blink 1s infinite}
+.conv .st2.popped{animation:pop .35s cubic-bezier(.2,.9,.3,1.25)}
 .conv .meta{display:grid;justify-items:end;gap:4px;font-size:.76rem;color:var(--ink-3)}
 .st2{font-size:.74rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .st-ok{background:var(--wa-soft);color:var(--wa)}.st-re{background:var(--blue-soft);color:var(--blue-ink)}.st-rem{background:var(--soft);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-2)}
@@ -877,6 +883,29 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
     io.observe(chat);
   }
   document.getElementById('replay').addEventListener('click',()=>{if(reduce){showAll();return}play()});
+
+  /* Avisos de WhatsApp: aparecen uno por uno, en el orden del proceso, cada vez que la lista entra en pantalla */
+  const conv=document.querySelector('.conv');
+  if(conv&&!reduce){
+    const rows=[...conv.children], pills=rows.map(li=>li.querySelector('.st2'));
+    const final=pills.map(p=>({t:p.textContent,c:p.className}));
+    const pending={Enviado:'Enviando',Confirmó:'Esperando',Programado:'Programando'};
+    let ct=[], played=false;
+    const reset=()=>{ct.forEach(clearTimeout);ct=[];rows.forEach(li=>li.classList.remove('in'));pills.forEach((p,i)=>{p.className=final[i].c;p.textContent=final[i].t});played=false};
+    const playConv=()=>{
+      reset(); played=true; let t=200;
+      rows.forEach((li,i)=>{
+        ct.push(setTimeout(()=>{pills[i].className='st2 wait';pills[i].textContent=pending[final[i].t]||final[i].t;li.classList.add('in')},t));
+        ct.push(setTimeout(()=>{pills[i].className=final[i].c+' popped';pills[i].textContent=final[i].t},t+800));
+        t+=1100;
+      });
+    };
+    conv.classList.add('anim');
+    new IntersectionObserver(([e])=>{
+      if(e.isIntersecting&&e.intersectionRatio>=.4){if(!played)loaded.then(playConv)}
+      else if(!e.isIntersecting) reset();
+    },{threshold:[0,.4]}).observe(conv);
+  }
 
   /* Demo reserva → agenda (servicios y barberos de Navaja Norte, citas de 9:00 a 20:00) */
   const START=9*60, END=20*60, PX=0.9;
