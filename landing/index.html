@@ -17,7 +17,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="Reservalope · Agenda fácil. Negocios que crecen." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="theme-color" content="#FFFFFF" />
+<meta name="theme-color" content="#F8FAFC" />
 <link rel="icon" href="../assets/icons/favicon.png" type="image/png" />
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
 <script>
@@ -26,7 +26,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <!-- Muestras tipográficas de los rubros: solo las letras necesarias (parámetro text) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bodoni+Moda:ital,wght@1,500&family=Cormorant+Garamond:wght@600&family=Unbounded:wght@700&family=IBM+Plex+Sans:wght@600&family=Outfit:wght@700&family=Fraunces:wght@500&family=Fredoka:wght@600&family=Pirata+One&family=Big+Shoulders+Display:wght@900&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%C3%A1%C3%A9%C3%AD%C3%B3%C3%BA%C3%B1%C3%81%C3%89%C3%8D%C3%93%C3%9A%C3%91%20%2F">
 <script>
@@ -38,32 +38,32 @@ html{scroll-behavior:smooth;scroll-padding-top:84px}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-/* Base: fondo blanco, Urbanist, azul como único acento, botones en píldora, teléfono sobre bloque azul,
-   franja negra y pie en panel gris. Sin adornos de plantilla: nada de etiquetas de color sobre cada título,
+/* Base: fondo claro, Plus Jakarta Sans, morado como único acento, botones en píldora, teléfono sobre bloque morado,
+   franja verde oscuro y pie en panel gris. Sin adornos de plantilla: nada de etiquetas de color sobre cada título,
    brillos, aros, texturas de puntos, rejillas de "ícono en círculo + título" ni viñetas con check.
    La jerarquía la dan el tamaño del texto, las líneas finas y el espacio. */
 :root{
-  --blue:#3B3BF2; --blue-hover:#2E2EDB; --blue-soft:#ECECFE; --blue-ink:#2A2AC9; --on-blue:#FFFFFF;
-  --bg:#FFFFFF; --soft:#F5F5F7; --card:#FFFFFF;
-  --ink:#0E0E12; --ink-2:#4B4F5A; --ink-3:#6B7080; --line:#E4E4EA; --line-2:#C9CAD3;
+  --blue:#8B5CF6; --blue-hover:#7C3AED; --blue-soft:#F1EBFE; --blue-ink:#6D28D9; --on-blue:#FFFFFF;
+  --bg:#F8FAFC; --soft:#EEF3F1; --card:#FFFFFF;
+  --ink:#0B1F1A; --ink-2:#3D4F49; --ink-3:#5E706A; --line:#E1E7E5; --line-2:#C3CDCA;
   --wa:#167A43; --wa-soft:#DDF3E5; --bubble:#FFFFFF; --bubble-out:#D9FDD3; --chat-bg:#EFEAE2;
   --danger:#C0262D;
-  --night:#0B0B0E; --night-ink:#FFFFFF; --night-muted:#A9ACB8; --night-line:#2A2A31; --night-accent:#9A9AFF;
-  --font:"Urbanist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --night:#0B1F1A; --night-ink:#F8FAFC; --night-muted:#9DB3AC; --night-line:#1F3A33; --night-accent:#A78BFA;
+  --font:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --blue:#7373FF; --blue-hover:#8A8AFF; --blue-soft:#1D1D3A; --blue-ink:#ABABFF; --on-blue:#0B0B0E;
-  --bg:#0C0C0F; --soft:#16161B; --card:#131317;
-  --ink:#F2F2F5; --ink-2:#C2C4CC; --ink-3:#9A9DA8; --line:#26262D; --line-2:#3A3A44;
+  --blue:#A78BFA; --blue-hover:#B9A2FB; --blue-soft:#251C45; --blue-ink:#C4B5FD; --on-blue:#0B1F1A;
+  --bg:#0B1F1A; --soft:#112822; --card:#132B24;
+  --ink:#F8FAFC; --ink-2:#C9D6D2; --ink-3:#95ABA4; --line:#1E3830; --line-2:#2E4D44;
   --wa:#46C77E; --wa-soft:#10301E; --bubble:#1F2622; --bubble-out:#164A33; --chat-bg:#121714;
-  --danger:#F87171; --night:#000000; --night-line:#26262D; color-scheme:dark}}
+  --danger:#F87171; --night:#06140F; --night-line:#1E3830; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --blue:#7373FF; --blue-hover:#8A8AFF; --blue-soft:#1D1D3A; --blue-ink:#ABABFF; --on-blue:#0B0B0E;
-  --bg:#0C0C0F; --soft:#16161B; --card:#131317;
-  --ink:#F2F2F5; --ink-2:#C2C4CC; --ink-3:#9A9DA8; --line:#26262D; --line-2:#3A3A44;
+  --blue:#A78BFA; --blue-hover:#B9A2FB; --blue-soft:#251C45; --blue-ink:#C4B5FD; --on-blue:#0B1F1A;
+  --bg:#0B1F1A; --soft:#112822; --card:#132B24;
+  --ink:#F8FAFC; --ink-2:#C9D6D2; --ink-3:#95ABA4; --line:#1E3830; --line-2:#2E4D44;
   --wa:#46C77E; --wa-soft:#10301E; --bubble:#1F2622; --bubble-out:#164A33; --chat-bg:#121714;
-  --danger:#F87171; --night:#000000; --night-line:#26262D; color-scheme:dark}
+  --danger:#F87171; --night:#06140F; --night-line:#1E3830; color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;transition:background-color .25s ease,color .25s ease}
@@ -105,8 +105,8 @@ svg.i{width:20px;height:20px;flex:none}
 .brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
 .iso{width:36px;height:36px;border-radius:10px;overflow:hidden;flex:none;display:block}
 .iso img{width:100%;height:100%;display:block}
-.word{font-weight:700;font-size:1.3rem;letter-spacing:-.02em;color:var(--blue)}
-.word span{color:inherit}
+.word{font-weight:700;font-size:1.3rem;letter-spacing:-.03em;color:var(--ink)}
+.word span{color:var(--blue)}
 
 /* Nav */
 header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bg);border-bottom:1px solid var(--line);transition:background-color .25s ease}
@@ -144,7 +144,7 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 .assure li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--blue)}
 .assure svg{display:none}
 
-/* Teléfono sobre bloque azul */
+/* Teléfono sobre bloque morado */
 .phone-stage{display:grid;justify-items:center;gap:18px;min-width:0;position:relative}
 .phone-stage::before{content:"";position:absolute;left:50%;transform:translateX(-50%);width:calc(min(340px,100%) + 72px);max-width:100%;top:16%;bottom:30px;background:var(--blue);border-radius:40px;z-index:0}
 .phone{width:min(340px,100%);background:#0B0B0F;border-radius:46px;padding:9px;position:relative;z-index:1;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
@@ -172,7 +172,7 @@ header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backgroun
 .chat-foot i{width:38px;height:38px;border-radius:50%;background:#0F5E3B;display:grid;place-items:center;color:#fff}
 .chat-foot i svg{width:18px;height:18px}
 .hidden-step{opacity:0;transform:translateY(8px)}
-/* Entrada del teléfono (estilo motion graphics): el bloque azul crece, el teléfono sube girando y aparecen tarjetas flotantes */
+/* Entrada del teléfono (estilo motion graphics): el bloque morado crece, el teléfono sube girando y aparecen tarjetas flotantes */
 .phone-stage.pre::before{transform:translateX(-50%) scaleY(0)}
 .phone-stage.pre .phone{opacity:0}
 .phone-stage.enter::before{transform-origin:50% 100%;animation:blockIn .9s cubic-bezier(.7,0,.2,1) both}
@@ -599,7 +599,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
           </div>
         </div>
         <span class="wa-badge" aria-hidden="true"><svg><use href="#i-wa"/></svg></span>
-        <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#3B3BF2"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
+        <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#8B5CF6"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
         <div class="float f2" aria-hidden="true"><span class="fi" style="--c:#167A43"><svg><use href="#i-check"/></svg></span><div><b>Asistencia confirmada</b><small>Sebastián · K7Q2MP</small></div></div>
         <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
       </div>
@@ -750,7 +750,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
       <div class="inbox" aria-label="Ejemplo: mensajes que genera una cita">
         <div class="inbox-top"><b>Mensajes de la cita K7Q2MP</b><span class="st2 st-ok">Confirmada</span></div>
         <ul class="conv mg">
-          <li><span class="av" style="background:#3B3BF2"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><p>A la barbería · Sebastián · Corte de Cabello + Barba con Luis</p></div><div class="meta">Dom 18:40<span class="st2 st-ok">Enviado</span></div></li>
+          <li><span class="av" style="background:#8B5CF6"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><p>A la barbería · Sebastián · Corte de Cabello + Barba con Luis</p></div><div class="meta">Dom 18:40<span class="st2 st-ok">Enviado</span></div></li>
           <li><span class="av" style="background:#0F5E3B"><svg class="i" aria-hidden="true"><use href="#i-msg"/></svg></span><div><b>Confirmación</b><p>Al cliente · “Tu cita en Navaja Norte quedó registrada…”</p></div><div class="meta">Dom 18:40<span class="st2 st-ok">Enviado</span></div></li>
           <li><span class="av" style="background:#3A3833"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span><div><b>El cliente confirmó su asistencia</b><p>La cita pasó a confirmada</p></div><div class="meta">Dom 18:42<span class="st2 st-re">Confirmó</span></div></li>
           <li><span class="av" style="background:#B45309"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg></span><div><b>Recordatorio un día antes</b><p>Al cliente · “Te recordamos tu cita mañana a las 11:00…”</p></div><div class="meta">Lun 11:00<span class="st2 st-rem">Programado</span></div></li>
@@ -921,7 +921,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   steps.forEach(st=>st.classList.add('hidden-step')); chat.classList.add('playing');
   const stage=document.querySelector('.phone-stage'), phone=stage.querySelector('.phone');
   stage.classList.add('pre');
-  // Entrada: bloque azul, teléfono girando y luego arranca la conversación
+  // Entrada: bloque morado, teléfono girando y luego arranca la conversación
   loaded.then(()=>{stage.classList.remove('pre');stage.classList.add('enter');setTimeout(()=>{stage.classList.remove('enter');new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible&&!playing)play()},{threshold:.35}).observe(chat)},1400)});
   // Inclinación 3D del teléfono siguiendo el mouse (solo con mouse)
   if(matchMedia('(hover:hover) and (pointer:fine)').matches){
@@ -954,7 +954,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 
   /* Demo reserva → agenda (servicios y barberos de Navaja Norte, citas de 9:00 a 20:00) */
   const START=9*60, END=20*60, PX=0.9;
-  const staff=[{n:'Luis',c:'#3B3BF2',i:'LU'},{n:'Andrés',c:'#0F766E',i:'AN'},{n:'Kevin',c:'#B45309',i:'KE'}];
+  const staff=[{n:'Luis',c:'#8B5CF6',i:'LU'},{n:'Andrés',c:'#0F766E',i:'AN'},{n:'Kevin',c:'#B45309',i:'KE'}];
   const m=(h,mm)=>h*60+mm, fmt=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
   const appts=[
     [{s:m(9,0),d:45,v:'Corte de Cabello + Barba'},{s:m(11,0),d:45,v:'Corte de Cabello + Barba'},{s:m(15,0),d:30,v:'Corte Clásico / Fade'},{s:m(18,0),d:60,v:'Paquete Grooming Premium'}],
@@ -1015,7 +1015,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   /* Botón de modo claro / oscuro: parte del tema del sistema y recuerda la elección */
   const root=document.documentElement, tbtn=document.getElementById('theme-toggle'), mq=matchMedia('(prefers-color-scheme: dark)'), meta=document.querySelector('meta[name="theme-color"]');
   const current=()=>root.getAttribute('data-theme')||(mq.matches?'dark':'light');
-  const syncTheme=()=>{const dark=current()==='dark';tbtn.setAttribute('aria-label',dark?'Cambiar a modo claro':'Cambiar a modo oscuro');tbtn.setAttribute('aria-pressed',String(dark));if(meta)meta.setAttribute('content',dark?'#0C0C0F':'#FFFFFF')};
+  const syncTheme=()=>{const dark=current()==='dark';tbtn.setAttribute('aria-label',dark?'Cambiar a modo claro':'Cambiar a modo oscuro');tbtn.setAttribute('aria-pressed',String(dark));if(meta)meta.setAttribute('content',dark?'#0B1F1A':'#F8FAFC')};
   tbtn.addEventListener('click',()=>{const next=current()==='dark'?'light':'dark';root.setAttribute('data-theme',next);try{localStorage.setItem('reservalope-theme',next)}catch(e){}syncTheme()});
   mq.addEventListener&&mq.addEventListener('change',syncTheme);
   syncTheme();
