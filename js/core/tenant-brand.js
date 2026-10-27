@@ -172,8 +172,8 @@ const TenantBrand = {
     this.setMeta('meta[property="og:title"]', 'content', document.title);
     if (desc) this.setMeta('meta[property="og:description"]', 'content', t.name + ': ' + desc.getAttribute('content'));
     if (t.logo) {
-      const icon = document.querySelector('link[rel="icon"]');
-      if (icon) { icon.setAttribute('href', t.logo); icon.removeAttribute('type'); }
+      // Hay dos íconos (SVG y PNG): ambos pasan al logo del negocio
+      document.querySelectorAll('link[rel="icon"]').forEach(icon => { icon.setAttribute('href', t.logo); icon.removeAttribute('type'); icon.removeAttribute('sizes'); });
     }
   },
 

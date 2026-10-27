@@ -18,8 +18,9 @@
 <meta property="og:image:alt" content="Reservalope · Agenda fácil. Negocios que crecen." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="theme-color" content="#F8FAFC" />
-<link rel="icon" href="../assets/icons/favicon.png" type="image/png" />
-<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
+<link rel="icon" href="../assets/icons/favicon.svg?v=2" type="image/svg+xml" />
+<link rel="icon" href="../assets/icons/favicon.png?v=2" type="image/png" sizes="64x64" />
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=2" />
 <script>
 /* Con direcciones limpias la raíz es esta landing: un enlace antiguo (/?b=negocio) va a /negocio/ */
 (function(){try{var b=new URLSearchParams(location.search).get('b');if(b&&location.pathname==='/'&&/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b))location.replace('/'+b+'/');}catch(e){}})();
@@ -470,8 +471,157 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 .cita dt{color:var(--ink-3)}
 .cita dd{margin:0;font-weight:600}
 
-/* Con "reducir movimiento" se apagan las transiciones del sitio, salvo las piezas animadas del producto (.mg) */
-@media (prefers-reduced-motion:reduce){body *:not(.mg):not(.mg *){transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+/* ==========================================================================
+   Estilo motion graphics (referencia de David): página dentro de un marco
+   redondeado, portada en un gran bloque morado con el teléfono desbordando,
+   trazos dibujados a mano, tarjetas suaves con formas y aparición al hacer scroll.
+   Mantiene la paleta de la marca y todo el contenido.
+   ========================================================================== */
+:root{--frame:#E6ECEA;--hero-ink:#0B1F1A;--hero-em:#F8FAFC;--ease:cubic-bezier(.2,.8,.2,1)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--frame:#040D0A}}
+:root[data-theme="dark"]{--frame:#040D0A}
+body{background:var(--frame)}
+.shell{max-width:1380px;margin:clamp(0px,1.6vw,24px) auto;background:var(--bg);border-radius:clamp(0px,2.6vw,40px);overflow:clip;box-shadow:0 30px 80px rgba(11,31,26,.08);transition:background-color .25s ease}
+@media (max-width:640px){.shell{margin:0;border-radius:0}}
+header.nav{border-bottom:0}
+.nav .btn-primary{background:var(--ink);color:var(--bg)}
+.nav .btn-primary:hover{background:var(--blue);color:var(--on-blue)}
+.btn{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .25s var(--ease),box-shadow .25s ease}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary:hover{box-shadow:0 10px 24px color-mix(in srgb,var(--blue) 35%,transparent)}
+
+/* Etiquetas en píldora y encabezados sin línea */
+.eyebrow{display:inline-flex;align-items:center;width:fit-content;height:fit-content;padding:6px 14px;border-radius:999px;background:var(--blue-soft);color:var(--blue-ink);font-size:.86rem}
+.head.wide{border-top:0;padding-top:0}
+.h2{letter-spacing:-.04em}
+
+/* Portada: bloque morado con el teléfono desbordando por abajo */
+.hero{padding-block:clamp(12px,2vw,24px) clamp(90px,10vw,140px);overflow:visible}
+.hero-card{position:relative;background:var(--blue);color:var(--hero-ink);border-radius:clamp(28px,3.4vw,44px);padding:clamp(28px,5vw,72px) clamp(24px,5vw,72px) 0;align-items:start;isolation:isolate}
+.hero .hero-grid{grid-template-columns:1.05fr .95fr}
+.hero-copy{padding-bottom:clamp(36px,5vw,72px);position:relative;z-index:2}
+.hero h1{font-size:clamp(2.8rem,6.4vw,5.2rem);font-weight:600;letter-spacing:-.05em;color:var(--hero-ink)}
+.hero h1 em{color:var(--hero-em)}
+.spark{width:.5em;height:.5em;fill:var(--hero-ink);margin-left:.18em;vertical-align:.32em;animation:spin 9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero .lead{color:color-mix(in srgb,var(--hero-ink) 86%,transparent)}
+.hero-card .btn-primary{background:var(--hero-ink);color:#F8FAFC}
+.hero-card .btn-primary:hover{background:#000;box-shadow:0 12px 26px rgba(11,31,26,.35)}
+.hero-card .btn-ghost{color:var(--hero-ink);border-color:color-mix(in srgb,var(--hero-ink) 40%,transparent)}
+.hero-card .btn-ghost:hover{border-color:var(--hero-ink);background:color-mix(in srgb,#fff 18%,transparent)}
+.hero-card .assure{color:color-mix(in srgb,var(--hero-ink) 80%,transparent)}
+.hero-card .assure li::before{background:var(--hero-ink)}
+.hero-card :focus-visible{outline-color:var(--hero-ink)}
+.phone-stage{margin-bottom:clamp(-110px,-8vw,-60px);z-index:2}
+.phone-stage::before{display:none}
+.phone{box-shadow:0 40px 80px rgba(11,31,26,.35),0 0 0 1px rgba(255,255,255,.08)}
+.scribble{position:absolute;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;overflow:visible}
+.hero-arrow{width:clamp(100px,10vw,140px);right:0;top:2%;color:var(--hero-ink);z-index:1}
+.deco{position:absolute;pointer-events:none;z-index:-1}
+.hero-bg{position:absolute;inset:0;border-radius:inherit;overflow:hidden;z-index:-1;pointer-events:none}
+.hero-bg .deco{z-index:0}
+.hero-ring{width:clamp(260px,34vw,460px);aspect-ratio:1;right:-6%;top:-18%;border-radius:50%;border:clamp(28px,3.4vw,46px) solid color-mix(in srgb,#fff 16%,transparent);border-right-color:transparent;border-bottom-color:transparent;animation:spin 26s linear infinite}
+.hero-dot{width:clamp(70px,9vw,120px);aspect-ratio:1;right:3%;bottom:-4%;border-radius:50%;background:color-mix(in srgb,var(--hero-ink) 90%,transparent);opacity:.9}
+@media (max-width:980px){.hero .hero-grid{grid-template-columns:1fr}.hero-arrow{display:none}.hero-copy{padding-bottom:12px}.hero-dot{display:none}}
+
+/* Rubros: tarjetas suaves que se elevan */
+.spec{gap:12px;column-gap:12px}
+.sp{background:var(--soft);border:0;border-radius:22px;padding:20px 20px 22px;transition:transform .35s var(--ease),background-color .25s ease,box-shadow .35s ease}
+.sp:hover{transform:translateY(-6px) rotate(-1deg);background:var(--card);box-shadow:0 18px 40px rgba(11,31,26,.10)}
+.rub-note{border-top:0;background:var(--soft);border-radius:999px;padding:14px 14px 14px 26px}
+
+/* Problema: tarjetas con ícono en círculo y un anillo de progreso detrás */
+.prob{position:relative}
+.pains{border-top:0;gap:12px}
+.pains li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;align-items:start;padding:22px;border:0;border-radius:24px;background:var(--soft);transition:transform .35s var(--ease)}
+.pains li:hover{transform:translateX(6px)}
+.pains .pi,.rules .ri{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff}
+.pains .pi svg,.rules .ri svg{width:22px;height:22px}
+.prob-ring{width:clamp(130px,14vw,190px);aspect-ratio:1;right:-50px;bottom:-70px;z-index:0;opacity:.9}
+.pains{position:relative;z-index:1}
+.prob-ring::before,.prob-ring i{content:"";position:absolute;inset:0;border-radius:50%;border:16px solid transparent}
+.prob-ring::before{border-top-color:var(--blue);border-right-color:var(--blue);animation:spin 14s linear infinite}
+.prob-ring i{inset:26px;border-width:10px;border-bottom-color:var(--ink);border-left-color:var(--ink);animation:spin 9s linear infinite reverse}
+@media (max-width:900px){.prob-ring{display:none}}
+
+/* Plataforma: bloque verde oscuro más redondeado con un trazo a mano */
+#plataforma .wrap::before{border-radius:clamp(28px,3vw,40px);border:0}
+.plat-squiggle{width:clamp(180px,22vw,300px);right:clamp(32px,6vw,90px);top:clamp(28px,4vw,52px);color:var(--night-accent);z-index:1}
+.prod{border:0;border-radius:28px;background:var(--card);box-shadow:0 20px 50px rgba(11,31,26,.10);position:relative;overflow:hidden;isolation:isolate;transition:transform .4s var(--ease),box-shadow .4s ease}
+.prod:hover{transform:translateY(-8px);box-shadow:0 30px 60px rgba(11,31,26,.16)}
+.prod::after{content:"";position:absolute;z-index:-1;width:120px;height:120px;right:-40px;bottom:-40px;background:var(--blue);border-radius:60% 40% 0 50%;opacity:.16;transition:transform .6s var(--ease)}
+.prod:nth-child(2)::after{border-radius:50%;background:transparent;border:18px solid var(--blue);border-left-color:transparent;opacity:.2}
+.prod:nth-child(3)::after{border-radius:40% 0 50% 60%;background:var(--ink);opacity:.08}
+.prod:hover::after{transform:rotate(25deg) scale(1.15)}
+.prod .vis{border-radius:18px}
+
+/* Reservas: tarjetas suaves con ícono */
+.booker,.cal{border-radius:28px}
+.cal{border:0;box-shadow:0 20px 50px rgba(11,31,26,.08)}
+.rv-points li{border-top:0;background:var(--soft);border-radius:24px;padding:22px}
+.rv-points h3{display:flex;align-items:center;gap:12px}
+.rv-points h3 svg{display:block;width:40px;height:40px;padding:10px;border-radius:50%;background:var(--blue);color:#fff;flex:none}
+
+/* WhatsApp: reglas al estilo "ventajas", con ícono en círculo */
+.rules{border-top:0;gap:6px}
+.rules li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;padding:16px 0;border-bottom:1px dashed var(--line-2)}
+.rules li:last-child{border-bottom:0}
+.inbox{border:0;border-radius:28px;box-shadow:0 24px 60px rgba(11,31,26,.12)}
+
+/* Panel: módulos en tarjetas con ícono */
+.mods{gap:14px;column-gap:14px}
+.mod{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start;padding:22px;border:0;border-radius:24px;background:var(--soft);transition:transform .35s var(--ease),background-color .25s ease,box-shadow .35s ease}
+.mod>svg{display:block;width:44px;height:44px;padding:11px;border-radius:50%;background:var(--blue-soft);color:var(--blue-ink);transition:background-color .25s ease,color .25s ease,transform .5s var(--ease)}
+.mod:hover{transform:translateY(-6px);background:var(--card);box-shadow:0 18px 40px rgba(11,31,26,.10)}
+.mod:hover>svg{background:var(--blue);color:#fff;transform:rotate(-12deg) scale(1.08)}
+
+/* Cómo empezar: números en círculos unidos por una línea punteada */
+.seq li{position:relative;border-top:0;padding-top:0}
+.seq li::before{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--blue);color:#fff;font-size:1.6rem;font-weight:600;margin-bottom:8px}
+.seq li:not(:last-child)::after{content:"";position:absolute;top:32px;left:76px;right:-16px;border-top:2px dashed var(--line-2);transform-origin:left;transition:transform 1s var(--ease) .3s}
+.seq li.reveal:not(.in)::after{transform:scaleX(0)}
+@media (max-width:860px){.seq li::after{display:none}}
+
+/* Preguntas: tarjetas que se abren */
+.faq{border-top:0;gap:10px}
+.faq details{border:0;border-radius:22px;background:var(--soft);padding:0 22px;transition:background-color .25s ease}
+.faq details[open]{background:var(--blue-soft)}
+.faq summary svg{width:30px;height:30px;padding:5px;border-radius:50%;background:var(--card);transition:transform .3s var(--ease),background-color .2s}
+.faq details[open] summary svg{background:var(--blue);color:#fff}
+
+/* Cierre: bloque verde oscuro con círculo morado y trazo */
+.closer{position:relative;isolation:isolate;border:0;border-radius:clamp(28px,3vw,40px)}
+.closer-blob{width:clamp(220px,26vw,360px);aspect-ratio:1;border-radius:50%;background:var(--blue);left:-200px;bottom:-250px;z-index:-1;opacity:.9}
+.closer-squiggle{width:130px;left:clamp(96px,10vw,130px);top:clamp(28px,4vw,48px);color:var(--night-accent);z-index:0}
+@media (max-width:900px){.closer-squiggle{display:none}}
+
+/* Pie oscuro, como en la referencia */
+footer{background:var(--night);color:var(--night-ink);padding:clamp(48px,6vw,80px) 0 24px;margin-top:clamp(48px,6vw,80px)}
+footer>.wrap{background:transparent;border-radius:0;padding-top:0}
+.foot p,.foot a{color:var(--night-muted)}
+.foot h4{color:var(--night-ink)}
+.foot a:hover{color:#fff}
+footer .word{color:var(--night-ink)}
+.legal{border-top-color:var(--night-line);color:var(--night-muted)}
+
+/* Movimiento: aparición al hacer scroll (solo para lo que está fuera de pantalla al cargar) */
+.reveal{opacity:0;transform:translateY(34px) scale(.98);transition:opacity .8s var(--ease),transform .9s var(--ease);transition-delay:calc(var(--i,0) * 90ms)}
+.reveal.in{opacity:1;transform:none}
+.draw path{stroke-dasharray:1;stroke-dashoffset:1}
+.draw.in path{stroke-dashoffset:0;transition:stroke-dashoffset 1.8s cubic-bezier(.6,0,.2,1)}
+.draw.in path+path{transition-delay:1.4s;transition-duration:.5s}
+/* Titular de la portada: las palabras suben una a una */
+.hero h1 .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em;margin-bottom:-.08em}
+.hero h1 .w>span{display:inline-block;transform:translateY(105%);transition:transform .9s var(--ease);transition-delay:calc(var(--wi) * 70ms + 150ms)}
+.hero h1.in .w>span{transform:none}
+.hero-card .lead,.hero-card .cta-row,.hero-card .assure{opacity:0;transform:translateY(20px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.hero-card.in .lead{transition-delay:.55s}.hero-card.in .cta-row{transition-delay:.7s}.hero-card.in .assure{transition-delay:.85s}
+.hero-card.in .lead,.hero-card.in .cta-row,.hero-card.in .assure{opacity:1;transform:none}
+.hero-card .spark{opacity:0;transform:scale(0)}
+.hero-card.in .spark{opacity:1;transform:none;transition:opacity .4s ease .9s,transform .7s cubic-bezier(.2,1.6,.4,1) .9s}
+
+/* Las animaciones son parte del diseño (pedido de la marca): con "reducir movimiento" solo se quita el desplazamiento suave */
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -538,6 +688,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   </defs>
 </svg>
 
+<div class="shell">
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#inicio" aria-label="Reservalope, inicio">
@@ -562,10 +713,13 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 
 <main id="inicio">
   <section class="hero">
-    <div class="wrap hero-grid">
+    <div class="wrap">
+    <div class="hero-card hero-grid">
+      <span class="hero-bg" aria-hidden="true"><span class="deco hero-ring" data-par="-.12"></span><span class="deco hero-dot" data-par=".2"></span></span>
       <div class="hero-copy">
-        <h1>Agenda fácil. <em>Negocios que crecen.</em></h1>
+        <h1>Agenda fácil.<svg class="spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0c.7 6.4 5.6 11.3 12 12-6.4.7-11.3 5.6-12 12-.7-6.4-5.6-11.3-12-12C6.4 11.3 11.3 6.4 12 0Z"/></svg> <em>Negocios que crecen.</em></h1>
         <p class="lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
+        <svg class="scribble hero-arrow draw" viewBox="0 0 240 250" aria-hidden="true"><path pathLength="1" d="M214 8c22 58 6 118-44 146-34 19-66 9-62-12 4-20 40-20 52 10 16 40-16 78-118 84"/><path pathLength="1" d="M58 222l-20 14 20 14"/></svg>
         <div class="cta-row">
           <a class="btn btn-primary" href="#demo">Solicitar una prueba <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <a class="btn btn-ghost" href="#reservas">Ver cómo funciona</a>
@@ -604,6 +758,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
       </div>
     </div>
+  </div>
   </section>
 
   <section class="rubros" id="rubros">
@@ -636,6 +791,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <h2 class="h2">Tu recepción es tu celular. <span class="soft">Y tienes las manos ocupadas.</span></h2>
         <p class="lead">Tu tiempo también importa. Reservalope ordena la agenda para que tú te dediques a atender.</p>
       </div>
+      <span class="deco prob-ring" aria-hidden="true"><i></i></span>
       <ul class="pains">
         <li><span class="pi"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h3>Los mensajes llegan en plena atención</h3><p>Con una web de reservas, el cliente elige servicio, profesional y hora sin esperar tu respuesta.</p></div></li>
         <li><span class="pi"><svg aria-hidden="true"><use href="#i-hole"/></svg></span><div><h3>Las citas se cruzan</h3><p>Solo se ofrecen horarios libres. No se puede reservar un horario ocupado ni uno que ya pasó.</p></div></li>
@@ -646,6 +802,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
 
   <section id="plataforma">
     <div class="wrap">
+      <svg class="scribble plat-squiggle draw" viewBox="0 0 300 120" aria-hidden="true"><path pathLength="1" d="M4 96c34-6 52-40 70-64 16-22 40-26 50-4 12 26-14 52-28 40-16-14 18-46 52-46 40 0 54 50 92 52 22 1 40-12 56-30"/></svg>
       <div class="head wide">
         <span class="eyebrow">La plataforma</span>
         <h2 class="h2">Tres piezas. <span class="hl">Una sola agenda.</span></h2>
@@ -816,6 +973,8 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   <section id="demo">
     <div class="wrap">
       <div class="closer">
+        <span class="deco closer-blob" aria-hidden="true"></span>
+        <svg class="scribble closer-squiggle draw" viewBox="0 0 220 90" aria-hidden="true"><path pathLength="1" d="M4 70c26 0 34-56 64-56 26 0 18 46 44 46 30 0 30-52 58-52 20 0 32 18 46 30"/></svg>
         <div class="closer-copy">
           <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="56" height="56"></span>
           <h2>Agenda fácil. Negocios que crecen.</h2>
@@ -860,6 +1019,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
     <div class="legal"><span>© 2026 Reservalope</span></div>
   </div>
 </footer>
+</div>
 
 <script>
 (function(){
@@ -1055,6 +1215,38 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
     form.innerHTML='<div class="done" role="status"><span class="ok"><svg aria-hidden="true"><use href="#i-check"/></svg></span><h3>¡Solicitud enviada!</h3><p>'+(enviado==='prueba'?'Recibimos tu solicitud de prueba. Te responderemos desde vexastudio.contacto@gmail.com.':'Recibimos tu solicitud de demo. Te responderemos desde vexastudio.contacto@gmail.com para coordinar el día y la hora.')+'</p></div>';
     history.replaceState(null,'',location.pathname+'#demo');
   }
+  /* Movimiento al estilo motion graphics: titular por palabras, aparición al hacer scroll,
+     trazos que se dibujan y un leve parallax de las formas decorativas */
+  const h1=document.querySelector('.hero h1'), heroCard=document.querySelector('.hero-card');
+  let wi=0;
+  const split=node=>{[...node.childNodes].forEach(n=>{
+    if(n.nodeType===3){
+      const frag=document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(part=>{
+        if(!part) return;
+        if(/^\s+$/.test(part)){frag.appendChild(document.createTextNode(part));return}
+        const w=document.createElement('span');w.className='w';const inner=document.createElement('span');inner.textContent=part;inner.style.setProperty('--wi',wi++);w.appendChild(inner);frag.appendChild(w);
+      });
+      n.replaceWith(frag);
+    }else if(n.nodeType===1&&n.tagName==='EM') split(n);
+  })};
+  split(h1);
+  loaded.then(()=>requestAnimationFrame(()=>{h1.classList.add('in');heroCard.classList.add('in');heroCard.querySelectorAll('.draw').forEach(d=>setTimeout(()=>d.classList.add('in'),900))}));
+
+  const revealSel='.head,.spec>li,.rub-note,.pains>li,.prod,.booker,.cal,.rv-points>li,.rules>li,.inbox,.mods>.mod,.panel>.eyebrow,.panel>h3,.seq>li,.faq>details,.closer,.foot>div,.legal';
+  const groups=new Map();
+  document.querySelectorAll(revealSel).forEach(el=>{
+    if(el.getBoundingClientRect().top<innerHeight*.9) return;   // lo visible al cargar no se oculta
+    const k=el.parentElement; const n=groups.get(k)||0; groups.set(k,n+1);
+    el.style.setProperty('--i',n%6); el.classList.add('reveal');
+  });
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -6% 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  document.querySelectorAll('.draw').forEach(el=>{if(!heroCard.contains(el)) io.observe(el)});
+
+  const par=[...document.querySelectorAll('[data-par]')];
+  let ticking=false;
+  addEventListener('scroll',()=>{if(ticking)return;ticking=true;requestAnimationFrame(()=>{const y=scrollY;par.forEach(el=>{el.style.translate=`0 ${y*parseFloat(el.dataset.par)}px`});ticking=false})},{passive:true});
 })();
 </script>
 </body>
