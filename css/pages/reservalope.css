@@ -1,7 +1,7 @@
 /* ==========================================================================
    Reservalope · consola del superadministrador
    ========================================================================== */
-body[data-page="reservalope"] { background: var(--ink-900); }
+body[data-page="reservalope"] { background: var(--ink-900); --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
 body[data-page="reservalope"]:not(.auth-ok) .crm-shell,
 body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibility: hidden; }
 

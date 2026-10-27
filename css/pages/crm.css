@@ -461,14 +461,14 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
 body[data-page="crm"]:not(.auth-ok) .crm-shell,
 body[data-page="crm"]:not(.auth-ok) .crm-header { visibility: hidden; }
 .crm-boot {
-  --boot-bg: #FFFFFF; --boot-ink: #4B4F5A; --boot-accent: #3B3BF2; --boot-track: #E4E4EA;
+  --boot-bg: #F8FAFC; --boot-ink: #3D4F49; --boot-accent: #8B5CF6; --boot-track: #E1E7E5;
   position: fixed; inset: 0; z-index: 1000;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   background: var(--boot-bg); color: var(--boot-ink);
   font-family: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 1rem; font-weight: 500;
 }
 @media (prefers-color-scheme: dark) {
-  .crm-boot { --boot-bg: #0C0C0F; --boot-ink: #C2C4CC; --boot-accent: #7373FF; --boot-track: #26262D; }
+  .crm-boot { --boot-bg: #0B1F1A; --boot-ink: #C9D6D2; --boot-accent: #A78BFA; --boot-track: #1E3830; }
 }
 body.auth-ok .crm-boot { display: none; }
 .crm-boot img { width: 56px; height: 56px; }

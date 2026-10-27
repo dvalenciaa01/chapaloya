@@ -19,7 +19,7 @@ Valores de fábrica (paleta por defecto de un negocio nuevo):
 Cada negocio define 3 colores (formato `#RRGGBB`, validado también en la base): **primario** = fondo, **secundario** = acento, **terciario** = texto.
 - `js/core/tenant-brand.js` → `applyPalette()` deriva los tonos intermedios (tinta, bordes, texto atenuado) mezclando primario y terciario, para que toda la interfaz siga la marca.
 - Validación (`checkPalette`): primario más oscuro que terciario; texto/fondo ≥ 7:1; acento/fondo ≥ 4.5:1.
-- Reservalope (landing, login y consola) usa su propia paleta: fondo `#FFFFFF`, acento azul `#3B3BF2`, texto `#0E0E12`; en modo oscuro `#0C0C0F` / `#7373FF` / `#F2F2F5`. El botón de modo claro/oscuro guarda la elección en `localStorage` (`reservalope-theme`) y la comparten landing, login y consola.
+- Reservalope (landing, login y consola) usa su propia marca: morado `#8B5CF6`, verde oscuro `#0B1F1A` y blanco `#F8FAFC`, con Plus Jakarta Sans. Fondo `#F8FAFC`, acento `#8B5CF6` (en la consola `#7C3AED`, para llegar a 4.5:1 sobre el fondo), texto `#0B1F1A`; en modo oscuro `#0B1F1A` / `#A78BFA` / `#F8FAFC`. Logo: una "r" morada (`assets/icons/reservalope-isotipo.webp`, favicon e ícono de Apple) y el nombre con "lope" en morado. El botón de modo claro/oscuro guarda la elección en `localStorage` (`reservalope-theme`) y la comparten landing, login y consola.
 
 ## Gráficos (Reservalope)
 - `js/core/charts.js`: línea (periodo anterior punteado), barras horizontales, columnas y barra apilada 100%, con tooltip compartido.
@@ -48,9 +48,9 @@ Cada negocio define 3 colores (formato `#RRGGBB`, validado también en la base):
 | otro | Neutro | Plus Jakarta Sans / Inter | Retícula de puntos |
 
 ## Landing de Reservalope (`landing/index.html`)
-- Estilo fintech limpio: fondo blanco, azul eléctrico `#3B3BF2` como único acento, texto secundario gris `#6B7080` (modo oscuro incluido).
-- Tipografía **Urbanist** (titulares en peso 500–600, texto 400–500).
-- Botones e inputs en píldora, sin sombras de color. Portada con teléfono sobre bloque azul; plataforma en franja negra con tarjetas montadas sobre ella; pie en panel gris.
+- Estilo limpio: fondo `#F8FAFC`, morado `#8B5CF6` como único acento, franjas en verde oscuro `#0B1F1A` y texto secundario `#5E706A` (modo oscuro incluido, sobre verde oscuro).
+- Tipografía **Plus Jakarta Sans** (titulares en peso 500–600, texto 400–500).
+- Botones e inputs en píldora, sin sombras de color. Portada con teléfono sobre bloque morado y chat animado; plataforma en franja verde oscuro con tarjetas montadas sobre ella; pie en panel gris.
 - Sin adornos de plantilla: nada de etiquetas de color sobre cada título, brillos, aros, texturas de puntos, rejillas de "ícono en círculo + título" ni viñetas con check. Encabezados alineados a la izquierda (en secciones anchas, la etiqueta va en una columna lateral bajo una línea); listas separadas por líneas finas.
 - Botón de modo claro/oscuro en la cabecera: parte del tema del sistema y guarda la elección en `localStorage` (`reservalope-theme`).
 - El muestrario de rubros carga cada tipografía solo con las letras necesarias (parámetro `text` de Google Fonts).

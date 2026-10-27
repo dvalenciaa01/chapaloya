@@ -7,6 +7,11 @@ body[data-page="login"] {
   --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
+/* Ingreso de Reservalope: tipografía de la marca */
+[data-login="reservalope"] body[data-page="login"] {
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
 body[data-page="login"] h1, body[data-page="login"] h2 { text-transform: none; letter-spacing: -0.02em; line-height: 1.1; }
 body[data-page="login"] .login-pass-wrap, body[data-page="login"] .login-submit-btn { min-height: 48px; }
 
@@ -184,9 +189,9 @@ body[data-page="login"] .login-pass-wrap, body[data-page="login"] .login-submit-
 
 /* ==========================================================================
    Diseño del ingreso (mismo lenguaje que la landing). Sin ?b= es el de Reservalope
-   (html[data-login="reservalope"], su azul y su logo); con ?b= el del equipo de un
+   (html[data-login="reservalope"], su morado y su logo); con ?b= el del equipo de un
    negocio, con su logo y sus colores. Mismo lenguaje que la landing:
-   Urbanist, azul como único acento, campos y botones en píldora, panel negro y
+   Plus Jakarta Sans (Reservalope) o Urbanist (negocios), un solo color de acento, campos y botones en píldora, panel negro y
    listas con líneas finas (sin íconos decorativos, brillos ni anillos).
    ========================================================================== */
 .rl-logo { display: none; }
@@ -199,30 +204,35 @@ html {
 }
 /* Login de Reservalope (sin ?b=) */
 [data-login="reservalope"] {
-  --rl-blue: #3B3BF2; --rl-blue-hover: #2E2EDB; --rl-on-blue: #FFFFFF; --rl-accent-dark: #9A9AFF;
-  --rl-bg: #FFFFFF; --rl-soft: #F5F5F7; --rl-ink: #0E0E12; --rl-ink-2: #4B4F5A; --rl-ink-3: #6B7080;
-  --rl-line: #E4E4EA; --rl-line-2: #C9CAD3; --rl-night: #0B0B0E; --rl-night-line: #2A2A31; --rl-night-muted: #A9ACB8;
+  --rl-blue: #8B5CF6; --rl-blue-hover: #7C3AED; --rl-on-blue: #FFFFFF; --rl-accent-dark: #A78BFA;
+  --rl-bg: #F8FAFC; --rl-soft: #EEF3F1; --rl-ink: #0B1F1A; --rl-ink-2: #3D4F49; --rl-ink-3: #5E706A;
+  --rl-line: #E1E7E5; --rl-line-2: #C3CDCA; --rl-night: #0B1F1A; --rl-night-line: #1F3A33; --rl-night-muted: #9DB3AC;
   --rl-danger: #C0262D; --rl-on-night: #FFFFFF;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   [data-login="reservalope"]:not([data-theme="light"]) {
-    --rl-blue: #7373FF; --rl-blue-hover: #8A8AFF; --rl-on-blue: #0B0B0E;
-    --rl-bg: #0C0C0F; --rl-soft: #16161B; --rl-ink: #F2F2F5; --rl-ink-2: #C2C4CC; --rl-ink-3: #9A9DA8;
-    --rl-line: #26262D; --rl-line-2: #3A3A44; --rl-night: #000000; --rl-night-line: #26262D; --rl-danger: #F87171;
+    --rl-blue: #A78BFA; --rl-blue-hover: #B9A2FB; --rl-on-blue: #0B1F1A;
+    --rl-bg: #0B1F1A; --rl-soft: #112822; --rl-ink: #F8FAFC; --rl-ink-2: #C9D6D2; --rl-ink-3: #95ABA4;
+    --rl-line: #1E3830; --rl-line-2: #2E4D44; --rl-night: #06140F; --rl-night-line: #1E3830; --rl-danger: #F87171;
     color-scheme: dark;
   }
 }
 [data-login="reservalope"][data-theme="dark"] {
-  --rl-blue: #7373FF; --rl-blue-hover: #8A8AFF; --rl-on-blue: #0B0B0E;
-  --rl-bg: #0C0C0F; --rl-soft: #16161B; --rl-ink: #F2F2F5; --rl-ink-2: #C2C4CC; --rl-ink-3: #9A9DA8;
-  --rl-line: #26262D; --rl-line-2: #3A3A44; --rl-night: #000000; --rl-night-line: #26262D; --rl-danger: #F87171;
+  --rl-blue: #A78BFA; --rl-blue-hover: #B9A2FB; --rl-on-blue: #0B1F1A;
+  --rl-bg: #0B1F1A; --rl-soft: #112822; --rl-ink: #F8FAFC; --rl-ink-2: #C9D6D2; --rl-ink-3: #95ABA4;
+  --rl-line: #1E3830; --rl-line-2: #2E4D44; --rl-night: #06140F; --rl-night-line: #1E3830; --rl-danger: #F87171;
   color-scheme: dark;
 }
 body[data-page="login"] {
   --font-display: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background: var(--rl-bg); color: var(--rl-ink); font-size: 17px;
+}
+/* Ingreso de Reservalope: tipografía de la marca */
+[data-login="reservalope"] body[data-page="login"] {
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 body[data-page="login"] h1,
 body[data-page="login"] h2 { font-weight: 600; letter-spacing: -0.03em; }
@@ -238,10 +248,10 @@ body[data-page="login"] h2 { font-weight: 600; letter-spacing: -0.03em; }
 .login-brand-inner { display: flex; flex-direction: column; max-width: 500px; width: 100%; }
 [data-login="reservalope"] .login-logo { display: none; }
 .login-logo { margin-bottom: auto; padding-bottom: 48px; }
-.login-logo .brand-wordmark.is-lg { font-family: 'Urbanist', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; text-transform: none; white-space: normal; overflow: visible; color: var(--rl-on-night); }
+.login-logo .brand-wordmark.is-lg { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; text-transform: none; white-space: normal; overflow: visible; color: var(--rl-on-night); }
 [data-login="reservalope"] .rl-logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: auto; padding-bottom: 48px; }
 .rl-logo img { width: 40px; height: 40px; border-radius: 10px; }
-.rl-logo span { font-family: 'Urbanist', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; color: #FFFFFF; }
+.rl-logo span { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; color: #FFFFFF; }
 .login-brand-title { color: var(--rl-on-night); font-weight: 500; font-size: clamp(2.6rem, 4.4vw, 3.8rem); line-height: 1.04; letter-spacing: -0.04em; margin-bottom: 40px; }
 .login-brand-title .hl { color: var(--rl-accent-dark); }
 .login-points { gap: 0; border-top: 1px solid var(--rl-night-line); }
