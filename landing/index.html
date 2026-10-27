@@ -511,8 +511,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
     </nav>
     <div class="actions">
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar a modo oscuro"><svg class="t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
-      <a class="btn btn-ghost btn-sm" href="#demo" data-mode="prueba">Solicitar prueba</a>
-      <a class="btn btn-primary btn-sm" href="#demo" data-mode="demo">Solicitar demo</a>
+      <a class="btn btn-primary btn-sm" href="#demo">Solicitar prueba</a>
     </div>
   </div>
 </header>
@@ -525,7 +524,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <h1>Agenda fácil. <em>Negocios que crecen.</em></h1>
         <p class="lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="#demo" data-mode="demo">Solicitar una demo <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-primary" href="#demo">Solicitar una prueba <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <a class="btn btn-ghost" href="#reservas">Ver cómo funciona</a>
         </div>
         <ul class="assure">
@@ -580,7 +579,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <li class="sp sp-tatuajes"><span class="sp-n">09</span><svg aria-hidden="true"><use href="#i-needle"/></svg><span class="sp-name">Tatuajes</span><span class="sp-note">Hoja de flash</span></li>
         <li class="sp sp-fitness"><span class="sp-n">10</span><svg aria-hidden="true"><use href="#i-dumbbell"/></svg><span class="sp-name">Fitness</span><span class="sp-note">Cartel deportivo</span></li>
       </ul>
-      <p class="rub-note"><span>¿Tu negocio es otro? También funciona con un estilo neutro para cualquier negocio con citas.</span><a class="tlink" href="#demo" data-mode="demo">Ver una demo para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
+      <p class="rub-note"><span>¿Tu negocio es otro? También funciona con un estilo neutro para cualquier negocio con citas.</span><a class="tlink" href="#demo">Solicitar una prueba para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
     </div>
   </section>
 
@@ -742,7 +741,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
           <span class="eyebrow">Cómo empezar</span>
           <h3>Así activas Reservalope</h3>
           <ol class="seq">
-            <li><div><h4>Solicita tu demo o prueba</h4><p>Déjanos tus datos y te contactamos.</p></div></li>
+            <li><div><h4>Solicita tu prueba</h4><p>Déjanos tus datos y te contactamos.</p></div></li>
             <li><div><h4>Creamos tu negocio</h4><p>Con tu nombre, tu logo y tus 3 colores.</p></div></li>
             <li><div><h4>Cargas tu información</h4><p>Servicios, profesionales, horarios y días especiales.</p></div></li>
             <li><div><h4>Compartes tu enlace</h4><p>Tus clientes reservan desde tu propia web de reservas.</p></div></li>
@@ -775,7 +774,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <div class="closer-copy">
           <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="56" height="56"></span>
           <h2>Agenda fácil. Negocios que crecen.</h2>
-          <p>Déjanos tus datos y te mostramos Reservalope funcionando.</p>
+          <p>Déjanos tus datos y te ayudamos a probar Reservalope en tu negocio.</p>
           <ul>
             <li><svg aria-hidden="true"><use href="#i-check"/></svg>La web de reservas con la marca de tu negocio</li>
             <li><svg aria-hidden="true"><use href="#i-check"/></svg>El panel para tu equipo y los reportes</li>
@@ -784,16 +783,10 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
           <div class="mailbox"><span>También puedes escribirnos a</span><a id="contacto-mail" href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a><button type="button" class="chip-ctl" id="copy-mail">Copiar correo</button></div>
         </div>
         <form id="lead" action="https://formsubmit.co/vexastudio.contacto@gmail.com" method="POST" novalidate>
-          <input type="hidden" name="_subject" id="f-subject" value="Reservalope · Nueva solicitud de demo">
+          <input type="hidden" name="_subject" id="f-subject" value="Reservalope · Nueva solicitud de prueba">
           <input type="hidden" name="_template" value="table">
-          <input type="hidden" name="_next" id="f-next" value="https://reservalope.com/?enviado=demo#demo">
-          <div class="field full">
-            <span class="flbl" id="mode-lbl">¿Qué prefieres?</span>
-            <div class="seg" role="radiogroup" aria-labelledby="mode-lbl">
-              <input type="radio" name="modo" id="m-demo" value="demo" checked><label for="m-demo">Solicitar demo<small>Te lo mostramos</small></label>
-              <input type="radio" name="modo" id="m-prueba" value="prueba"><label for="m-prueba">Solicitar prueba<small>Lo usas tú mismo</small></label>
-            </div>
-          </div>
+          <input type="hidden" name="_next" id="f-next" value="https://reservalope.com/?enviado=prueba#demo">
+          <input type="hidden" name="modo" value="prueba">
           <div class="field"><label for="f-nombre">Tu nombre</label><input id="f-nombre" name="nombre" autocomplete="name" required><span class="err" id="e-nombre"></span></div>
           <div class="field"><label for="f-negocio">Nombre del negocio</label><input id="f-negocio" name="negocio" autocomplete="organization" required><span class="err" id="e-negocio"></span></div>
           <div class="field"><label for="f-rubro">Rubro</label>
@@ -801,7 +794,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
           <div class="field"><label for="f-wa">Celular (WhatsApp)</label><input id="f-wa" name="celular" type="tel" inputmode="tel" autocomplete="tel" placeholder="987 654 321" required><span class="err" id="e-wa"></span></div>
           <div class="field full"><label for="f-mail">Correo electrónico</label><input id="f-mail" name="email" type="email" autocomplete="email" required><span class="err" id="e-mail"></span></div>
           <input type="text" id="f-honey" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
-          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar demo</button></div>
+          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar prueba</button></div>
         </form>
       </div>
     </div>
@@ -817,7 +810,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
       </div>
       <div><h4>Producto</h4><ul><li><a href="#plataforma">Plataforma</a></li><li><a href="#reservas">Reservas</a></li><li><a href="#whatsapp">WhatsApp</a></li><li><a href="#panel">Panel</a></li></ul></div>
       <div><h4>Ideal para</h4><ul><li><a href="#rubros">Barberías y salones</a></li><li><a href="#rubros">Spas y nail bars</a></li><li><a href="#rubros">Consultorios y clínicas</a></li><li><a href="#rubros">Veterinarias, tatuajes y fitness</a></li></ul></div>
-      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar demo</a></li><li><a href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
+      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar prueba</a></li><li><a href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
     </div>
     <div class="legal"><span>© 2026 Reservalope</span></div>
   </div>
@@ -961,14 +954,8 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
     try{navigator.clipboard.writeText('vexastudio.contacto@gmail.com').then(()=>{cm.textContent='Copiado'},sel)}catch(e){sel()}
   });
 
-  /* CTAs preseleccionan demo o prueba */
-  const submit=document.getElementById('f-submit');
-  const setMode=md=>{document.getElementById(md==='prueba'?'m-prueba':'m-demo').checked=true;submit.textContent=md==='prueba'?'Solicitar prueba':'Solicitar demo'};
-  document.querySelectorAll('a[data-mode]').forEach(a=>a.addEventListener('click',()=>setMode(a.dataset.mode)));
-  document.querySelectorAll('input[name="modo"]').forEach(r=>r.addEventListener('change',()=>setMode(r.value)));
-
   /* Formulario (celular peruano de 9 dígitos que empieza con 9, igual que en el sistema) */
-  const form=document.getElementById('lead');
+  const form=document.getElementById('lead'), submit=document.getElementById('f-submit');
   // 987 654 321, 987-654-321, +51 987654321 o 51987654321 → 987654321
   const celular=v=>{let d=String(v).replace(/\D/g,'');if(d.length===11&&d.startsWith('51'))d=d.slice(2);return d};
   const rules=[
@@ -980,11 +967,11 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
   const check=([id,eid,fn,msg])=>{const el=document.getElementById(id),ok=fn(el.value);el.setAttribute('aria-invalid',ok?'false':'true');el.setAttribute('aria-describedby',eid);document.getElementById(eid).textContent=ok?'':msg;return ok};
   rules.forEach(r=>document.getElementById(r[0]).addEventListener('blur',()=>{if(document.getElementById(r[0]).value)check(r)}));
   // Las solicitudes llegan a vexastudio.contacto@gmail.com con FormSubmit. El envío es un POST normal
-  // para que FormSubmit muestre su captcha; al terminar vuelve aquí con ?enviado=demo|prueba.
+  // para que FormSubmit muestre su captcha; al terminar vuelve aquí con ?enviado=prueba.
   form.addEventListener('submit',e=>{
     const bad=rules.filter(r=>!check(r));
     if(bad.length){e.preventDefault();document.getElementById(bad[0][0]).focus();return}
-    const prueba=document.getElementById('m-prueba').checked, tipo=prueba?'prueba':'demo';
+    const tipo='prueba';
     document.getElementById('f-wa').value='+51 '+celular(document.getElementById('f-wa').value);
     document.getElementById('f-subject').value='Reservalope · Nueva solicitud de '+tipo+' · '+document.getElementById('f-negocio').value.trim();
     document.getElementById('f-next').value=location.origin+location.pathname+'?enviado='+tipo+'#demo';
