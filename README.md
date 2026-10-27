@@ -85,8 +85,9 @@ Con Cloudflare Pages cada negocio tiene direcciones propias, sin `?b=`. Las defi
 
 1. En Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**, elige este repositorio y la rama `main`.
 2. Sin comando de build y con **Build output directory** `/`. Cada push a `main` se publica solo.
-3. Queda en `https://NOMBRE-DEL-PROYECTO.pages.dev`. Cuando compres el dominio, agrégalo en **Custom domains** (`reservalope.com` ya está en `PRETTY_HOSTS` de [`js/core/routes.js`](js/core/routes.js); otro dominio hay que añadirlo ahí).
-4. Aplica la migración 13 en Supabase (impide que un negocio se llame `crm`, `admin`, `css`…).
+3. Queda en `https://NOMBRE-DEL-PROYECTO.pages.dev`. En **Custom domains** agrega `reservalope.com` y `www.reservalope.com` (ya están en `PRETTY_HOSTS` de [`js/core/routes.js`](js/core/routes.js); otro dominio hay que añadirlo ahí).
+4. En Supabase → **Authentication → URL Configuration**: *Site URL* `https://reservalope.com` y en *Redirect URLs* `https://reservalope.com/**` y `https://www.reservalope.com/**`.
+5. Aplica la migración 13 en Supabase (impide que un negocio se llame `crm`, `admin`, `css`…).
 
 | Página | Dirección |
 |---|---|
