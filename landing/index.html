@@ -327,6 +327,9 @@ html.is-loading{overflow:hidden}
 .conv{list-style:none;margin:0;padding:0}
 .conv li{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line)}
 .conv li:last-child{border-bottom:0}
+/* Logo de la barbería de ejemplo: tijeras sobre un sello oscuro con borde dorado */
+.av.nn-logo{background:#14110F;color:#E2B65C;box-shadow:inset 0 0 0 2px #E2B65C,inset 0 0 0 4px #14110F,inset 0 0 0 5px rgba(226,182,92,.45)}
+.av.nn-logo svg{width:50%;height:50%}
 .conv .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.8rem;color:#fff}
 .conv .av svg{width:18px;height:18px}
 .conv b{display:block;font-size:.95rem;font-weight:600}
@@ -544,7 +547,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
         <div class="phone" role="img" aria-label="Ejemplo de los mensajes de WhatsApp que recibe un cliente: registro de su cita, confirmación de asistencia y recordatorio del día anterior">
           <div class="screen">
             <div class="chat-head">
-              <span class="av">NN</span>
+              <span class="av nn-logo"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span>
               <div><b>Navaja Norte</b><small id="chat-status">Barbería de demostración</small></div>
             </div>
             <div class="chat-body" id="chat">
@@ -555,7 +558,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
               <div class="b out" data-step>Confirmar<time>18:42</time></div>
               <div class="b in" data-step><div class="confirm"><strong><svg aria-hidden="true"><use href="#i-check"/></svg>Asistencia confirmada</strong></div>Gracias, Sebastián. Te esperamos el martes 20 a las 11:00.<time>18:42</time></div>
               <span class="day-pill" data-step>Lunes 19 de octubre</span>
-              <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Los Olivos. ¡Te esperamos!<time>11:00</time></div>
+              <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Trujillo. ¡Te esperamos!<time>11:00</time></div>
               <div class="typing" id="typing" aria-hidden="true"><i></i><i></i><i></i></div>
             </div>
             <div class="chat-foot" aria-hidden="true"><span id="chat-input">Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
@@ -659,7 +662,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
       </div>
       <div class="rv">
         <div class="booker">
-          <div class="bk-top"><div class="av" aria-hidden="true">NN</div><div><h3>Navaja Norte</h3><p>Citas de 9:00 a 20:00 · Los Olivos, Lima</p></div></div>
+          <div class="bk-top"><div class="av nn-logo" aria-hidden="true"><svg><use href="#i-scissors"/></svg></div><div><h3>Navaja Norte</h3><p>Citas de 9:00 a 20:00 · Trujillo, Perú</p></div></div>
           <div class="grp"><span class="lbl" id="l-svc">Servicio</span>
             <div class="chips" id="svc" role="group" aria-labelledby="l-svc">
               <button class="chip" type="button" aria-pressed="false" data-min="30" data-price="32" data-name="Corte Clásico / Fade">Corte Clásico / Fade</button>
