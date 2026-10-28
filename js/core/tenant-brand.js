@@ -119,7 +119,23 @@ const TenantBrand = {
         el.outerHTML = '<span class="brand-wordmark' + (lg ? ' is-lg' : '') + '" data-brand-slot="1">' + UIx.esc(t.name) + '</span>';
       }
     });
-    document.querySelectorAll('img.brand-img').forEach(img => this.markLogoShape(img));
+    document.querySelectorAll('img.brand-img').forEach(img => { this.markLogoShape(img); this.cleanLogo(img); });
+  },
+
+  /* Logo con fondo liso: donde está cargado js/utils/image-compressor.js (CRM y
+     consola) se muestra con el fondo transparente. Mientras se limpia, el logo
+     espera oculto (como mucho un instante); si no se puede, queda el original. */
+  cleanLogo(img) {
+    if (typeof cleanLogoURL !== 'function' || !img.src || img.dataset.clean === img.src) return;
+    const src = img.src;
+    img.classList.add('is-cleaning');
+    const done = () => img.classList.remove('is-cleaning');
+    const timer = setTimeout(done, 1500);
+    cleanLogoURL(src).then(out => {
+      clearTimeout(timer);
+      if (out && img.src === src) { img.src = out; img.dataset.clean = out; this.markLogoShape(img); }
+      done();
+    });
   },
 
   /* Forma del logo (data-shape): los cuadrados o altos se muestran algo más

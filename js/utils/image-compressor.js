@@ -45,7 +45,44 @@ function readLogoImage(file) {
   });
 }
 
-function prepareLogo(img, maxW = 800, maxH = 400) {
+/* Quita el fondo liso de un logo: todo lo que es del color del fondo pasa a
+   transparente, también los huecos encerrados (el centro de una O, el
+   interior de un círculo). El contorno del dibujo queda suave (alfa parcial y
+   color sin el tinte del fondo) para que no se vea un filo. */
+function removeSolidBackground(px, w, h, bg) {
+  const HARD = 28, SOFT = 90;           // distancia al fondo: ≤ HARD se borra; hasta SOFT, borde suave
+  for (let i = 0; i < px.length; i += 4) {
+    const d = Math.max(Math.abs(px[i] - bg[0]), Math.abs(px[i + 1] - bg[1]), Math.abs(px[i + 2] - bg[2]));
+    if (d >= SOFT) continue;
+    if (d <= HARD) { px[i + 3] = 0; continue; }
+    const a = (d - HARD) / (SOFT - HARD);
+    for (let c = 0; c < 3; c++) px[i + c] = Math.max(0, Math.min(255, Math.round((px[i + c] - bg[c] * (1 - a)) / a)));
+    px[i + 3] = Math.round(255 * a);
+  }
+}
+
+/* Logo ya subido con fondo liso (por ejemplo, un JPG con fondo blanco): se
+   limpia al mostrarlo. Devuelve una imagen con fondo transparente, o null si
+   el logo ya tenía transparencia, no tiene fondo liso o no se pudo leer. */
+function cleanLogoURL(src) {
+  const KEY = 'logo-limpio:' + src;
+  try { const hit = sessionStorage.getItem(KEY); if (hit) return Promise.resolve(hit === '-' ? null : hit); } catch (e) { /* sin almacenamiento */ }
+  return new Promise((resolve) => {
+    if (!src || /^data:image\/(svg|webp|png)/.test(src)) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let out = null;
+      try { out = prepareLogo(img, 800, 400, { onlyIfSolid: true }); } catch (e) { out = null; }
+      try { sessionStorage.setItem(KEY, out || '-'); } catch (e) { /* lleno o sin almacenamiento */ }
+      resolve(out);
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function prepareLogo(img, maxW = 800, maxH = 400, opts) {
   // 1. Lienzo de trabajo (hasta 2000 px; un SVG sin tamaño se toma de 800 × 400)
   let w = img.naturalWidth || img.width || maxW;
   let h = img.naturalHeight || img.height || maxH;
@@ -67,6 +104,13 @@ function prepareLogo(img, maxW = 800, maxH = 400) {
   const bg = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)].map(i => [px[i], px[i + 1], px[i + 2]]);
   const close = (i, c, tol) => Math.abs(px[i] - c[0]) <= tol && Math.abs(px[i + 1] - c[1]) <= tol && Math.abs(px[i + 2] - c[2]) <= tol;
   const solid = !transparent && bg.every(c => Math.abs(c[0] - bg[0][0]) <= 16 && Math.abs(c[1] - bg[0][1]) <= 16 && Math.abs(c[2] - bg[0][2]) <= 16);
+  if (opts && opts.onlyIfSolid && !solid) return null;
+  // Fondo liso: se vuelve transparente (solo lo que toca el borde, no los huecos del dibujo)
+  if (solid) {
+    removeSolidBackground(px, w, h, bg[0]);
+    wctx.putImageData(new ImageData(px, w, h), 0, 0);
+    transparent = true;
+  }
   const isEmpty = (i) => transparent ? px[i + 3] <= 12 : close(i, bg[0], 24);
 
   // 3. Caja del dibujo (sin margen vacío alrededor)

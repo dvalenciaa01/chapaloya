@@ -392,12 +392,145 @@ const CRM = {
     if (walkinLiveEl) walkinLiveEl.innerHTML = cardsHTML;
   },
 
+  /* ---------- WhatsApp desde el equipo (sin bot) ----------
+     Enlace wa.me: abre WhatsApp (app o web) con el número y, si se da, el
+     mensaje escrito. Un celular peruano de 9 dígitos recibe el prefijo 51. */
+  waUrl(phone, text) {
+    let d = String(phone || '').replace(/\D/g, '');
+    if (/^9\d{8}$/.test(d)) d = '51' + d;
+    if (!/^\d{9,15}$/.test(d)) return '';
+    return 'https://wa.me/' + d + (text ? '?text=' + encodeURIComponent(text) : '');
+  },
+  waLink(phone, text, label, cls) {
+    const url = this.waUrl(phone, text);
+    if (!url) return '';
+    return '<a class="' + (cls || 'wa-link') + '" href="' + UI.esc(url) + '" target="_blank" rel="noopener" title="' + UI.esc(label || 'Escribir por WhatsApp') + '" aria-label="' + UI.esc(label || 'Escribir por WhatsApp') + '">' + ic('whatsapp') + (cls && cls.indexOf('btn') >= 0 ? UI.esc(label) : '') + '</a>';
+  },
+  WA_CONFIRM_DEFAULT: 'Hola {cliente}, te escribimos de {negocio} para confirmar tu cita: {servicio} con {profesional}, el {fecha} a las {hora} (código {codigo}). ¿Nos confirmas tu asistencia?',
+  waManualTemplate() {
+    const t = DB.tenant;
+    const own = t && t.hasCrmPrefs ? (t.crmPrefs || {}).waConfirm : (t ? DB.pref('waConfirm:' + t.id) : '');
+    return (typeof own === 'string' && own.trim()) ? own : UI.v(this.WA_CONFIRM_DEFAULT.replace('tu cita', 'tu {appointment}'));
+  },
+  waConfirmText(a) {
+    const vals = { cliente: a.customerName, negocio: DB.tenant.name, servicio: a.service, profesional: a.barber,
+      fecha: this.fmtLongDate(a.date).toLowerCase(), hora: a.time, codigo: a.code || '' };
+    return this.waManualTemplate().replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
+  },
+  // Botón "Enviar confirmación": cita programada (sin confirmar), que aún no empieza y con celular
+  canWaConfirm(a) {
+    return a.status === 'PROGRAMADA' && !this.hasStarted(a) && !!this.waUrl(a.phone) && Auth.can('appointments.status');
+  },
+  waConfirmBtn(a) {
+    return this.canWaConfirm(a) ? this.waLink(a.phone, this.waConfirmText(a), 'Enviar confirmación', 'btn-dark btn-xs wa-btn') : '';
+  },
+  renderWaManual() {
+    const el = document.getElementById('wa-manual-tpl');
+    if (!el || this.waManualDirty) return;
+    const t = DB.tenant;
+    const own = t && t.hasCrmPrefs ? (t.crmPrefs || {}).waConfirm : (t ? DB.pref('waConfirm:' + t.id) : '');
+    el.value = typeof own === 'string' ? own : '';
+    el.placeholder = UI.v(this.WA_CONFIRM_DEFAULT.replace('tu cita', 'tu {appointment}'));
+    const note = document.getElementById('wa-manual-note');
+    if (note) note.hidden = !(t && !t.hasCrmPrefs);
+  },
+  async saveWaManual() {
+    const t = DB.tenant;
+    const el = document.getElementById('wa-manual-tpl');
+    const v = (el ? el.value : '').trim().slice(0, 1000);
+    this.waManualDirty = false;
+    if (!t.hasCrmPrefs) {
+      DB.pref('waConfirm:' + t.id, v);
+      UI.toast('Mensaje guardado en este navegador.');
+      return true;
+    }
+    if (v === ((t.crmPrefs || {}).waConfirm || '')) { UI.toast('No hay cambios por guardar.', 'info'); return false; }
+    const prefs = Object.assign({}, t.crmPrefs);
+    if (v) prefs.waConfirm = v; else delete prefs.waConfirm;
+    t.crmPrefs = prefs;
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    DB.log('Cambió el mensaje de confirmación por WhatsApp', v ? v.slice(0, 200) : 'Mensaje de fábrica');
+    this.renderAll();
+    UI.toast('Mensaje de confirmación guardado.');
+    return true;
+  },
+
+  /* ---------- Panel principal: qué tarjetas y secciones se ven ----------
+     Lo elige el administrador en Configuración → Panel principal y vale para
+     todo el negocio (tenants.crm_prefs.dashboard.cards, migración 15). Sin la
+     columna en la base, la elección se guarda en este navegador. */
+  DASH_ITEMS: [
+    { key: 'appts_today', kind: 'kpi', label: '{AppointmentPlural} de hoy', def: true },
+    { key: 'pending', kind: 'kpi', label: 'Pendientes hoy' },
+    { key: 'sales_total', kind: 'kpi', label: 'Ventas completadas', finance: true, def: true },
+    { key: 'queue', kind: 'kpi', label: 'Cola walk-in', def: true },
+    { key: 'in_service', kind: 'kpi', label: '{InServiceShort} ahora' },
+    { key: 'ticket', kind: 'kpi', label: 'Ticket promedio', finance: true, def: true },
+    { key: 'rev7', kind: 'kpi', label: 'Ingresos 7 días', finance: true, def: true },
+    { key: 'customers', kind: 'kpi', label: 'Total {clientPlural}', perm: 'customers.view', def: true },
+    { key: 'walkins_done', kind: 'kpi', label: 'Walk-in atendidos' },
+    { key: 'top_service', kind: 'kpi', label: '{Service} más pedid{o:service}', def: true },
+    { key: 'staff_active', kind: 'kpi', label: '{StaffPlural} activ{os:staff}', def: true },
+    { key: 'quick', kind: 'section', label: 'Inicio rápido', def: true },
+    { key: 'live', kind: 'section', label: '{StaffPlural} en vivo', def: true },
+    { key: 'upcoming', kind: 'section', label: 'Próximas {appointmentPlural} de hoy', def: true },
+    { key: 'queue_list', kind: 'section', label: 'Cola de espera actual', def: true }
+  ],
+  dashAllowed(d) {
+    if (d.finance && !Auth.can('finance.view')) return false;
+    if (d.perm && !Auth.can(d.perm)) return false;
+    return true;
+  },
+  dashShown() {
+    const t = DB.tenant;
+    const valid = (l) => Array.isArray(l) ? l.filter(k => this.DASH_ITEMS.some(d => d.key === k)) : null;
+    let list = null;
+    if (t && t.hasCrmPrefs) list = valid(((t.crmPrefs || {}).dashboard || {}).cards);
+    else if (t) list = valid(DB.pref('dashCards:' + t.id));
+    return list || this.DASH_ITEMS.filter(d => d.def).map(d => d.key);
+  },
+
+  renderDashSetting() {
+    const box = document.getElementById('dash-cards-list');
+    if (!box || this.dashDirty) return;
+    const shown = this.dashShown();
+    const group = (kind, title) => '<fieldset class="dash-group"><legend>' + title + '</legend>' +
+      this.DASH_ITEMS.filter(d => d.kind === kind).map(d =>
+        '<label class="check-line"><input type="checkbox" id="dash-' + d.key + '" value="' + d.key + '"' + (shown.includes(d.key) ? ' checked' : '') +
+        ' onchange="CRM.dashDirty = true" />' + this.vx(d.label) +
+        (d.finance ? ' <small>(solo con Ventas)</small>' : '') + '</label>').join('') + '</fieldset>';
+    box.innerHTML = group('kpi', 'Tarjetas de indicadores') + group('section', 'Secciones');
+    const note = document.getElementById('dash-cards-note');
+    if (note) note.hidden = !(DB.tenant && !DB.tenant.hasCrmPrefs);
+  },
+
+  async saveDashCards() {
+    const t = DB.tenant;
+    const cards = Array.from(document.querySelectorAll('#dash-cards-list input[type="checkbox"]:checked')).map(x => x.value);
+    const before = this.dashShown();
+    this.dashDirty = false;
+    if (JSON.stringify(before) === JSON.stringify(cards)) { UI.toast('No hay cambios por guardar.', 'info'); return false; }
+    if (!t.hasCrmPrefs) {
+      DB.pref('dashCards:' + t.id, cards);
+      this.renderAll();
+      UI.toast('Panel guardado en este navegador.');
+      return true;
+    }
+    t.crmPrefs = Object.assign({}, t.crmPrefs, { dashboard: Object.assign({}, (t.crmPrefs || {}).dashboard, { cards }) });
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    const names = (l) => l.map(k => UI.v((this.DASH_ITEMS.find(d => d.key === k) || {}).label || k)).join(', ') || 'ninguna';
+    DB.log('Cambió el panel principal', 'Antes: ' + names(before) + ' · Ahora: ' + names(cards));
+    this.renderAll();
+    UI.toast('Panel principal guardado. Así lo verá todo el equipo.');
+    return true;
+  },
+
   renderDashboard() {
     const cur = this.cur();
     const today = DB.todayISO();
     const E = (v) => UI.esc(v);
-    const quickBox = document.getElementById('quick-start-box');
-    if (quickBox) quickBox.style.display = DB.state.settings.showQuickStart ? 'block' : 'none';
 
     const todayAppts = DB.visibleAppointments().filter(a => a.date === today);
     const completedAppts = DB.state.appointments.filter(a => a.status === 'COMPLETADA');
@@ -409,42 +542,42 @@ const CRM = {
       finishedWalkIns.filter(w => (w.date || today) >= weekFrom && (w.date || today) <= today).reduce((s, w) => s + Number(w.price), 0);
     const queue = this.todayQueue();
 
-    const kpi1 = document.getElementById('dashboard-kpis-row1');
-    const showFinance = Auth.can('finance.view');
-    if (kpi1 && !showFinance) {
-      // Personal / administradores sin módulo de Ventas: sin cifras de ingresos
-      const own = DB.linkedBarberName();
-      const pending = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP').length;
-      kpi1.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx(own ? 'Mis {appointmentPlural} de hoy' : '{AppointmentPlural} de hoy').toUpperCase() + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">' + (own ? 'Asignadas a ' + E(own) : this.vx('De tod{o:business} {el:business} {business}')) + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">PENDIENTES HOY</div><div class="crm-kpi-val">' + pending + '</div><div class="crm-kpi-sub">Programadas o confirmadas</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">EN ESPERA</div><div class="crm-kpi-val">' + queue.filter(w => w.status === 'ESPERANDO').length + '</div><div class="crm-kpi-sub">Walk-in en cola hoy</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{InServiceShort}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + queue.filter(w => w.status === 'EN_SILLON').length + '</div><div class="crm-kpi-sub">Atendiéndose ahora</div></div>';
-      const kpi2h = document.getElementById('dashboard-kpis-row2');
-      if (kpi2h) kpi2h.innerHTML = '';
+    // Tarjetas de indicadores: las que el negocio eligió (Configuración → Panel principal)
+    // y que esta persona puede ver (las de dinero, solo con el módulo Ventas)
+    const own = DB.linkedBarberName();
+    const svcCount = {};
+    DB.state.appointments.forEach(a => { if (a.status !== 'CANCELADA') svcCount[a.service] = (svcCount[a.service] || 0) + 1; });
+    const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
+    const kpi = (label, val, sub, style) => '<div class="crm-kpi-card"><div class="crm-kpi-label">' + label.toUpperCase() + '</div><div class="crm-kpi-val"' + (style ? ' style="' + style + '"' : '') + '>' + val + '</div><div class="crm-kpi-sub">' + sub + '</div></div>';
+    const CARD = {
+      appts_today: () => kpi(this.vx(own ? 'Mis {appointmentPlural} de hoy' : '{AppointmentPlural} de hoy'), todayAppts.length, own ? 'Asignadas a ' + E(own) : 'Sincronizadas con la web'),
+      pending: () => kpi('Pendientes hoy', todayAppts.filter(a => this.isVigente(a)).length, 'Programadas o confirmadas'),
+      sales_total: () => kpi('Ventas completadas', cur + totalRevAll, totalDone + ' completadas (acumulado)'),
+      queue: () => kpi('Cola walk-in', queue.length, this.vx('En espera y {inServiceShort} hoy')),
+      in_service: () => kpi(this.vx('{InServiceShort}'), queue.filter(w => w.status === 'EN_SILLON').length, 'Atendiéndose ahora', 'color:var(--golden);'),
+      ticket: () => kpi('Ticket promedio', cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0), 'Por venta completada', 'color:var(--golden);'),
+      rev7: () => kpi('Ingresos 7 días', cur + weekRev, 'Citas + walk-in de la última semana'),
+      customers: () => kpi(this.vx('Total {clientPlural}'), DB.state.customers.length, 'En cartera CRM'),
+      walkins_done: () => kpi('Walk-in atendidos', finishedWalkIns.length, 'Acumulado'),
+      top_service: () => kpi(this.vx('{Service} más pedid{o:service}'), E(topService ? topService[0] : '—'), topService ? topService[1] + ' ' + this.vx('{appointmentPlural}') : this.vx('Sin {appointmentPlural} aún'), 'font-size:1.25rem;'),
+      staff_active: () => kpi(this.vx('{StaffPlural} activ{os:staff}'), DB.state.barberProfiles.length, 'Con portafolio activo', 'color:var(--golden);')
+    };
+    const shown = this.dashShown();
+    const kpiEl = document.getElementById('dashboard-kpis');
+    if (kpiEl) {
+      const cards = this.DASH_ITEMS.filter(d => d.kind === 'kpi' && shown.includes(d.key) && this.dashAllowed(d)).map(d => CARD[d.key]());
+      kpiEl.innerHTML = cards.join('');
+      kpiEl.hidden = !cards.length;
     }
-    if (kpi1 && showFinance) {
-      kpi1.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{AppointmentPlural} de hoy').toUpperCase() + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">Sincronizadas con la web</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">VENTAS COMPLETADAS</div><div class="crm-kpi-val">' + cur + totalRevAll + '</div><div class="crm-kpi-sub">' + totalDone + ' completadas (acumulado)</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">COLA WALK-IN</div><div class="crm-kpi-val">' + queue.length + '</div><div class="crm-kpi-sub">' + this.vx('En espera y {inServiceShort} hoy') + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">TICKET PROMEDIO</div><div class="crm-kpi-val" style="color:var(--golden);">' + cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0) + '</div><div class="crm-kpi-sub">Por venta completada</div></div>';
-    }
-
-    const kpi2 = document.getElementById('dashboard-kpis-row2');
-    if (kpi2 && showFinance) {
-      const svcCount = {};
-      DB.state.appointments.forEach(a => { if (a.status !== 'CANCELADA') svcCount[a.service] = (svcCount[a.service] || 0) + 1; });
-      const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
-      // M11: el total de clientes solo con el módulo Clientes
-      const custCard = Auth.can('customers.view')
-        ? '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('Total {clientPlural}').toUpperCase() + '</div><div class="crm-kpi-val">' + DB.state.customers.length + '</div><div class="crm-kpi-sub">En cartera CRM</div></div>'
-        : '<div class="crm-kpi-card"><div class="crm-kpi-label">WALK-IN ATENDIDOS</div><div class="crm-kpi-val">' + finishedWalkIns.length + '</div><div class="crm-kpi-sub">Acumulado</div></div>';
-      kpi2.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">INGRESOS 7 DÍAS</div><div class="crm-kpi-val">' + cur + weekRev + '</div><div class="crm-kpi-sub">Citas + walk-in de la última semana</div></div>' +
-        custCard +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{Service} más pedid{o:service}').toUpperCase() + '</div><div class="crm-kpi-val" style="font-size:1.25rem;">' + E(topService ? topService[0] : '—') + '</div><div class="crm-kpi-sub">' + (topService ? topService[1] + ' ' + this.vx('{appointmentPlural}') : this.vx('Sin {appointmentPlural} aún')) + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{StaffPlural} activ{os:staff}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.barberProfiles.length + '</div><div class="crm-kpi-sub">Con portafolio activo</div></div>';
+    document.querySelectorAll('#crm-pane-dashboard [data-dash]').forEach(el => {
+      const key = el.getAttribute('data-dash');
+      el.hidden = !shown.includes(key) || (key === 'quick' && !DB.state.settings.showQuickStart);
+    });
+    const split = document.getElementById('dashboard-lists');
+    if (split) {
+      const vis = Array.from(split.children).filter(c => !c.hidden).length;
+      split.hidden = !vis;
+      split.classList.toggle('is-single', vis === 1);
     }
 
     const upcomingToday = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP')
@@ -616,6 +749,12 @@ const CRM = {
   },
 
   renderAppointments() {
+    const agenda = this.apptView() === 'agenda';
+    const agendaEl = document.getElementById('appt-agenda-view');
+    const listEl = document.getElementById('appt-list-view');
+    if (agendaEl) agendaEl.hidden = !agenda;
+    if (listEl) listEl.hidden = agenda;
+    if (agenda) { this.renderAgenda(); return; }
     const tbody = document.getElementById('crm-appts-tbody');
     if (!tbody) return;
     const E = (v) => UI.esc(v);
@@ -647,12 +786,244 @@ const CRM = {
       return '<tr data-appt="' + E(a.id) + '">' +
         cols.map(c => '<td data-label="' + c.th + '"' + (c.custom ? ' data-cf="' + E(c.custom.key) + '"' : '') + '>' + this.apptCell(c, a, cols, cur) + '</td>').join('') +
         '<td data-label="Acciones">' +
-          '<div class="appt-actions" style="display:flex; gap:6px; flex-wrap:wrap;">' + acts +
+          '<div class="appt-actions" style="display:flex; gap:6px; flex-wrap:wrap;">' + this.waConfirmBtn(a) + acts +
             (Auth.can('appointments.delete') ? '<button type="button" class="btn-danger btn-xs" onclick="CRM.deleteAppt(\'' + E(a.id) + '\')" aria-label="' + this.vx('Eliminar {appointment}') + '">' + ic('trash') + '</button>' : '') +
           '</div>' + hint +
         '</td>' +
       '</tr>';
     }).join('');
+  },
+
+  /* ---------- Vista agenda: un día, una columna por profesional ----------
+     La vista la elige el negocio en Configuración (tenants.appt_view, migración 14).
+     Sin la columna en la base, la elección se guarda en este navegador. */
+  AGENDA_HOUR_PX: 100,
+  AGENDA_NEW_MIN: 30,      // minutos que una reserva recién creada se resalta como "Nueva reserva"
+  agendaDate: '',
+  apptView() {
+    const t = DB.tenant;
+    if (!t) return 'agenda';
+    if (t.hasApptView) return t.apptView === 'lista' ? 'lista' : 'agenda';
+    return DB.pref('apptView:' + t.id) === 'lista' ? 'lista' : 'agenda';
+  },
+
+  async saveApptView(view) {
+    const t = DB.tenant;
+    view = view === 'lista' ? 'lista' : 'agenda';
+    if (!t || this.apptView() === view) return false;
+    const label = { agenda: 'Agenda del día', lista: 'Lista' };
+    const before = this.apptView();
+    if (!t.hasApptView) {
+      DB.pref('apptView:' + t.id, view);
+      this.renderAll();
+      UI.toast('Vista guardada en este navegador.');
+      return true;
+    }
+    t.apptView = view;
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    DB.log('Cambió la vista de citas', 'Antes: ' + label[before] + ' · Ahora: ' + label[view]);
+    this.renderAll();
+    UI.toast(UI.v('Vista de {appointmentPlural} guardada: ') + label[view] + '.');
+    return true;
+  },
+
+  renderApptViewSetting() {
+    const view = this.apptView();
+    document.querySelectorAll('input[name="appt-view"]').forEach(r => { r.checked = r.value === view; });
+    const note = document.getElementById('appt-view-note');
+    if (note) {
+      const local = DB.tenant && !DB.tenant.hasApptView;
+      note.hidden = !local;
+      note.textContent = local ? 'Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 14 en Supabase.' : '';
+    }
+  },
+
+  agendaGo(date) {
+    this.agendaDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : '';
+    this.renderAgenda();
+  },
+  agendaShift(n) {
+    this.agendaGo(DB.addDays(this.agendaDate || DB.todayISO(), n));
+  },
+
+  fmtAgendaDate(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    const sameYear = iso.slice(0, 4) === DB.todayISO().slice(0, 4);
+    const s = d.toLocaleDateString('es-PE', Object.assign({ weekday: 'long', day: 'numeric', month: 'long' }, sameYear ? {} : { year: 'numeric' }));
+    return UI.cap(s.replace(',', ''));
+  },
+
+  // Tramos de atención del negocio en esa fecha (fecha especial o semana)
+  agendaRanges(date) {
+    const sch = DB.tenant.schedule || DB.normSchedule(null);
+    const exc = DB.exceptionFor(date, null);
+    return DB.normRanges(exc ? exc.ranges : sch.week[DB.dayOfWeek(date)]);
+  },
+
+  isNewAppt(a) {
+    const t = Date.parse(a.createdAt || '');
+    return !isNaN(t) && Date.now() - t < this.AGENDA_NEW_MIN * 60000 && this.isVigente(a);
+  },
+
+  renderAgenda() {
+    const grid = document.getElementById('agenda-grid');
+    if (!grid || !DB.state) return;
+    const E = (v) => UI.esc(v);
+    const today = DB.todayISO();
+    if (this.agendaDate === today) this.agendaDate = '';
+    const date = this.agendaDate || today;
+    const isToday = date === today;
+
+    const dateIn = document.getElementById('agenda-date');
+    if (dateIn) dateIn.value = date;
+    const title = document.getElementById('agenda-date-title');
+    if (title) title.textContent = this.fmtAgendaDate(date);
+    const live = document.getElementById('agenda-live');
+    if (live) live.hidden = !isToday;
+    const todayBtn = document.getElementById('agenda-today-btn');
+    if (todayBtn) todayBtn.classList.toggle('active', isToday);
+
+    // Filtro de profesional (el personal vinculado solo se ve a sí mismo)
+    const all = DB.assignableBarbers();
+    const sel = document.getElementById('agenda-staff');
+    if (sel) {
+      const cur = sel.value || 'ALL';
+      sel.innerHTML = (all.length > 1 ? '<option value="ALL">' + this.vx('Tod{os:staff} l{os:staff} {staffPlural}') + '</option>' : '') +
+        all.map(b => '<option value="' + E(b.id) + '">' + E(b.name) + '</option>').join('');
+      sel.value = sel.querySelector('option[value="' + cur + '"]') ? cur : (sel.options[0] ? sel.options[0].value : '');
+      sel.closest('.agenda-filter').hidden = all.length < 2;
+    }
+    const fStaff = sel && sel.value && sel.value !== 'ALL' ? sel.value : null;
+
+    const dayAll = DB.visibleAppointments().filter(a => a.date === date);
+    const cancelled = dayAll.filter(a => a.status === 'CANCELADA').length;
+    let appts = dayAll.filter(a => a.status !== 'CANCELADA' && (!fStaff || a.barberId === fStaff));
+
+    const cols = (fStaff ? all.filter(b => b.id === fStaff) : all).map(b => ({ id: b.id, name: b.name }));
+    const known = new Set(cols.map(c => c.id));
+    const orphans = appts.filter(a => !known.has(a.barberId));
+    if (orphans.length && !fStaff) cols.push({ id: '', name: UI.v('Sin {staff}'), orphan: true });
+
+    const sub = document.getElementById('agenda-sub');
+    if (sub) {
+      const n = appts.length;
+      sub.textContent = n + ' ' + (n === 1 ? Vocab.t('appointment') : Vocab.t('appointmentPlural')) +
+        (cancelled ? ' · ' + cancelled + ' cancelad' + (cancelled === 1 ? UI.v('{o:appointment}') : UI.v('{os:appointment}')) : '');
+    }
+
+    if (!cols.length) {
+      grid.innerHTML = '<div class="empty-state">' + ic('users') + '<strong>' + this.vx('Aún no hay {staffPlural}') + '</strong>' + this.vx('Agrega {un:staff} {staff} para ver su agenda.') + '</div>';
+      return;
+    }
+
+    // Rango de horas: horario del negocio ampliado con las citas que caen fuera
+    const ranges = this.agendaRanges(date);
+    const span = (a) => { const s = DB.toMinutes(a.time); return [s, s + DB.apptDuration(a)]; };
+    let lo = Infinity, hi = -Infinity;
+    ranges.forEach(r => { lo = Math.min(lo, DB.toMinutes(r[0])); hi = Math.max(hi, DB.toMinutes(r[1])); });
+    appts.forEach(a => { const [s, e] = span(a); lo = Math.min(lo, s); hi = Math.max(hi, e); });
+    if (!isFinite(lo)) { lo = 9 * 60; hi = 18 * 60; }
+    lo = Math.floor(lo / 60) * 60;
+    hi = Math.min(24 * 60, Math.max(lo + 60, Math.ceil(hi / 60) * 60));
+    const H = this.AGENDA_HOUR_PX;
+    const y = (m) => (m - lo) / 60 * H;
+    const height = y(hi);
+
+    const hours = [];
+    for (let m = lo; m <= hi; m += 60) hours.push('<span class="agenda-hour" style="top:' + y(m) + 'px">' + DB.fromMinutes(m) + '</span>');
+
+    // Horas fuera de atención (antes de abrir, descansos y después de cerrar)
+    const off = [];
+    let cursor = lo;
+    ranges.forEach(r => {
+      const s = DB.toMinutes(r[0]), e = DB.toMinutes(r[1]);
+      if (s > cursor) off.push([cursor, s]);
+      cursor = Math.max(cursor, e);
+    });
+    if (cursor < hi) off.push([cursor, hi]);
+    const offHTML = off.map(o => '<span class="agenda-off" style="top:' + y(o[0]) + 'px;height:' + (y(o[1]) - y(o[0])) + 'px"></span>').join('');
+
+    const nowM = DB.nowMinutes();
+    const nowHTML = isToday && nowM >= lo && nowM <= hi
+      ? '<span class="agenda-now" style="top:' + y(nowM) + 'px"><span class="sr-only">Hora actual ' + DB.fromMinutes(nowM) + '</span></span>' : '';
+
+    const cur = this.cur();
+    // Tarjeta según su alto: completa (nombre, servicio y hora), compacta (nombre y hora) o en una línea
+    const card = (a, lane, lanes) => {
+      const [s, e] = span(a);
+      const h = Math.max(y(e) - y(s) - 6, 38);
+      const isNew = this.isNewAppt(a);
+      const size = h >= 84 ? 'full' : (h >= 50 ? 'compact' : 'short');
+      const range = E(a.time) + '–' + DB.fromMinutes(Math.min(e, 1439));
+      const st = a.status !== 'PROGRAMADA' ? ' · ' + E(DB.statusLabel(a.status)) : '';
+      const price = this.fshow('appointments', 'price') ? ' · ' + cur + E(a.price) : '';
+      const style = 'top:' + (y(s) + 3) + 'px;height:' + h + 'px' + (lanes > 1 ? ';left:calc(' + (lane * 100 / lanes) + '% + 4px);width:calc(' + (100 / lanes) + '% - 8px)' : '');
+      let body;
+      if (isNew) {
+        body = '<span class="agenda-card-flag">Nueva reserva</span>' +
+          (size === 'full' ? '<span class="agenda-card-meta">' + E(a.customerName) + ' · ' + E(a.service) + '</span><span class="agenda-card-time">' + range + ' · ' + E(a.barber) + '</span>'
+            : '<span class="agenda-card-time">' + E(a.customerName) + ' · ' + E(a.time) + '</span>');
+      } else if (size === 'full') {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-meta">' + E(a.service) + price + '</span><span class="agenda-card-time">' + range + st + '</span>';
+      } else if (size === 'compact') {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + range + st + '</span>';
+      } else {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + E(a.time) + '</span>';
+      }
+      return '<button type="button" class="agenda-card ag-' + E(a.status) + (isNew ? ' is-new' : '') + ' is-' + size + '" style="' + style + '"' +
+        ' onclick="CRM.openApptDetail(\'' + E(a.id) + '\')"' +
+        ' title="' + E(a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '"' +
+        ' aria-label="' + E((isNew ? 'Nueva reserva · ' : '') + a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '">' + body + '</button>';
+    };
+
+    // Cada columna: citas en orden; si dos se cruzan (casos raros) se reparten a lo ancho
+    const colHTML = cols.map(c => {
+      const list = appts.filter(a => c.orphan ? !known.has(a.barberId) : a.barberId === c.id)
+        .sort((x, z) => DB.toMinutes(x.time) - DB.toMinutes(z.time));
+      const laneEnd = [];
+      const placed = list.map(a => {
+        const [s, e] = span(a);
+        let lane = laneEnd.findIndex(end => end <= s);
+        if (lane < 0) { lane = laneEnd.length; laneEnd.push(e); } else laneEnd[lane] = e;
+        return { a, lane };
+      });
+      const lanes = Math.max(1, laneEnd.length);
+      const off = !c.orphan && DB.slotsFor(date, c.id).length === 0;
+      return { c, html: placed.map(p => card(p.a, p.lane, lanes)).join(''), n: list.length, off };
+    });
+
+    grid.innerHTML =
+      '<div class="agenda-grid" style="--agenda-cols:' + cols.length + ';--agenda-hour:' + H + 'px">' +
+        '<div class="agenda-corner"></div>' +
+        colHTML.map(x => '<div class="agenda-col-head' + (x.c.orphan ? ' is-orphan' : '') + '"><span class="agenda-col-name">' + E(x.c.name) + '</span>' +
+          '<span class="agenda-col-count">' + (x.off && !x.n ? 'No atiende' : x.n + ' ' + (x.n === 1 ? Vocab.t('appointment') : Vocab.t('appointmentPlural'))) + '</span></div>').join('') +
+        '<div class="agenda-times" style="height:' + height + 'px">' + hours.join('') + '</div>' +
+        '<div class="agenda-layer" style="height:' + height + 'px">' + offHTML + nowHTML + '</div>' +
+        colHTML.map((x, i) => '<div class="agenda-col' + (x.off ? ' is-off' : '') + '" style="grid-column:' + (i + 2) + ';height:' + height + 'px">' + x.html + '</div>').join('') +
+      '</div>';
+
+    // Al abrir hoy, la hora actual queda a la vista
+    if (isToday && this.currentTab === 'appointments' && this._agendaScrolled !== date) {
+      this._agendaScrolled = date;
+      const now = grid.querySelector('.agenda-now');
+      if (now) setTimeout(() => {
+        const r = now.getBoundingClientRect();
+        if (r.top > window.innerHeight - 80) window.scrollBy({ top: r.top - window.innerHeight / 2, behavior: 'smooth' });
+      }, 60);
+    }
+    this.startAgendaClock();
+  },
+
+  // Línea de la hora actual y resaltado de "Nueva reserva" al día, sin recargar datos
+  startAgendaClock() {
+    if (this._agendaClock) return;
+    this._agendaClock = setInterval(() => {
+      const overlay = document.getElementById('crm-modal-overlay');
+      if (this.currentTab !== 'appointments' || this.apptView() !== 'agenda' || document.hidden) return;
+      if (overlay && overlay.classList.contains('open')) return;
+      this.renderAgenda();
+    }, 60000);
   },
 
   /* ---------- Ficha de la cita: datos, notas y campos propios (el personal también los edita) ---------- */
@@ -677,12 +1048,18 @@ const CRM = {
       ? '<div class="cf-field cf-wide"><label class="field-lbl" for="m-ad-notes">Notas</label><textarea id="m-ad-notes" class="input-dark" rows="3" maxlength="500"' + (canEdit ? '' : ' disabled') + '>' + E(a.notes || '') + '</textarea></div>' : '';
     const custom = CrmConfig.formHTML('appointments', 'm-ad-x-', a.extra);
     const editable = notes || custom;
+    // Lo que se puede hacer con la cita (en la vista agenda la ficha es el único lugar)
+    const acts = (this.waConfirmBtn(a)) + (Auth.can('appointments.status') ? this.apptActions(a).map(x => x.key === 'RESCHEDULE'
+      ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal(); CRM.openRescheduleModal(\'' + E(a.id) + '\')">' + ic('calendar') + 'Reprogramar</button>'
+      : '<button type="button" class="' + (x.key === 'CANCELADA' || x.key === 'NO_ASISTIO' ? 'btn-dark' : 'btn-golden') + ' btn-xs" onclick="CRM.closeModal(); CRM.setApptStatus(\'' + E(a.id) + '\',\'' + x.key + '\')">' + E(x.label) + '</button>'
+    ).join('') : '');
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">' + this.vx('Ficha de {el:appointment} {appointment}') + '</span><h3>' + E(a.customerName) + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveApptDetail(event, \'' + E(a.id) + '\')" novalidate>' +
         '<dl class="appt-facts">' + facts + '</dl>' +
         (notes ? '<div class="form-grid-2 cf-grid">' + notes + '</div>' : '') + custom +
         '<div class="form-error" id="m-ad-error" role="alert"></div>' +
+        (acts ? '<div class="appt-detail-actions">' + acts + '</div>' : '') +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cerrar</button>' +
           (editable && canEdit ? '<button type="submit" class="btn-golden">' + ic('check') + 'Guardar datos</button>' : '') + '</div>' +
       '</form>'
@@ -961,7 +1338,7 @@ const CRM = {
       return '<div class="crm-item-card" data-customer="' + E(c.id) + '">' +
         '<div>' +
           '<h3 style="font-size:1.15rem; margin-bottom:4px; overflow-wrap:anywhere;">' + E(c.name) + '</h3>' +
-          (F('phone') ? '<div style="color:var(--golden); font-size:0.82rem; font-weight:700; margin-bottom:10px;">' + ic('phone') + ' ' + E(c.phone) + '</div>' : '') +
+          (F('phone') ? '<div class="cust-phone">' + ic('phone') + ' ' + E(c.phone) + this.waLink(c.phone, '', 'Escribir a ' + c.name + ' por WhatsApp') + '</div>' : '') +
           (facts.length ? '<dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl>' : '') +
           (F('notes') ? '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + E(c.notes || 'Sin observaciones') + '</p>' : '') +
         '</div>' +
@@ -1117,7 +1494,7 @@ const CRM = {
   renderSettings() {
     const t = DB.tenant;
     if (!t) return;
-    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; }
+    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; this.dashDirty = false; this.waManualDirty = false; }
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
     if (!this.setDirty) {
       set('set-owner-name', t.ownerName);
@@ -1133,6 +1510,9 @@ const CRM = {
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = Routes.web(t.slug); linkEl.textContent = Routes.display(Routes.web(t.slug)); }
     this.renderRubro();
+    this.renderApptViewSetting();
+    this.renderDashSetting();
+    this.renderWaManual();
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();

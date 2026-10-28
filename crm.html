@@ -64,6 +64,8 @@
         <span class="crm-date" id="crm-current-date-label"></span>
         <a class="staff-link" id="crm-public-link" href="index.html" target="_blank" rel="noopener"><i data-icon="external"></i><span>Ver sitio público</span></a>
 
+        <button type="button" class="btn-dark btn-xs theme-toggle" id="crm-theme-toggle" onclick="CrmConfig.toggleUserMode()" aria-label="Cambiar a modo noche" title="Cambiar a modo noche"><i data-icon="moon"></i></button>
+
         <div class="user-menu">
           <button type="button" class="user-chip" id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown" onclick="AdminUI.toggleUserMenu()">
             <span class="user-avatar" id="user-avatar">·</span>
@@ -87,7 +89,6 @@
       <aside class="crm-sidebar" aria-label="Menú del CRM">
         <div>
           <div class="crm-brand-box">
-            <div class="crm-brand-icon"><span class="crm-brand-ic" data-v-icon><i data-icon="calendar"></i></span></div>
             <div>
               <div class="title-font crm-brand-name" id="crm-sidebar-shopname">Negocio</div>
               <div class="crm-brand-sub" id="crm-sidebar-role">—</div>
@@ -148,8 +149,6 @@
         </div>
 
         <div class="crm-sidebar-footer">
-          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>En línea</div>
-          <p>Los datos se guardan en el servidor.</p>
           <button type="button" class="btn-dark btn-xs btn-block" onclick="AppRouter.goPublic('inicio')">
             <i data-icon="arrowLeft"></i>Volver a la web pública
           </button>
@@ -172,10 +171,9 @@
             </div>
           </div>
 
-          <div class="crm-kpi-grid-4" id="dashboard-kpis-row1"></div>
-          <div class="crm-kpi-grid-4" id="dashboard-kpis-row2"></div>
+          <div class="crm-kpi-grid-4 dash-kpis" id="dashboard-kpis"></div>
 
-          <div class="crm-section-card" id="quick-start-box">
+          <div class="crm-section-card" id="quick-start-box" data-dash="quick">
             <div class="card-head">
               <h3>Inicio rápido</h3>
               <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
@@ -187,7 +185,7 @@
             </div>
           </div>
 
-          <div class="crm-section-card">
+          <div class="crm-section-card" data-dash="live">
             <div class="card-head">
               <div>
                 <h3 data-v-fmt="{StaffPlural} en vivo">Profesionales en vivo</h3>
@@ -198,15 +196,15 @@
             <div class="barber-live-grid" id="dashboard-barber-live"></div>
           </div>
 
-          <div class="crm-split-2">
-            <div class="crm-section-card">
+          <div class="crm-split-2" id="dashboard-lists">
+            <div class="crm-section-card" data-dash="upcoming">
               <div class="card-head">
                 <h3 data-v-fmt="Próximas {appointmentPlural} de hoy">Próximas citas de hoy</h3>
                 <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')"><span data-v-fmt="Ver {appointmentPlural}">Ver citas</span><i data-icon="arrowRight"></i></button>
               </div>
               <div id="dashboard-upcoming-list"></div>
             </div>
-            <div class="crm-section-card">
+            <div class="crm-section-card" data-dash="queue_list">
               <div class="card-head">
                 <h3>Cola de espera actual</h3>
                 <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('walkins')">Ver cola<i data-icon="arrowRight"></i></button>
@@ -245,6 +243,31 @@
               <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {appointment}">Agregar cita</span></button>
             </div>
           </div>
+          <!-- Vista agenda: un día, una columna por profesional (Configuración → Vista de citas) -->
+          <section class="agenda-board" id="appt-agenda-view" hidden aria-labelledby="agenda-date-title">
+            <div class="agenda-head">
+              <div>
+                <h2 class="agenda-date" id="agenda-date-title">Hoy</h2>
+                <p class="agenda-sub" id="agenda-sub" aria-live="polite"></p>
+              </div>
+              <span class="agenda-live" id="agenda-live" hidden><span class="agenda-live-dot" aria-hidden="true"></span>En vivo</span>
+            </div>
+            <div class="agenda-toolbar">
+              <div class="agenda-nav">
+                <button type="button" class="btn-dark btn-icon" onclick="CRM.agendaShift(-1)" aria-label="Día anterior"><i data-icon="chevronLeft"></i></button>
+                <button type="button" class="btn-dark" id="agenda-today-btn" onclick="CRM.agendaGo('')">Hoy</button>
+                <button type="button" class="btn-dark btn-icon" onclick="CRM.agendaShift(1)" aria-label="Día siguiente"><i data-icon="chevronRight"></i></button>
+                <label class="sr-only" for="agenda-date">Fecha</label>
+                <input type="date" id="agenda-date" class="input-dark agenda-date-input" onchange="CRM.agendaGo(this.value)" />
+              </div>
+              <div class="agenda-filter">
+                <label class="sr-only" for="agenda-staff" data-v="Staff">Profesional</label>
+                <select id="agenda-staff" class="input-dark" onchange="CRM.renderAgenda()"></select>
+              </div>
+            </div>
+            <div class="agenda-scroll" id="agenda-grid"></div>
+          </section>
+          <div id="appt-list-view">
           <div class="segmented" id="appt-quick-tabs" role="group" aria-label="Filtro rápido" data-v-attr="aria-label:Filtro rápido de {appointmentPlural}">
             <button type="button" class="btn-dark active" data-atab="TODAY" onclick="CRM.setApptTab('TODAY')">Hoy</button>
             <button type="button" class="btn-dark" data-atab="UPCOMING" onclick="CRM.setApptTab('UPCOMING')">Próximas</button>
@@ -280,6 +303,7 @@
             </table>
           </div>
           <div style="text-align:center; margin-top:16px;"><button type="button" class="btn-dark" id="appt-more" onclick="CRM.showMoreAppts()" hidden>Mostrar más</button></div>
+          </div>
         </div>
 
         <!-- ================= WALK-IN ================= -->
@@ -411,13 +435,46 @@
               <p class="form-note" data-role="ADMIN">El nombre, el logo, el color de marca y el enlace público los administra el superadministrador.</p>
               <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSettings()"><i data-icon="check"></i>Guardar configuración</button></div>
             </div>
-            <div class="crm-section-card">
+            <div class="crm-section-card" data-role="SUPERADMIN">
               <div class="card-head"><h3>Respaldo</h3></div>
               <p class="card-text" data-vx="Descarga una copia de los datos de {este:business} {business} ({staffPlural}, {servicePlural}, citas y {clientPlural}).">Descarga una copia de los datos de este negocio (profesionales, servicios, citas y clientes).</p>
               <div class="btn-row">
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
             </div>
+          </div>
+          <div class="crm-section-card sch-card" id="appt-view-card">
+            <div class="card-head"><h3 id="appt-view-title" data-v-fmt="Vista de {appointmentPlural}">Vista de citas</h3></div>
+            <p class="card-text" data-vx="Cómo se ve la pestaña {AppointmentPlural} para todo el equipo de {este:business} {business}.">Cómo se ve la pestaña Citas para todo el equipo de este negocio.</p>
+            <div class="view-choice" role="radiogroup" aria-labelledby="appt-view-title">
+              <label class="view-option">
+                <input type="radio" name="appt-view" value="agenda" onchange="CRM.saveApptView(this.value)" />
+                <span class="view-thumb view-thumb-agenda" aria-hidden="true"><i></i><i></i><i></i><i class="is-new"></i></span>
+                <span class="view-option-text"><strong>Agenda del día</strong><span data-vx="Una columna por {staff} y l{os:appointment} {appointmentPlural} en su hora. Recomendada.">Una columna por profesional y las citas en su hora. Recomendada.</span></span>
+              </label>
+              <label class="view-option">
+                <input type="radio" name="appt-view" value="lista" onchange="CRM.saveApptView(this.value)" />
+                <span class="view-thumb view-thumb-lista" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="view-option-text"><strong>Lista</strong><span>La tabla con pestañas y filtros de siempre.</span></span>
+              </label>
+            </div>
+            <p class="field-hint" id="appt-view-note" hidden></p>
+          </div>
+          <div class="crm-section-card sch-card" id="dash-cards-card">
+            <div class="card-head"><h3>Panel principal</h3></div>
+            <p class="card-text">Elige qué tarjetas y secciones ve el equipo en el Panel principal. Las de dinero solo las ve quien tiene el módulo Ventas.</p>
+            <div class="dash-cards-list" id="dash-cards-list"></div>
+            <p class="field-hint" id="dash-cards-note" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveDashCards()"><i data-icon="check"></i>Guardar panel</button></div>
+          </div>
+          <div class="crm-section-card sch-card" id="wa-manual-card">
+            <div class="card-head"><h3>Confirmación por WhatsApp (manual)</h3></div>
+            <p class="card-text" data-vx="En {AppointmentPlural}, el botón “Enviar confirmación” abre WhatsApp con este mensaje para {el:client} {client}. Sirve aunque el bot no esté conectado.">En Citas, el botón “Enviar confirmación” abre WhatsApp con este mensaje para el cliente. Sirve aunque el bot no esté conectado.</p>
+            <label class="field-lbl" for="wa-manual-tpl">Mensaje</label>
+            <textarea id="wa-manual-tpl" class="input-dark" rows="4" maxlength="1000" oninput="CRM.waManualDirty = true"></textarea>
+            <p class="field-hint">Puedes usar {cliente}, {negocio}, {servicio}, {profesional}, {fecha}, {hora} y {codigo}. Vacío = mensaje de fábrica.</p>
+            <p class="field-hint" id="wa-manual-note" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWaManual()"><i data-icon="check"></i>Guardar mensaje</button></div>
           </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
             <div class="card-head"><h3>Personalizar CRM</h3></div>
