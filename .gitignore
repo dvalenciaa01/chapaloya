@@ -30,3 +30,6 @@ Reporte-*.xlsx
 
 # Caché de `wrangler pages dev` (pruebas locales de Cloudflare Pages)
 .wrangler/
+
+# Compilación para Cloudflare Pages (npm run build)
+dist/

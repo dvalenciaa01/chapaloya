@@ -1,0 +1,11 @@
+{
+  "name": "reservalope-web",
+  "private": true,
+  "description": "Compilación del sitio para Cloudflare Pages (ver scripts/build.mjs)",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  }
+}
