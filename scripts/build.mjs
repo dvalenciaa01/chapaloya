@@ -4,8 +4,9 @@
    El código del repositorio conserva sus comentarios (son la documentación
    del proyecto); lo que se publica sale sin ellos para que no se vean al
    inspeccionar la página.
-     - JS y CSS propios: esbuild los reescribe sin comentarios (sin minificar,
-       el código queda legible).
+     - JS y CSS propios: esbuild les quita los comentarios y los espacios
+       (minifyWhitespace). No renombra variables ni cambia la lógica; sin
+       quitar los espacios, esbuild conserva algunos comentarios //.
      - HTML: se quitan los <!-- … --> y los comentarios de los <script> y
        <style> en línea.
      - js/vendor/ se copia tal cual (librerías ya minificadas; conservan su
@@ -27,9 +28,9 @@ const PUBLIC = ['assets', 'css', 'js', 'landing', '_headers', '_redirects', 'rob
   'reservalope.html', 'reservar.html', 'servicios.html'];
 const KEEP_AS_IS = path.join('js', 'vendor');
 
-const opts = { target: 'esnext', legalComments: 'none', charset: 'utf8' };
+const opts = { target: 'esnext', legalComments: 'none', charset: 'utf8', minifyWhitespace: true };
 // esbuild marca algunas expresiones con /* @__PURE__ */: también se quitan
-const stripJs = async (code) => (await transform(code, { ...opts, loader: 'js' })).code.replace(/\/\* @__PURE__ \*\/ /g, '');
+const stripJs = async (code) => (await transform(code, { ...opts, loader: 'js' })).code.replace(/\/\* @__PURE__ \*\/\s*/g, '');
 const stripCss = async (code) => (await transform(code, { ...opts, loader: 'css' })).code;
 
 // Reemplazo asíncrono: String.replace no espera promesas
