@@ -392,12 +392,81 @@ const CRM = {
     if (walkinLiveEl) walkinLiveEl.innerHTML = cardsHTML;
   },
 
+  /* ---------- Panel principal: qué tarjetas y secciones se ven ----------
+     Lo elige el administrador en Configuración → Panel principal y vale para
+     todo el negocio (tenants.crm_prefs.dashboard.cards, migración 15). Sin la
+     columna en la base, la elección se guarda en este navegador. */
+  DASH_ITEMS: [
+    { key: 'appts_today', kind: 'kpi', label: '{AppointmentPlural} de hoy', def: true },
+    { key: 'pending', kind: 'kpi', label: 'Pendientes hoy' },
+    { key: 'sales_total', kind: 'kpi', label: 'Ventas completadas', finance: true, def: true },
+    { key: 'queue', kind: 'kpi', label: 'Cola walk-in', def: true },
+    { key: 'in_service', kind: 'kpi', label: '{InServiceShort} ahora' },
+    { key: 'ticket', kind: 'kpi', label: 'Ticket promedio', finance: true, def: true },
+    { key: 'rev7', kind: 'kpi', label: 'Ingresos 7 días', finance: true, def: true },
+    { key: 'customers', kind: 'kpi', label: 'Total {clientPlural}', perm: 'customers.view', def: true },
+    { key: 'walkins_done', kind: 'kpi', label: 'Walk-in atendidos' },
+    { key: 'top_service', kind: 'kpi', label: '{Service} más pedid{o:service}', def: true },
+    { key: 'staff_active', kind: 'kpi', label: '{StaffPlural} activ{os:staff}', def: true },
+    { key: 'quick', kind: 'section', label: 'Inicio rápido', def: true },
+    { key: 'live', kind: 'section', label: '{StaffPlural} en vivo', def: true },
+    { key: 'upcoming', kind: 'section', label: 'Próximas {appointmentPlural} de hoy', def: true },
+    { key: 'queue_list', kind: 'section', label: 'Cola de espera actual', def: true }
+  ],
+  dashAllowed(d) {
+    if (d.finance && !Auth.can('finance.view')) return false;
+    if (d.perm && !Auth.can(d.perm)) return false;
+    return true;
+  },
+  dashShown() {
+    const t = DB.tenant;
+    const valid = (l) => Array.isArray(l) ? l.filter(k => this.DASH_ITEMS.some(d => d.key === k)) : null;
+    let list = null;
+    if (t && t.hasCrmPrefs) list = valid(((t.crmPrefs || {}).dashboard || {}).cards);
+    else if (t) list = valid(DB.pref('dashCards:' + t.id));
+    return list || this.DASH_ITEMS.filter(d => d.def).map(d => d.key);
+  },
+
+  renderDashSetting() {
+    const box = document.getElementById('dash-cards-list');
+    if (!box || this.dashDirty) return;
+    const shown = this.dashShown();
+    const group = (kind, title) => '<fieldset class="dash-group"><legend>' + title + '</legend>' +
+      this.DASH_ITEMS.filter(d => d.kind === kind).map(d =>
+        '<label class="check-line"><input type="checkbox" id="dash-' + d.key + '" value="' + d.key + '"' + (shown.includes(d.key) ? ' checked' : '') +
+        ' onchange="CRM.dashDirty = true" />' + this.vx(d.label) +
+        (d.finance ? ' <small>(solo con Ventas)</small>' : '') + '</label>').join('') + '</fieldset>';
+    box.innerHTML = group('kpi', 'Tarjetas de indicadores') + group('section', 'Secciones');
+    const note = document.getElementById('dash-cards-note');
+    if (note) note.hidden = !(DB.tenant && !DB.tenant.hasCrmPrefs);
+  },
+
+  async saveDashCards() {
+    const t = DB.tenant;
+    const cards = Array.from(document.querySelectorAll('#dash-cards-list input[type="checkbox"]:checked')).map(x => x.value);
+    const before = this.dashShown();
+    this.dashDirty = false;
+    if (JSON.stringify(before) === JSON.stringify(cards)) { UI.toast('No hay cambios por guardar.', 'info'); return false; }
+    if (!t.hasCrmPrefs) {
+      DB.pref('dashCards:' + t.id, cards);
+      this.renderAll();
+      UI.toast('Panel guardado en este navegador.');
+      return true;
+    }
+    t.crmPrefs = Object.assign({}, t.crmPrefs, { dashboard: Object.assign({}, (t.crmPrefs || {}).dashboard, { cards }) });
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    const names = (l) => l.map(k => UI.v((this.DASH_ITEMS.find(d => d.key === k) || {}).label || k)).join(', ') || 'ninguna';
+    DB.log('Cambió el panel principal', 'Antes: ' + names(before) + ' · Ahora: ' + names(cards));
+    this.renderAll();
+    UI.toast('Panel principal guardado. Así lo verá todo el equipo.');
+    return true;
+  },
+
   renderDashboard() {
     const cur = this.cur();
     const today = DB.todayISO();
     const E = (v) => UI.esc(v);
-    const quickBox = document.getElementById('quick-start-box');
-    if (quickBox) quickBox.style.display = DB.state.settings.showQuickStart ? 'block' : 'none';
 
     const todayAppts = DB.visibleAppointments().filter(a => a.date === today);
     const completedAppts = DB.state.appointments.filter(a => a.status === 'COMPLETADA');
@@ -409,42 +478,42 @@ const CRM = {
       finishedWalkIns.filter(w => (w.date || today) >= weekFrom && (w.date || today) <= today).reduce((s, w) => s + Number(w.price), 0);
     const queue = this.todayQueue();
 
-    const kpi1 = document.getElementById('dashboard-kpis-row1');
-    const showFinance = Auth.can('finance.view');
-    if (kpi1 && !showFinance) {
-      // Personal / administradores sin módulo de Ventas: sin cifras de ingresos
-      const own = DB.linkedBarberName();
-      const pending = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP').length;
-      kpi1.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx(own ? 'Mis {appointmentPlural} de hoy' : '{AppointmentPlural} de hoy').toUpperCase() + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">' + (own ? 'Asignadas a ' + E(own) : this.vx('De tod{o:business} {el:business} {business}')) + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">PENDIENTES HOY</div><div class="crm-kpi-val">' + pending + '</div><div class="crm-kpi-sub">Programadas o confirmadas</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">EN ESPERA</div><div class="crm-kpi-val">' + queue.filter(w => w.status === 'ESPERANDO').length + '</div><div class="crm-kpi-sub">Walk-in en cola hoy</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{InServiceShort}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + queue.filter(w => w.status === 'EN_SILLON').length + '</div><div class="crm-kpi-sub">Atendiéndose ahora</div></div>';
-      const kpi2h = document.getElementById('dashboard-kpis-row2');
-      if (kpi2h) kpi2h.innerHTML = '';
+    // Tarjetas de indicadores: las que el negocio eligió (Configuración → Panel principal)
+    // y que esta persona puede ver (las de dinero, solo con el módulo Ventas)
+    const own = DB.linkedBarberName();
+    const svcCount = {};
+    DB.state.appointments.forEach(a => { if (a.status !== 'CANCELADA') svcCount[a.service] = (svcCount[a.service] || 0) + 1; });
+    const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
+    const kpi = (label, val, sub, style) => '<div class="crm-kpi-card"><div class="crm-kpi-label">' + label.toUpperCase() + '</div><div class="crm-kpi-val"' + (style ? ' style="' + style + '"' : '') + '>' + val + '</div><div class="crm-kpi-sub">' + sub + '</div></div>';
+    const CARD = {
+      appts_today: () => kpi(this.vx(own ? 'Mis {appointmentPlural} de hoy' : '{AppointmentPlural} de hoy'), todayAppts.length, own ? 'Asignadas a ' + E(own) : 'Sincronizadas con la web'),
+      pending: () => kpi('Pendientes hoy', todayAppts.filter(a => this.isVigente(a)).length, 'Programadas o confirmadas'),
+      sales_total: () => kpi('Ventas completadas', cur + totalRevAll, totalDone + ' completadas (acumulado)'),
+      queue: () => kpi('Cola walk-in', queue.length, this.vx('En espera y {inServiceShort} hoy')),
+      in_service: () => kpi(this.vx('{InServiceShort}'), queue.filter(w => w.status === 'EN_SILLON').length, 'Atendiéndose ahora', 'color:var(--golden);'),
+      ticket: () => kpi('Ticket promedio', cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0), 'Por venta completada', 'color:var(--golden);'),
+      rev7: () => kpi('Ingresos 7 días', cur + weekRev, 'Citas + walk-in de la última semana'),
+      customers: () => kpi(this.vx('Total {clientPlural}'), DB.state.customers.length, 'En cartera CRM'),
+      walkins_done: () => kpi('Walk-in atendidos', finishedWalkIns.length, 'Acumulado'),
+      top_service: () => kpi(this.vx('{Service} más pedid{o:service}'), E(topService ? topService[0] : '—'), topService ? topService[1] + ' ' + this.vx('{appointmentPlural}') : this.vx('Sin {appointmentPlural} aún'), 'font-size:1.25rem;'),
+      staff_active: () => kpi(this.vx('{StaffPlural} activ{os:staff}'), DB.state.barberProfiles.length, 'Con portafolio activo', 'color:var(--golden);')
+    };
+    const shown = this.dashShown();
+    const kpiEl = document.getElementById('dashboard-kpis');
+    if (kpiEl) {
+      const cards = this.DASH_ITEMS.filter(d => d.kind === 'kpi' && shown.includes(d.key) && this.dashAllowed(d)).map(d => CARD[d.key]());
+      kpiEl.innerHTML = cards.join('');
+      kpiEl.hidden = !cards.length;
     }
-    if (kpi1 && showFinance) {
-      kpi1.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{AppointmentPlural} de hoy').toUpperCase() + '</div><div class="crm-kpi-val">' + todayAppts.length + '</div><div class="crm-kpi-sub">Sincronizadas con la web</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">VENTAS COMPLETADAS</div><div class="crm-kpi-val">' + cur + totalRevAll + '</div><div class="crm-kpi-sub">' + totalDone + ' completadas (acumulado)</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">COLA WALK-IN</div><div class="crm-kpi-val">' + queue.length + '</div><div class="crm-kpi-sub">' + this.vx('En espera y {inServiceShort} hoy') + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">TICKET PROMEDIO</div><div class="crm-kpi-val" style="color:var(--golden);">' + cur + (totalDone ? Math.round(totalRevAll / totalDone) : 0) + '</div><div class="crm-kpi-sub">Por venta completada</div></div>';
-    }
-
-    const kpi2 = document.getElementById('dashboard-kpis-row2');
-    if (kpi2 && showFinance) {
-      const svcCount = {};
-      DB.state.appointments.forEach(a => { if (a.status !== 'CANCELADA') svcCount[a.service] = (svcCount[a.service] || 0) + 1; });
-      const topService = Object.entries(svcCount).sort((x, y) => y[1] - x[1])[0];
-      // M11: el total de clientes solo con el módulo Clientes
-      const custCard = Auth.can('customers.view')
-        ? '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('Total {clientPlural}').toUpperCase() + '</div><div class="crm-kpi-val">' + DB.state.customers.length + '</div><div class="crm-kpi-sub">En cartera CRM</div></div>'
-        : '<div class="crm-kpi-card"><div class="crm-kpi-label">WALK-IN ATENDIDOS</div><div class="crm-kpi-val">' + finishedWalkIns.length + '</div><div class="crm-kpi-sub">Acumulado</div></div>';
-      kpi2.innerHTML =
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">INGRESOS 7 DÍAS</div><div class="crm-kpi-val">' + cur + weekRev + '</div><div class="crm-kpi-sub">Citas + walk-in de la última semana</div></div>' +
-        custCard +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{Service} más pedid{o:service}').toUpperCase() + '</div><div class="crm-kpi-val" style="font-size:1.25rem;">' + E(topService ? topService[0] : '—') + '</div><div class="crm-kpi-sub">' + (topService ? topService[1] + ' ' + this.vx('{appointmentPlural}') : this.vx('Sin {appointmentPlural} aún')) + '</div></div>' +
-        '<div class="crm-kpi-card"><div class="crm-kpi-label">' + this.vx('{StaffPlural} activ{os:staff}').toUpperCase() + '</div><div class="crm-kpi-val" style="color:var(--golden);">' + DB.state.barberProfiles.length + '</div><div class="crm-kpi-sub">Con portafolio activo</div></div>';
+    document.querySelectorAll('#crm-pane-dashboard [data-dash]').forEach(el => {
+      const key = el.getAttribute('data-dash');
+      el.hidden = !shown.includes(key) || (key === 'quick' && !DB.state.settings.showQuickStart);
+    });
+    const split = document.getElementById('dashboard-lists');
+    if (split) {
+      const vis = Array.from(split.children).filter(c => !c.hidden).length;
+      split.hidden = !vis;
+      split.classList.toggle('is-single', vis === 1);
     }
 
     const upcomingToday = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP')
@@ -1117,7 +1186,7 @@ const CRM = {
   renderSettings() {
     const t = DB.tenant;
     if (!t) return;
-    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; }
+    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; this.dashDirty = false; }
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
     if (!this.setDirty) {
       set('set-owner-name', t.ownerName);
@@ -1133,6 +1202,7 @@ const CRM = {
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = Routes.web(t.slug); linkEl.textContent = Routes.display(Routes.web(t.slug)); }
     this.renderRubro();
+    this.renderDashSetting();
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();

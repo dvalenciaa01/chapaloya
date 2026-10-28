@@ -64,6 +64,8 @@
         <span class="crm-date" id="crm-current-date-label"></span>
         <a class="staff-link" id="crm-public-link" href="index.html" target="_blank" rel="noopener"><i data-icon="external"></i><span>Ver sitio público</span></a>
 
+        <button type="button" class="btn-dark btn-xs theme-toggle" id="crm-theme-toggle" onclick="CrmConfig.toggleUserMode()" aria-label="Cambiar a modo noche" title="Cambiar a modo noche"><i data-icon="moon"></i></button>
+
         <div class="user-menu">
           <button type="button" class="user-chip" id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown" onclick="AdminUI.toggleUserMenu()">
             <span class="user-avatar" id="user-avatar">·</span>
@@ -172,10 +174,9 @@
             </div>
           </div>
 
-          <div class="crm-kpi-grid-4" id="dashboard-kpis-row1"></div>
-          <div class="crm-kpi-grid-4" id="dashboard-kpis-row2"></div>
+          <div class="crm-kpi-grid-4 dash-kpis" id="dashboard-kpis"></div>
 
-          <div class="crm-section-card" id="quick-start-box">
+          <div class="crm-section-card" id="quick-start-box" data-dash="quick">
             <div class="card-head">
               <h3>Inicio rápido</h3>
               <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
@@ -187,7 +188,7 @@
             </div>
           </div>
 
-          <div class="crm-section-card">
+          <div class="crm-section-card" data-dash="live">
             <div class="card-head">
               <div>
                 <h3 data-v-fmt="{StaffPlural} en vivo">Profesionales en vivo</h3>
@@ -198,15 +199,15 @@
             <div class="barber-live-grid" id="dashboard-barber-live"></div>
           </div>
 
-          <div class="crm-split-2">
-            <div class="crm-section-card">
+          <div class="crm-split-2" id="dashboard-lists">
+            <div class="crm-section-card" data-dash="upcoming">
               <div class="card-head">
                 <h3 data-v-fmt="Próximas {appointmentPlural} de hoy">Próximas citas de hoy</h3>
                 <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')"><span data-v-fmt="Ver {appointmentPlural}">Ver citas</span><i data-icon="arrowRight"></i></button>
               </div>
               <div id="dashboard-upcoming-list"></div>
             </div>
-            <div class="crm-section-card">
+            <div class="crm-section-card" data-dash="queue_list">
               <div class="card-head">
                 <h3>Cola de espera actual</h3>
                 <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('walkins')">Ver cola<i data-icon="arrowRight"></i></button>
@@ -418,6 +419,13 @@
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
             </div>
+          </div>
+          <div class="crm-section-card sch-card" id="dash-cards-card">
+            <div class="card-head"><h3>Panel principal</h3></div>
+            <p class="card-text">Elige qué tarjetas y secciones ve el equipo en el Panel principal. Las de dinero solo las ve quien tiene el módulo Ventas.</p>
+            <div class="dash-cards-list" id="dash-cards-list"></div>
+            <p class="field-hint" id="dash-cards-note" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveDashCards()"><i data-icon="check"></i>Guardar panel</button></div>
           </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
             <div class="card-head"><h3>Personalizar CRM</h3></div>

@@ -526,7 +526,11 @@
       const t = tenant === undefined ? (typeof DB !== 'undefined' ? DB.tenant : null) : tenant;
       if (!t) return null;
       const html = document.documentElement;
-      const r = applyThemeTo(html, t, this.of(t));
+      // Modo que eligió esta persona con el botón del encabezado (claro / noche); sin elección, el del negocio
+      let cfg = this.of(t);
+      const um = this.userMode(t);
+      if (um) cfg = Object.assign({}, cfg, { theme: Object.assign({}, cfg.theme, { mode: um }) });
+      const r = applyThemeTo(html, t, cfg);
       html.style.colorScheme = r.mode;
       html.setAttribute('data-crm-logo', t.logo && !r.attrs.logo.startsWith('on') ? 'off' : 'on');
       const txt = document.getElementById('crm-brand-text');
@@ -536,11 +540,37 @@
       if (!this._mq && global.matchMedia) {
         try {
           this._mq = global.matchMedia('(prefers-color-scheme: dark)');
-          this._mq.addEventListener('change', () => { if (this.of().theme.mode === 'auto') this.applyTheme(); });
+          this._mq.addEventListener('change', () => { if (this.of().theme.mode === 'auto' && !this.userMode(DB.tenant)) this.applyTheme(); });
         } catch (e) { /* sin matchMedia */ }
       }
       this.last = r;
+      this.paintModeToggle(r.mode);
       return r;
+    },
+
+    /* Modo claro / noche por persona (se recuerda en este navegador, por negocio) */
+    userMode(t) {
+      if (typeof DB === 'undefined' || !DB.pref || !t) return null;
+      const m = DB.pref('mode:' + t.id);
+      return m === 'light' || m === 'dark' ? m : null;
+    },
+    toggleUserMode() {
+      const t = typeof DB !== 'undefined' ? DB.tenant : null;
+      if (!t) return;
+      const next = this.last && this.last.mode === 'dark' ? 'light' : 'dark';
+      DB.pref('mode:' + t.id, next);
+      this.applyTheme(t);
+      // Los gráficos toman los colores al dibujarse
+      if (typeof CRM !== 'undefined' && CRM.renderAll) CRM.renderAll();
+    },
+    paintModeToggle(mode) {
+      const btn = document.getElementById('crm-theme-toggle');
+      if (!btn) return;
+      const toLight = mode === 'dark';
+      const label = toLight ? 'Cambiar a modo claro' : 'Cambiar a modo noche';
+      btn.setAttribute('aria-label', label);
+      btn.title = label;
+      btn.innerHTML = typeof ic === 'function' ? ic(toLight ? 'sun' : 'moon') : '';
     }
   };
 
