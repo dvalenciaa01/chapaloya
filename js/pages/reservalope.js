@@ -90,6 +90,7 @@ const Reservalope = {
     this.fillRubroFilter();
     window.addEventListener('hashchange', () => this.fromHash());
     this.fromHash();
+    this.loadLeads();
     document.body.classList.add('auth-ok');
 
     try {
@@ -117,7 +118,7 @@ const Reservalope = {
       const id = h.split('/')[1];
       return this.show('reports', id && DB.tenantById(id) ? id : 'ALL');
     }
-    const valid = ['dashboard', 'tenants', 'alerts', 'users', 'audit', 'platform'];
+    const valid = ['dashboard', 'tenants', 'alerts', 'leads', 'users', 'audit', 'platform'];
     this.show(valid.includes(h) ? h : 'dashboard');
   },
 
@@ -156,6 +157,7 @@ const Reservalope = {
     else if (this.pane === 'tenants') this.renderTenants();
     else if (this.pane === 'detail') this.renderDetail();
     else if (this.pane === 'alerts') this.renderAlerts();
+    else if (this.pane === 'leads') this.renderLeads();
     else if (this.pane === 'users') AdminUI.renderUsers();
     else if (this.pane === 'audit') AdminUI.renderAudit(false);
     else if (this.pane === 'platform') this.renderPlatform();
@@ -188,6 +190,10 @@ const Reservalope = {
       const n = Analytics.alerts().filter(x => x.severity !== 'info').length;
       a.textContent = n;
       a.classList.toggle('has-alerts', n > 0);
+    }
+    const l = document.getElementById('rl-badge-leads');
+    if (l) {
+      l.textContent = (this.leads || []).filter(x => x.estado === 'NUEVA').length;
     }
   },
 
@@ -589,6 +595,123 @@ const Reservalope = {
 
   renderAlerts() {
     document.getElementById('rl-alerts-list').innerHTML = this.alertsHTML(Analytics.alerts(), false);
+  },
+
+  /* ---------------- Solicitudes de la landing (migración 16) ----------------
+     Las crea registrar_solicitud desde el formulario "Solicitar prueba";
+     aquí se leen y se les cambia estado y nota. Se cargan al entrar (para
+     el contador del menú) y con el botón Actualizar. */
+  leads: null,
+  leadsError: '',
+  LEAD_STATES: { NUEVA: 'Nueva', CONTACTADA: 'Contactada', CERRADA: 'Cerrada' },
+
+  async loadLeads(force) {
+    if (this.leads && !force) return;
+    const { data, error } = await DB.client().from('solicitudes').select('*').order('created_at', { ascending: false }).limit(1000);
+    if (error) {
+      this.leads = [];
+      // Sin la migración 16 la tabla no existe
+      this.leadsError = /solicitudes|PGRST205|42P01/.test(String(error.code) + ' ' + error.message)
+        ? 'Falta ejecutar la migración 16 (supabase/migrations/20261028000016_solicitudes_landing.sql) en el SQL Editor de Supabase.'
+        : DB.errorText(error);
+    } else {
+      this.leads = data;
+      this.leadsError = '';
+      if (force) UI.toast('Solicitudes actualizadas.');
+    }
+    this.renderBadges();
+    if (this.pane === 'leads') this.renderLeads();
+  },
+
+  filteredLeads() {
+    const q = ((document.getElementById('rl-l-search') || {}).value || '').trim().toLowerCase();
+    const st = (document.getElementById('rl-l-status') || {}).value || 'ALL';
+    return (this.leads || []).filter(l => (st === 'ALL' || l.estado === st) &&
+      (!q || [l.nombre, l.negocio, l.rubro, l.celular, l.email, l.nota].join(' ').toLowerCase().includes(q)));
+  },
+
+  waLead(l) {
+    const text = 'Hola ' + String(l.nombre).split(' ')[0] + ', te escribimos de Reservalope por tu solicitud de prueba para ' + l.negocio + '.';
+    return 'https://wa.me/51' + encodeURIComponent(l.celular) + '?text=' + encodeURIComponent(text);
+  },
+
+  renderLeads() {
+    const tbody = document.getElementById('rl-leads-tbody');
+    if (!tbody) return;
+    const count = document.getElementById('rl-leads-count');
+    if (!this.leads) {
+      count.textContent = '';
+      tbody.innerHTML = '<tr class="is-empty"><td colspan="6"><div class="empty-state">' + ic('hourglass') + '<strong>Cargando…</strong></div></td></tr>';
+      return;
+    }
+    if (this.leadsError) {
+      count.textContent = '';
+      tbody.innerHTML = '<tr class="is-empty"><td colspan="6"><div class="empty-state">' + ic('alert') + '<strong>No se pudieron cargar las solicitudes</strong>' + UI.esc(this.leadsError) + '</div></td></tr>';
+      return;
+    }
+    const list = this.filteredLeads();
+    const nuevas = this.leads.filter(l => l.estado === 'NUEVA').length;
+    count.textContent = list.length + (list.length === 1 ? ' solicitud' : ' solicitudes') + ' · ' + nuevas + (nuevas === 1 ? ' nueva' : ' nuevas');
+    if (!list.length) {
+      tbody.innerHTML = '<tr class="is-empty"><td colspan="6"><div class="empty-state">' + ic('message') + '<strong>Sin solicitudes</strong>' +
+        (this.leads.length ? 'No hay solicitudes con esos filtros.' : 'Cuando alguien llene "Solicitar prueba" en la landing, aparecerá aquí.') + '</div></td></tr>';
+      return;
+    }
+    const E = UI.esc;
+    tbody.innerHTML = list.map(l => {
+      const id = E(l.id);
+      const states = Object.keys(this.LEAD_STATES).map(k => '<option value="' + k + '"' + (k === l.estado ? ' selected' : '') + '>' + this.LEAD_STATES[k] + '</option>').join('');
+      return '<tr>' +
+        '<td data-label="Fecha" class="rl-nowrap">' + E(UI.fmtDateTime(l.created_at)).replace(' · ', '<br/>') + '<br/><span class="text-grey" style="font-size:0.8rem;">' + E(this.relDay(new Date(l.created_at).toLocaleDateString('en-CA', { timeZone: DB.timeZone() }))) + '</span></td>' +
+        '<td data-label="Contacto"><strong>' + E(l.nombre) + '</strong><br/><span class="rl-nowrap">' + E(l.celular.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3')) + '</span><br/><a class="tenant-link" href="mailto:' + E(l.email) + '">' + E(l.email) + '</a></td>' +
+        '<td data-label="Negocio"><strong>' + E(l.negocio) + '</strong>' + (l.rubro ? '<br/><span class="text-grey" style="font-size:0.8rem;">' + E(l.rubro) + '</span>' : '') + '</td>' +
+        '<td data-label="Estado"><label class="sr-only" for="rl-l-st-' + id + '">Estado</label>' +
+          '<select id="rl-l-st-' + id + '" class="input-dark rl-lead-state is-' + E(l.estado) + '" onchange="Reservalope.updateLead(\'' + id + '\', { estado: this.value })">' + states + '</select></td>' +
+        '<td data-label="Nota"><label class="sr-only" for="rl-l-nt-' + id + '">Nota</label>' +
+          '<input id="rl-l-nt-' + id + '" class="input-dark rl-lead-note" maxlength="1000" placeholder="Agregar nota…" value="' + E(l.nota) + '" onchange="Reservalope.updateLead(\'' + id + '\', { nota: this.value.trim() })" /></td>' +
+        '<td data-label="Acciones"><div class="rl-lead-acts">' +
+          '<a class="btn-golden btn-xs" href="' + E(this.waLead(l)) + '" target="_blank" rel="noopener">' + ic('whatsapp') + 'WhatsApp</a>' +
+          '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.deleteLead(\'' + id + '\')" aria-label="Eliminar la solicitud de ' + E(l.nombre) + '">' + ic('trash') + '</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  },
+
+  async updateLead(id, patch) {
+    const l = (this.leads || []).find(x => x.id === id);
+    if (!l) return;
+    const { data, error } = await DB.client().from('solicitudes').update(patch).eq('id', id).select().single();
+    if (error) { UI.toast(DB.errorText(error), 'error'); return this.renderLeads(); }
+    Object.assign(l, data);
+    UI.toast('Solicitud actualizada.');
+    this.renderBadges();
+    this.renderLeads();
+  },
+
+  async deleteLead(id) {
+    const l = (this.leads || []).find(x => x.id === id);
+    if (!l) return;
+    const ok = await UI.confirm({ title: '¿Eliminar la solicitud?', message: 'Se borra la solicitud de ' + l.nombre + ' (' + l.negocio + '). El correo que llegó a Gmail no se borra.', confirmText: 'Eliminar', danger: true });
+    if (!ok) return;
+    const { error } = await DB.client().from('solicitudes').delete().eq('id', id);
+    if (error) return UI.toast(DB.errorText(error), 'error');
+    this.leads = this.leads.filter(x => x.id !== id);
+    UI.toast('Solicitud eliminada.');
+    this.renderBadges();
+    this.renderLeads();
+  },
+
+  exportLeadsCSV() {
+    const list = this.filteredLeads();
+    if (!list.length) return UI.toast('No hay solicitudes para exportar.', 'info');
+    const rows = [['Fecha', 'Nombre', 'Negocio', 'Rubro', 'Celular', 'Correo', 'Estado', 'Nota']].concat(
+      list.map(l => [UI.fmtDateTime(l.created_at), l.nombre, l.negocio, l.rubro, l.celular, l.email, this.LEAD_STATES[l.estado] || l.estado, l.nota]));
+    const blob = new Blob(['\ufeff' + UI.csv(rows)], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'solicitudes-reservalope-' + DB.todayISO() + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
 
   /* ---------------- Plataforma ---------------- */

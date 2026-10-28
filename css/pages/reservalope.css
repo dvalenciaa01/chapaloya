@@ -24,6 +24,14 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .rl-swatches { display: inline-flex; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-dark-strong); flex-shrink: 0; }
 .rl-swatches i { display: block; width: 12px; height: 28px; }
 
+/* Solicitudes de la landing */
+.rl-lead-filters { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important; }
+.rl-lead-state { min-width: 150px; }
+.rl-lead-state.is-NUEVA { border-color: var(--yellow); }
+.rl-nowrap { white-space: nowrap; }
+.rl-lead-note { min-width: 130px; width: 100%; }
+.rl-lead-acts { display: flex; gap: var(--space-2); flex-wrap: nowrap; }
+
 /* Ficha */
 .rl-head { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line-dark); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-5); background: var(--ink-850); }
 .rl-head-brand { background: var(--t-bg); color: var(--t-text); padding: var(--space-5); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-4); border-right: 3px solid var(--t-accent); }
@@ -104,7 +112,7 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 @media (max-width: 640px) {
   .rl-platform { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rl-facts { grid-template-columns: minmax(0, 1fr); }
-  .rl-tenant-filters { grid-template-columns: minmax(0, 1fr) !important; }
+  .rl-tenant-filters, .rl-lead-filters { grid-template-columns: minmax(0, 1fr) !important; }
   .rl-activity li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .rl-alert { grid-template-columns: 36px minmax(0, 1fr); }
   .rl-alert-action { grid-column: 2; }

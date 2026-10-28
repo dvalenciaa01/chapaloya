@@ -19,6 +19,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261026000013_enlaces_reservados.sql` | Enlaces reservados: ningún negocio puede llamarse como una ruta del sitio (`crm`, `admin`, `css`, `js`…), necesario para las direcciones limpias `/<enlace>` y `/crm/<enlace>` |
 | `migrations/20261028000014_vista_citas.sql` | Vista de la pestaña Citas del CRM por negocio: `tenants.appt_view` (`agenda` por defecto o `lista`), la elige el administrador en **Configuración → Vista de citas** |
 | `migrations/20261028000015_preferencias_crm.sql` | Preferencias del CRM que elige el administrador del negocio: `tenants.crm_prefs` (por ahora, qué tarjetas y secciones se ven en el Panel principal, desde **Configuración → Panel principal**) |
+| `migrations/20261028000016_solicitudes_landing.sql` | Solicitudes de prueba de la landing: tabla `solicitudes` (estado `NUEVA` / `CONTACTADA` / `CERRADA` y nota) y `registrar_solicitud`, que llama el formulario de reservalope.com (además del correo de FormSubmit). Solo el superadministrador las ve, en **/admin → Solicitudes**. Prueba local: `supabase/tests/solicitudes_16.sql` |
 | `tests/supabase_stub.sql`, `tests/qa_10.sql`, `tests/rubros_11.sql` y `tests/crm_12.sql` | Solo para probar en un PostgreSQL local (no se ejecutan en Supabase) |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
@@ -118,6 +119,7 @@ Ahí mismo se editan el mensaje al reservar, los recordatorios (cuántos y con c
 
 - **Contraseñas olvidadas:** no se envían correos. El superadministrador (o el administrador, para su personal) pulsa **Clave** en Usuarios y entrega la contraseña temporal; al ingresar, el sistema pide crear una nueva.
 - **La secret key** (antes "service_role") salta todos los permisos. Solo va en el bot y en las Edge Functions; nunca en la web ni en GitHub.
+- **Solicitudes de la landing:** `registrar_solicitud` (anon) guarda nombre, negocio, rubro, celular y correo; no repite el mismo celular o correo en 10 minutos y rechaza más de 3 por celular al día o más de 60 por hora en total. Si falla, el formulario envía el correo igual.
 - **La web pública no lee tablas.** Usa `web_barberia`, `web_horarios` y `web_consultar_cita`, que devuelven solo datos públicos.
 - **Las reservas web** se crean con `crear_reserva`, que solo puede llamar la Edge Function `reservar` (Fase 2) después de verificar el captcha.
 - **"Mi cita"** exige celular y código de reserva; ya no basta con escribir un nombre.
