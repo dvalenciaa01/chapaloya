@@ -392,6 +392,70 @@ const CRM = {
     if (walkinLiveEl) walkinLiveEl.innerHTML = cardsHTML;
   },
 
+  /* ---------- WhatsApp desde el equipo (sin bot) ----------
+     Enlace wa.me: abre WhatsApp (app o web) con el número y, si se da, el
+     mensaje escrito. Un celular peruano de 9 dígitos recibe el prefijo 51. */
+  waUrl(phone, text) {
+    let d = String(phone || '').replace(/\D/g, '');
+    if (/^9\d{8}$/.test(d)) d = '51' + d;
+    if (!/^\d{9,15}$/.test(d)) return '';
+    return 'https://wa.me/' + d + (text ? '?text=' + encodeURIComponent(text) : '');
+  },
+  waLink(phone, text, label, cls) {
+    const url = this.waUrl(phone, text);
+    if (!url) return '';
+    return '<a class="' + (cls || 'wa-link') + '" href="' + UI.esc(url) + '" target="_blank" rel="noopener" title="' + UI.esc(label || 'Escribir por WhatsApp') + '" aria-label="' + UI.esc(label || 'Escribir por WhatsApp') + '">' + ic('whatsapp') + (cls && cls.indexOf('btn') >= 0 ? UI.esc(label) : '') + '</a>';
+  },
+  WA_CONFIRM_DEFAULT: 'Hola {cliente}, te escribimos de {negocio} para confirmar tu cita: {servicio} con {profesional}, el {fecha} a las {hora} (código {codigo}). ¿Nos confirmas tu asistencia?',
+  waManualTemplate() {
+    const t = DB.tenant;
+    const own = t && t.hasCrmPrefs ? (t.crmPrefs || {}).waConfirm : (t ? DB.pref('waConfirm:' + t.id) : '');
+    return (typeof own === 'string' && own.trim()) ? own : UI.v(this.WA_CONFIRM_DEFAULT.replace('tu cita', 'tu {appointment}'));
+  },
+  waConfirmText(a) {
+    const vals = { cliente: a.customerName, negocio: DB.tenant.name, servicio: a.service, profesional: a.barber,
+      fecha: this.fmtLongDate(a.date).toLowerCase(), hora: a.time, codigo: a.code || '' };
+    return this.waManualTemplate().replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
+  },
+  // Botón "Enviar confirmación": cita programada (sin confirmar), que aún no empieza y con celular
+  canWaConfirm(a) {
+    return a.status === 'PROGRAMADA' && !this.hasStarted(a) && !!this.waUrl(a.phone) && Auth.can('appointments.status');
+  },
+  waConfirmBtn(a) {
+    return this.canWaConfirm(a) ? this.waLink(a.phone, this.waConfirmText(a), 'Enviar confirmación', 'btn-dark btn-xs wa-btn') : '';
+  },
+  renderWaManual() {
+    const el = document.getElementById('wa-manual-tpl');
+    if (!el || this.waManualDirty) return;
+    const t = DB.tenant;
+    const own = t && t.hasCrmPrefs ? (t.crmPrefs || {}).waConfirm : (t ? DB.pref('waConfirm:' + t.id) : '');
+    el.value = typeof own === 'string' ? own : '';
+    el.placeholder = UI.v(this.WA_CONFIRM_DEFAULT.replace('tu cita', 'tu {appointment}'));
+    const note = document.getElementById('wa-manual-note');
+    if (note) note.hidden = !(t && !t.hasCrmPrefs);
+  },
+  async saveWaManual() {
+    const t = DB.tenant;
+    const el = document.getElementById('wa-manual-tpl');
+    const v = (el ? el.value : '').trim().slice(0, 1000);
+    this.waManualDirty = false;
+    if (!t.hasCrmPrefs) {
+      DB.pref('waConfirm:' + t.id, v);
+      UI.toast('Mensaje guardado en este navegador.');
+      return true;
+    }
+    if (v === ((t.crmPrefs || {}).waConfirm || '')) { UI.toast('No hay cambios por guardar.', 'info'); return false; }
+    const prefs = Object.assign({}, t.crmPrefs);
+    if (v) prefs.waConfirm = v; else delete prefs.waConfirm;
+    t.crmPrefs = prefs;
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    DB.log('Cambió el mensaje de confirmación por WhatsApp', v ? v.slice(0, 200) : 'Mensaje de fábrica');
+    this.renderAll();
+    UI.toast('Mensaje de confirmación guardado.');
+    return true;
+  },
+
   /* ---------- Panel principal: qué tarjetas y secciones se ven ----------
      Lo elige el administrador en Configuración → Panel principal y vale para
      todo el negocio (tenants.crm_prefs.dashboard.cards, migración 15). Sin la
@@ -722,7 +786,7 @@ const CRM = {
       return '<tr data-appt="' + E(a.id) + '">' +
         cols.map(c => '<td data-label="' + c.th + '"' + (c.custom ? ' data-cf="' + E(c.custom.key) + '"' : '') + '>' + this.apptCell(c, a, cols, cur) + '</td>').join('') +
         '<td data-label="Acciones">' +
-          '<div class="appt-actions" style="display:flex; gap:6px; flex-wrap:wrap;">' + acts +
+          '<div class="appt-actions" style="display:flex; gap:6px; flex-wrap:wrap;">' + this.waConfirmBtn(a) + acts +
             (Auth.can('appointments.delete') ? '<button type="button" class="btn-danger btn-xs" onclick="CRM.deleteAppt(\'' + E(a.id) + '\')" aria-label="' + this.vx('Eliminar {appointment}') + '">' + ic('trash') + '</button>' : '') +
           '</div>' + hint +
         '</td>' +
@@ -985,10 +1049,10 @@ const CRM = {
     const custom = CrmConfig.formHTML('appointments', 'm-ad-x-', a.extra);
     const editable = notes || custom;
     // Lo que se puede hacer con la cita (en la vista agenda la ficha es el único lugar)
-    const acts = Auth.can('appointments.status') ? this.apptActions(a).map(x => x.key === 'RESCHEDULE'
+    const acts = (this.waConfirmBtn(a)) + (Auth.can('appointments.status') ? this.apptActions(a).map(x => x.key === 'RESCHEDULE'
       ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal(); CRM.openRescheduleModal(\'' + E(a.id) + '\')">' + ic('calendar') + 'Reprogramar</button>'
       : '<button type="button" class="' + (x.key === 'CANCELADA' || x.key === 'NO_ASISTIO' ? 'btn-dark' : 'btn-golden') + ' btn-xs" onclick="CRM.closeModal(); CRM.setApptStatus(\'' + E(a.id) + '\',\'' + x.key + '\')">' + E(x.label) + '</button>'
-    ).join('') : '';
+    ).join('') : '');
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">' + this.vx('Ficha de {el:appointment} {appointment}') + '</span><h3>' + E(a.customerName) + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveApptDetail(event, \'' + E(a.id) + '\')" novalidate>' +
@@ -1274,7 +1338,7 @@ const CRM = {
       return '<div class="crm-item-card" data-customer="' + E(c.id) + '">' +
         '<div>' +
           '<h3 style="font-size:1.15rem; margin-bottom:4px; overflow-wrap:anywhere;">' + E(c.name) + '</h3>' +
-          (F('phone') ? '<div style="color:var(--golden); font-size:0.82rem; font-weight:700; margin-bottom:10px;">' + ic('phone') + ' ' + E(c.phone) + '</div>' : '') +
+          (F('phone') ? '<div class="cust-phone">' + ic('phone') + ' ' + E(c.phone) + this.waLink(c.phone, '', 'Escribir a ' + c.name + ' por WhatsApp') + '</div>' : '') +
           (facts.length ? '<dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl>' : '') +
           (F('notes') ? '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + E(c.notes || 'Sin observaciones') + '</p>' : '') +
         '</div>' +
@@ -1430,7 +1494,7 @@ const CRM = {
   renderSettings() {
     const t = DB.tenant;
     if (!t) return;
-    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; this.dashDirty = false; }
+    if (this.setTenant !== t.id) { this.setTenant = t.id; this.setDirty = false; this.schDirty = false; this.dashDirty = false; this.waManualDirty = false; }
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
     if (!this.setDirty) {
       set('set-owner-name', t.ownerName);
@@ -1448,6 +1512,7 @@ const CRM = {
     this.renderRubro();
     this.renderApptViewSetting();
     this.renderDashSetting();
+    this.renderWaManual();
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();

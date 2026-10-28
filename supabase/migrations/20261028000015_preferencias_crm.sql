@@ -6,6 +6,8 @@
 -- Por ahora:
 --   dashboard.cards: tarjetas y secciones visibles en el Panel principal
 --                    (lista de claves; sin dato = las de siempre)
+--   waConfirm:       mensaje del botón "Enviar confirmación" de Citas, que
+--                    abre WhatsApp en el equipo (sin dato = el de fábrica)
 -- La cambia el administrador con el módulo Configuración (la política
 -- tenants_update ya lo limita a él y al superadmin). No toca datos.
 -- Se puede ejecutar sobre una base con datos y volver a ejecutar.
@@ -20,6 +22,7 @@ returns boolean language sql immutable set search_path = '' as $$
      and jsonb_typeof(p) = 'object'
      and octet_length(p::text) <= 4096
      and (p -> 'dashboard' is null or jsonb_typeof(p -> 'dashboard') = 'object')
+     and (p -> 'waConfirm' is null or (jsonb_typeof(p -> 'waConfirm') = 'string' and char_length(p ->> 'waConfirm') <= 1000))
      and (p #> '{dashboard,cards}' is null or (
            jsonb_typeof(p #> '{dashboard,cards}') = 'array'
            and not exists (
@@ -34,4 +37,4 @@ revoke all on function private.crm_prefs_validas(jsonb) from public;
 grant execute on function private.crm_prefs_validas(jsonb) to authenticated, service_role;
 
 comment on column public.tenants.crm_prefs is
-  'Preferencias del CRM que elige el administrador del negocio (por ahora dashboard.cards). Ver js/pages/crm.js (DASH_ITEMS).';
+  'Preferencias del CRM que elige el administrador del negocio (dashboard.cards y waConfirm). Ver js/pages/crm.js (DASH_ITEMS).';

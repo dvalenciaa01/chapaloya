@@ -1034,3 +1034,15 @@ body.auth-ok .crm-boot { display: none; }
 /* --- Botón de modo claro / noche --- */
 .theme-toggle { width: 40px; min-width: 40px; padding: 0; justify-content: center; }
 .theme-toggle .ic { width: 18px; height: 18px; }
+
+/* --- WhatsApp desde el equipo --- */
+.cust-phone { display: flex; align-items: center; gap: 6px; color: var(--golden); font-size: 0.82rem; font-weight: 700; margin-bottom: 10px; }
+.wa-link { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin-left: 4px; border-radius: 50%; color: #1FAF54; background: rgba(37, 211, 102, 0.12); }
+.wa-link:hover, .wa-link:focus-visible { background: rgba(37, 211, 102, 0.22); outline: none; }
+.wa-link .ic, .wa-btn .ic { width: 17px; height: 17px; }
+.wa-btn { color: #1FAF54; border-color: rgba(37, 211, 102, 0.45); }
+[data-crm-mode="dark"] .wa-link, [data-crm-mode="dark"] .wa-btn { color: #4ADE80; }
+#wa-manual-tpl { width: 100%; resize: vertical; }
+
+/* Configuración: si una de las dos tarjetas no aplica a este rol, la otra ocupa todo el ancho */
+.crm-split-2:has(> .perm-hidden) { grid-template-columns: minmax(0, 1fr); }

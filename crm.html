@@ -89,7 +89,6 @@
       <aside class="crm-sidebar" aria-label="Menú del CRM">
         <div>
           <div class="crm-brand-box">
-            <div class="crm-brand-icon"><span class="crm-brand-ic" data-v-icon><i data-icon="calendar"></i></span></div>
             <div>
               <div class="title-font crm-brand-name" id="crm-sidebar-shopname">Negocio</div>
               <div class="crm-brand-sub" id="crm-sidebar-role">—</div>
@@ -150,8 +149,6 @@
         </div>
 
         <div class="crm-sidebar-footer">
-          <div class="crm-sync"><span class="crm-sync-dot" aria-hidden="true"></span>En línea</div>
-          <p>Los datos se guardan en el servidor.</p>
           <button type="button" class="btn-dark btn-xs btn-block" onclick="AppRouter.goPublic('inicio')">
             <i data-icon="arrowLeft"></i>Volver a la web pública
           </button>
@@ -438,7 +435,7 @@
               <p class="form-note" data-role="ADMIN">El nombre, el logo, el color de marca y el enlace público los administra el superadministrador.</p>
               <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSettings()"><i data-icon="check"></i>Guardar configuración</button></div>
             </div>
-            <div class="crm-section-card">
+            <div class="crm-section-card" data-role="SUPERADMIN">
               <div class="card-head"><h3>Respaldo</h3></div>
               <p class="card-text" data-vx="Descarga una copia de los datos de {este:business} {business} ({staffPlural}, {servicePlural}, citas y {clientPlural}).">Descarga una copia de los datos de este negocio (profesionales, servicios, citas y clientes).</p>
               <div class="btn-row">
@@ -469,6 +466,15 @@
             <div class="dash-cards-list" id="dash-cards-list"></div>
             <p class="field-hint" id="dash-cards-note" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveDashCards()"><i data-icon="check"></i>Guardar panel</button></div>
+          </div>
+          <div class="crm-section-card sch-card" id="wa-manual-card">
+            <div class="card-head"><h3>Confirmación por WhatsApp (manual)</h3></div>
+            <p class="card-text" data-vx="En {AppointmentPlural}, el botón “Enviar confirmación” abre WhatsApp con este mensaje para {el:client} {client}. Sirve aunque el bot no esté conectado.">En Citas, el botón “Enviar confirmación” abre WhatsApp con este mensaje para el cliente. Sirve aunque el bot no esté conectado.</p>
+            <label class="field-lbl" for="wa-manual-tpl">Mensaje</label>
+            <textarea id="wa-manual-tpl" class="input-dark" rows="4" maxlength="1000" oninput="CRM.waManualDirty = true"></textarea>
+            <p class="field-hint">Puedes usar {cliente}, {negocio}, {servicio}, {profesional}, {fecha}, {hora} y {codigo}. Vacío = mensaje de fábrica.</p>
+            <p class="field-hint" id="wa-manual-note" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWaManual()"><i data-icon="check"></i>Guardar mensaje</button></div>
           </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
             <div class="card-head"><h3>Personalizar CRM</h3></div>
