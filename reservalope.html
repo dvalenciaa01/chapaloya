@@ -84,6 +84,10 @@
               <span class="crm-nav-label"><i data-icon="download"></i>Reportes</span>
             </button>
             <span class="crm-nav-group">Gestión</span>
+            <button type="button" class="crm-nav-btn" data-rl="leads" onclick="Reservalope.go('leads')">
+              <span class="crm-nav-label"><i data-icon="message"></i>Solicitudes</span>
+              <span class="crm-nav-count" id="rl-badge-leads">0</span>
+            </button>
             <button type="button" class="crm-nav-btn" data-rl="users" onclick="Reservalope.go('users')">
               <span class="crm-nav-label"><i data-icon="shield"></i>Usuarios y accesos</span>
             </button>
@@ -216,6 +220,34 @@
             </div>
           </div>
           <div id="rl-alerts-list"></div>
+        </div>
+
+        <!-- ================= SOLICITUDES (formulario de la landing) ================= -->
+        <div class="crm-pane" id="rl-pane-leads">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Ventas</span>
+              <h1 class="crm-title">Solicitudes de prueba</h1>
+              <p class="crm-lead">Quienes llenaron "Solicitar prueba" en reservalope.com. También llegan por correo a vexastudio.contacto@gmail.com.</p>
+            </div>
+            <div class="crm-topbar-actions">
+              <button type="button" class="btn-dark" onclick="Reservalope.loadLeads(true)"><i data-icon="refresh"></i>Actualizar</button>
+              <button type="button" class="btn-dark" onclick="Reservalope.exportLeadsCSV()"><i data-icon="download"></i>Exportar CSV</button>
+            </div>
+          </div>
+          <div class="crm-section-card">
+            <div class="appt-filters-grid rl-lead-filters">
+              <div><label class="field-lbl" for="rl-l-search">Buscar</label><input type="search" id="rl-l-search" class="input-dark" placeholder="Nombre, negocio, celular o correo…" oninput="Reservalope.renderLeads()" /></div>
+              <div><label class="field-lbl" for="rl-l-status">Estado</label><select id="rl-l-status" class="input-dark" onchange="Reservalope.renderLeads()"><option value="ALL">Todas</option><option value="NUEVA">Nuevas</option><option value="CONTACTADA">Contactadas</option><option value="CERRADA">Cerradas</option></select></div>
+            </div>
+          </div>
+          <p class="audit-count" id="rl-leads-count"></p>
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Contacto</th><th scope="col">Negocio</th><th scope="col">Estado</th><th scope="col">Nota</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody id="rl-leads-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- ================= USUARIOS (global) ================= -->

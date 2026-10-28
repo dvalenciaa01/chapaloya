@@ -1113,6 +1113,7 @@ footer .word{color:var(--night-ink)}
 </footer>
 </div>
 
+<script src="../js/config.js"></script>
 <script>
 (function(){
   const single=(wrap,btn)=>{wrap.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));btn.setAttribute('aria-pressed','true')};
@@ -1300,14 +1301,30 @@ footer .word{color:var(--night-ink)}
   rules.forEach(r=>document.getElementById(r[0]).addEventListener('blur',()=>{if(document.getElementById(r[0]).value)check(r)}));
   // Las solicitudes llegan a vexastudio.contacto@gmail.com con FormSubmit. El envío es un POST normal
   // para que FormSubmit muestre su captcha; al terminar vuelve aquí con ?enviado=prueba.
+  // Antes se guardan en Supabase (registrar_solicitud, migración 16) para verlas en /admin → Solicitudes.
+  // Si no se pueden guardar (sin conexión, límite de envíos), el correo se envía igual.
+  const guardar=()=>{
+    const cfg=window.RESERVALOPE_CONFIG||{}, val=id=>document.getElementById(id).value.trim();
+    if(!cfg.supabaseUrl||!cfg.supabaseKey||document.getElementById('f-honey').value) return Promise.resolve();
+    const ctl=window.AbortController?new AbortController():null, t=setTimeout(()=>ctl&&ctl.abort(),4000);
+    return fetch(cfg.supabaseUrl+'/rest/v1/rpc/registrar_solicitud',{method:'POST',keepalive:true,signal:ctl&&ctl.signal,
+      headers:{'Content-Type':'application/json',apikey:cfg.supabaseKey},
+      body:JSON.stringify({p_nombre:val('f-nombre'),p_negocio:val('f-negocio'),p_rubro:val('f-rubro'),p_celular:celular(val('f-wa')),p_email:val('f-mail')})})
+      .catch(()=>{}).finally(()=>clearTimeout(t));
+  };
   form.addEventListener('submit',e=>{
+    e.preventDefault();
     const bad=rules.filter(r=>!check(r));
-    if(bad.length){e.preventDefault();document.getElementById(bad[0][0]).focus();return}
+    if(bad.length){document.getElementById(bad[0][0]).focus();return}
+    if(submit.disabled) return;
     const tipo='prueba';
-    document.getElementById('f-wa').value='+51 '+celular(document.getElementById('f-wa').value);
-    document.getElementById('f-subject').value='Reservalope · Nueva solicitud de '+tipo+' · '+document.getElementById('f-negocio').value.trim();
-    document.getElementById('f-next').value=location.origin+location.pathname+'?enviado='+tipo+'#demo';
     submit.disabled=true; submit.textContent='Enviando…';
+    guardar().then(()=>{
+      document.getElementById('f-wa').value='+51 '+celular(document.getElementById('f-wa').value);
+      document.getElementById('f-subject').value='Reservalope · Nueva solicitud de '+tipo+' · '+document.getElementById('f-negocio').value.trim();
+      document.getElementById('f-next').value=location.origin+location.pathname+'?enviado='+tipo+'#demo';
+      form.submit();
+    });
   });
   const enviado=new URLSearchParams(location.search).get('enviado');
   if(enviado==='demo'||enviado==='prueba'){
