@@ -24,7 +24,7 @@ function readAndCompressImage(file, maxWidth = 720, quality = 0.8) {
 /* Logo de un negocio: el sistema lo deja listo para la web y el CRM, venga
    como venga.
    - Recorta el margen vacío: transparente, o del color de fondo cuando las
-     cuatro esquinas son del mismo color. Así el dibujo ocupa todo el alto
+     cuatro esquinas son del mismo color. Así el dibujo ocupa el alto completo
      disponible y no se ve pequeño.
    - Conserva la transparencia (WebP; PNG si el navegador no genera WebP).
    - Lo limita a 800 × 400 px sin deformarlo. Un SVG se convierte a imagen. */
@@ -45,7 +45,7 @@ function readLogoImage(file) {
   });
 }
 
-/* Quita el fondo liso de un logo: todo lo que es del color del fondo pasa a
+/* Quita el fondo liso de un logo: cada píxel del color del fondo pasa a
    transparente, también los huecos encerrados (el centro de una O, el
    interior de un círculo). El contorno del dibujo queda suave (alfa parcial y
    color sin el tinte del fondo) para que no se vea un filo. */

@@ -1044,5 +1044,5 @@ body.auth-ok .crm-boot { display: none; }
 [data-crm-mode="dark"] .wa-link, [data-crm-mode="dark"] .wa-btn { color: #4ADE80; }
 #wa-manual-tpl { width: 100%; resize: vertical; }
 
-/* Configuración: si una de las dos tarjetas no aplica a este rol, la otra ocupa todo el ancho */
+/* Configuración: si una de las dos tarjetas no aplica a este rol, la otra ocupa el ancho completo */
 .crm-split-2:has(> .perm-hidden) { grid-template-columns: minmax(0, 1fr); }

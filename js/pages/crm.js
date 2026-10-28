@@ -5,12 +5,12 @@
      - Las palabras del rubro (barbero/doctor, cliente/paciente, servicio/
        consulta…) salen de Vocab (js/core/vocab.js) con UI.v(); los nombres
        internos (barbers, barberId, EN_SILLON) no cambian.
-     - Todo texto que viene de la base (nombres, notas, servicios…) se pinta
+     - Cualquier texto que viene de la base (nombres, notas, servicios…) se pinta
        con UI.esc(). Los onclick solo llevan ids (UUID), nunca nombres.
      - Barberos y servicios se eligen y comparan por id (barberId/serviceId);
        el nombre se usa solo para mostrar.
-     - "Guardado" solo se muestra cuando DB.save() confirma (true). Si el
-       servidor rechaza, DB ya avisó el motivo y recargó los datos.
+     - "Guardado" solo se muestra cuando save() confirma (true). Si el
+       servidor rechaza, la capa de datos ya avisó el motivo y recargó los datos.
      - Las acciones que el Guard registra en el historial devuelven true
        cuando terminaron bien (el historial solo anota lo que se guardó).
    ========================================================================== */
@@ -458,7 +458,7 @@ const CRM = {
 
   /* ---------- Panel principal: qué tarjetas y secciones se ven ----------
      Lo elige el administrador en Configuración → Panel principal y vale para
-     todo el negocio (tenants.crm_prefs.dashboard.cards, migración 15). Sin la
+     el negocio completo (tenants.crm_prefs.dashboard.cards, migración 15). Sin la
      columna en la base, la elección se guarda en este navegador. */
   DASH_ITEMS: [
     { key: 'appts_today', kind: 'kpi', label: '{AppointmentPlural} de hoy', def: true },
@@ -2385,7 +2385,7 @@ const CRM = {
       const existing = DB.state.customers.find(c => DB.cleanPhone(c.phone) === phone && c.id !== editId);
       if (existing) { err.textContent = UI.v('Ya existe {un:client} {client} con ese celular: ') + existing.name + '.'; return false; }
     }
-    // Edición: se cambian los datos en memoria y DB.save() envía solo lo que cambió
+    // Edición: se cambian los datos en memoria y save() envía solo lo que cambió
     if (cur) {
       Object.assign(cur, d, 'phone' in d ? { phone: d.phone || '—' } : {});
       this.closeModal();

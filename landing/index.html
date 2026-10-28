@@ -25,11 +25,9 @@
 /* Con direcciones limpias la raíz es esta landing: un enlace antiguo (/?b=negocio) va a /negocio/ */
 (function(){try{var b=new URLSearchParams(location.search).get('b');if(b&&location.pathname==='/'&&/^[a-z0-9]+(-[a-z0-9]+)*$/.test(b))location.replace('/'+b+'/');}catch(e){}})();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../css/fonts/jakarta.css">
 <!-- Muestras tipográficas de los rubros: solo las letras necesarias (parámetro text) -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bodoni+Moda:ital,wght@1,500&family=Cormorant+Garamond:wght@600&family=Unbounded:wght@700&family=IBM+Plex+Sans:wght@600&family=Outfit:wght@700&family=Fraunces:wght@500&family=Fredoka:wght@600&family=Pirata+One&family=Big+Shoulders+Display:wght@900&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%C3%A1%C3%A9%C3%AD%C3%B3%C3%BA%C3%B1%C3%81%C3%89%C3%8D%C3%93%C3%9A%C3%91%20%2F">
+<link rel="stylesheet" href="../css/fonts/landing-muestras.css">
 <script>
   /* Tema elegido por la persona (botón claro/oscuro); se aplica antes de pintar para evitar el parpadeo */
   (function(){try{var t=localStorage.getItem('reservalope-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
@@ -475,7 +473,7 @@ footer>.wrap{background:var(--soft);border-radius:28px;padding-top:clamp(36px,5v
    Estilo motion graphics (referencia de David): página dentro de un marco
    redondeado, portada en un gran bloque morado con el teléfono desbordando,
    trazos dibujados a mano, tarjetas suaves con formas y aparición al hacer scroll.
-   Mantiene la paleta de la marca y todo el contenido.
+   Mantiene la paleta de la marca y el contenido completo.
    ========================================================================== */
 :root{--frame:#E6ECEA;--hero-ink:#0B1F1A;--hero-em:#F8FAFC;--ease:cubic-bezier(.2,.8,.2,1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--frame:#040D0A}}

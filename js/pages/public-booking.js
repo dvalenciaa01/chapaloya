@@ -6,7 +6,7 @@
    Seguridad: ningún texto del negocio (nombres del equipo, servicios,
    títulos de fotos) se pone dentro de un onclick. Los botones generados
    llevan data-pb-action + data-id (el UUID) y un único listener delegado
-   decide qué hacer. Todo texto que va al HTML pasa por esc().
+   decide qué hacer. Cualquier texto que va al HTML pasa por esc().
    ========================================================================== */
 const PublicBooking = {
   selectedBarberFilter: 'ALL',
@@ -679,10 +679,10 @@ const PublicBooking = {
     this.renderPickers();
   },
 
-  /* Selectores en chips ({service}, {staff} y horas). El <select> sigue siendo la
+  /* Selectores en chips ({service}, {staff} y horas). El selector nativo sigue siendo la
      fuente de verdad (lo llenan renderBookingForm y refreshTimes, lo lee submit);
      los chips solo lo muestran y, al pulsarlos, cambian su valor y disparan 'change'.
-     Se repintan aquí porque todo cambio de selección termina en updateSummary. */
+     Se repintan aquí porque cada cambio de selección termina en updateSummary. */
   PICKERS: [['pb-service', 'pick-chips'], ['pb-barber', 'pick-chips'], ['pb-time', 'pick-slots']],
   renderPickers() {
     const cur = DB.state.settings.currency;
@@ -707,7 +707,7 @@ const PublicBooking = {
           sel.dispatchEvent(new Event('change', { bubbles: true }));
         });
       }
-      // Las horas ocupadas o pasadas no se ofrecen (el <select> las conserva deshabilitadas)
+      // Las horas ocupadas o pasadas no se ofrecen (el selector nativo las conserva deshabilitadas)
       const opts = [...sel.options].filter(o => o.value && !(id === 'pb-time' && o.disabled));
       if (!opts.length) {
         box.innerHTML = id === 'pb-time' ? '<p class="pick-empty">No hay horas libres este día. Prueba con otra fecha.</p>' : '';

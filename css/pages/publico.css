@@ -7,7 +7,7 @@
    adornos). La cabecera y el pie usan el color principal del negocio para
    que su logo se vea bien. Cada rubro añade su toque en rubros.css.
    --------------------------------------------------------------------------
-   No carga css/main.css (que es del CRM): todo lo que usa la web pública
+   No carga css/main.css (que es del CRM): cada estilo que usa la web pública
    está aquí. Los colores salen de la paleta de cada negocio, que
    TenantBrand.applyPalette() escribe en :root:
      --black   primario  → superficies de marca (cabecera, portada, pie)
@@ -622,7 +622,7 @@ select.input option:disabled { color: #8a8f96; }
   font-family: var(--font-display); font-size: 1.9rem; font-weight: 500; line-height: 1; letter-spacing: -0.04em; color: var(--text-3);
 }
 /* Selectores en chips ({service}, {staff}, horas): public-booking.js → renderPickers().
-   El <select> queda oculto como fuente de verdad. El elegido se rellena con el color
+   El selector nativo queda oculto como fuente de verdad. El elegido se rellena con el color
    principal del negocio; la forma sigue al rubro (--btn-r de rubros.css). */
 .pick-native {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;

@@ -1,0 +1,83 @@
+/* landing-muestras: fuentes alojadas en el sitio (antes Google Fonts). Licencia SIL OFL 1.1. */
+@font-face {
+  font-family: 'Alfa Slab One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../../assets/fonts/alfa-slab-one-muestra-0b7fe915.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(../../assets/fonts/big-shoulders-display-muestra-e68cd176.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Bodoni Moda';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url(../../assets/fonts/bodoni-moda-muestra-57e1b4de.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(../../assets/fonts/cormorant-garamond-muestra-b8fc72b6.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(../../assets/fonts/fraunces-muestra-4951f0b3.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(../../assets/fonts/fredoka-muestra-492a1bf3.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(../../assets/fonts/ibm-plex-sans-muestra-33998317.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(../../assets/fonts/outfit-muestra-67a4aa68.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Pirata One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../../assets/fonts/pirata-one-muestra-7529e74a.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}
+@font-face {
+  font-family: 'Unbounded';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(../../assets/fonts/unbounded-muestra-48f44318.woff2) format('woff2');
+  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+}

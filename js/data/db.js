@@ -3,23 +3,23 @@
    --------------------------------------------------------------------------
    Mantiene la MISMA forma de datos que la demo para que las pantallas no
    cambien:
-     DB.root  = { tenants[], users[], data{ [tenantId]: state }, audit[] }
-     DB.state = datos de la barbería ACTIVA (barberProfiles, services,
+     root  = { tenants[], users[], data{ [tenantId]: state }, audit[] }
+     state = datos de la barbería ACTIVA (barberProfiles, services,
                 customers, appointments, walkIns, settings)
-     DB.tenant = barbería activa
+     tenant = barbería activa
    Diferencias con la demo:
-     - Se carga desde Supabase al abrir la página (DB.init / initConsole /
+     - Se carga desde Supabase al abrir la página (init / initConsole /
        initPublic son asíncronos).
-     - DB.save() / DB.persist() envían a Supabase SOLO lo que cambió
+     - save() / persist() envían a Supabase SOLO lo que cambió
        (comparando con la última copia recibida). Si el servidor rechaza un
        cambio (horario ocupado, sin permiso…), se avisa y se recargan los datos.
-       DB.save() devuelve una promesa con true (guardado) o false (rechazado):
+       save() devuelve una promesa con true (guardado) o false (rechazado):
        las pantallas muestran "guardado" solo con true.
      - Guardar y recargar van en UNA sola cola (_chain): una recarga nunca
        pisa un guardado en curso, y la recarga en tiempo real se aplaza (no se
        descarta) mientras hay cambios por enviar.
      - Los borrados NO se deducen comparando copias: solo se borra lo que una
-       acción pidió explícitamente con DB.markDeleted().
+       acción pidió explícitamente con markDeleted().
      - Las reglas de seguridad viven en la base de datos (RLS y triggers),
        no aquí: este archivo solo organiza los datos para la interfaz.
    ========================================================================== */
@@ -77,7 +77,7 @@ const DB = {
 
   /* ---------------- Fecha y hora de la BARBERÍA ----------------
      "Hoy" y "ahora" se calculan en la zona horaria de la barbería
-     (DB.tenant.timezone; por defecto America/Lima), no en la del aparato
+     (tenant.timezone; por defecto America/Lima), no en la del aparato
      del cliente: un turista con el celular en hora de Madrid ve los mismos
      horarios que alguien en Lima.
      En la web pública, además, se corrige el reloj del aparato con la hora
@@ -245,7 +245,7 @@ const DB = {
     const lead = parseInt(r.booking_lead_minutes, 10);
     t.leadMinutes = isNaN(lead) ? 15 : Math.min(1440, Math.max(0, lead));
     // CRM personalizable (migración 12): lo edita solo el superadministrador desde la consola.
-    // No va en tenantRow: se guarda aparte (Reservalope.saveCrmConfig), nunca con DB.save().
+    // No va en tenantRow: se guarda aparte (Reservalope.saveCrmConfig), nunca con save().
     t.crmConfig = (r.crm_config && typeof r.crm_config === 'object' && !Array.isArray(r.crm_config)) ? r.crm_config : {};
     // Vista de la pestaña Citas (migración 14). Sin la columna, la elección queda en este navegador.
     t.hasApptView = 'appt_view' in r;
@@ -496,7 +496,7 @@ const DB = {
     ]);
     if (tRes.error) throw tRes.error;
     if (pRes.error) throw pRes.error;
-    // Todo se arma en una copia nueva y se cambia de una sola vez al final:
+    // El resultado se arma en una copia nueva y se cambia de una sola vez al final:
     // mientras llegan los datos, la pantalla sigue usando la copia anterior.
     const root = { tenants: tRes.data.map(r => this.fromTenantCrm(r)), users: pRes.data.map(r => this.fromProfile(r)), data: {}, audit: [] };
     const snaps = {};
@@ -810,7 +810,7 @@ const DB = {
 
   whenSaved() { return this._chain; },
 
-  // Envía los cambios. Devuelve true si todo se guardó; si no, avisa, recarga y devuelve false.
+  // Envía los cambios. Devuelve true si se guardó completo; si no, avisa, recarga y devuelve false.
   async sync() {
     const sb = this.client();
     this._syncing = true;
@@ -957,7 +957,7 @@ const DB = {
     });
   },
 
-  // Vuelve a leer todo del servidor y repinta la página. Va en la misma cola que
+  // Vuelve a leer los datos del servidor y repinta la página. Va en la misma cola que
   // los guardados: nunca corre a la vez que un envío.
   reload() {
     this._chain = this._chain.then(() => this._reload(false));

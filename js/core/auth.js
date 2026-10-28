@@ -2,12 +2,12 @@
    Autenticación, sesión, roles y permisos · Supabase Auth (producción)
    --------------------------------------------------------------------------
    Roles:
-     SUPERADMIN → todo el sistema, todas las barberías.
-     ADMIN      → solo su barbería. Base: citas, walk-in, servicios, barberos
-                  y portafolio, usuarios del personal. Módulos extra solo si
-                  el superadmin se los otorga (ver GRANTABLE).
-     STAFF      → personal: panel, citas (ver/crear/cambiar estado) y walk-in.
-                  Si está vinculado a un barbero, solo ve sus propias citas.
+     SUPERADMIN    → el sistema completo, todas las barberías.
+     ADMINISTRADOR → solo su barbería. Base: citas, walk-in, servicios, barberos
+                     y portafolio, usuarios del personal. Módulos extra solo si
+                     el superadmin se los otorga (ver GRANTABLE).
+     STAFF         → personal: panel, citas (ver/crear/cambiar estado) y walk-in.
+                     Si está vinculado a un barbero, solo ve sus propias citas.
    Seguridad:
      - Contraseñas: las guarda y verifica Supabase Auth (nunca este código).
      - Intentos fallidos: Supabase Auth limita los intentos por IP.
@@ -60,7 +60,7 @@ const Auth = {
     audit: ['audit.view']
   },
 
-  // Permisos que NO existen en producción (borrar todo, cargar datos demo)
+  // Permisos que NO existen en producción (vaciar los datos, cargar datos demo)
   DISABLED: ['system.reset'],
 
   TAB_PERM: {
@@ -94,7 +94,7 @@ const Auth = {
 
   sb() { return DB.client(); },
 
-  /* ---------------- Usuarios (lista cargada por DB) ---------------- */
+  /* ---------------- Usuarios (lista cargada por la capa de datos) ---------------- */
   findByEmail(email) {
     const e = String(email || '').trim().toLowerCase();
     return DB.load().users.find(u => u.email === e) || null;
@@ -140,7 +140,7 @@ const Auth = {
       await this.sb().auth.signOut();
       return { ok: false, error: 'Tu usuario está desactivado. Contacta a tu administrador.' };
     }
-    // Con contraseña temporal la base niega todo salvo leer el propio perfil
+    // Con contraseña temporal la base niega cualquier acceso salvo leer el propio perfil
     // (ni siquiera la barbería): primero se cambia la clave y luego se verifica
     // la barbería al abrir el CRM (requireSession).
     if (!user.mustChangePassword && user.role !== 'SUPERADMIN' && (await this.tenantStatus(user.tenantId)) !== 'ACTIVE') {
@@ -178,7 +178,7 @@ const Auth = {
     let tab = '';
     try { tab = new URLSearchParams(window.location.search).get('tab') || ''; } catch (e) { tab = ''; }
     let brand = '';
-    // En la consola de Reservalope (reservalope.html o /admin) el login es el del superadministrador
+    // En la consola de Reservalope (reservalope.html o su dirección limpia) el login es el del superadministrador
     try { brand = /\/(reservalope(\.html)?|admin)\/?$/.test(window.location.pathname) ? '' : (Routes.pathSlug() || localStorage.getItem(this.LOGIN_BRAND_KEY) || ''); } catch (e) { brand = ''; }
     if (!/^[a-z0-9-]{1,60}$/.test(brand)) brand = '';
     return Routes.login(brand, { msg: c, tab: tab });
@@ -225,7 +225,7 @@ const Auth = {
     if (user.mustChangePassword) return fail('temp');
     if (user.role !== 'SUPERADMIN') {
       if ((await this.tenantStatus(user.tenantId)) !== 'ACTIVE') return fail('suspended');
-      s.tenantId = user.tenantId; // un admin/personal nunca puede cambiar de barbería
+      s.tenantId = user.tenantId; // un administrador o personal nunca puede cambiar de barbería
     }
     this.user = user;
     this.session = s;
@@ -283,7 +283,7 @@ const Auth = {
     }
     // Solo el servidor puede quitar la marca de "contraseña temporal": la RPC
     // comprueba que la clave realmente cambió. Hasta entonces la base niega
-    // todo (salvo leer el propio perfil), así que no se sigue sin ella.
+    // cualquier acceso (salvo leer el propio perfil), así que no se sigue sin ella.
     const wasTemp = !this.user || this.user.mustChangePassword || currentPassword === undefined;
     if (wasTemp) {
       const upd = await sb.rpc('perfil_contrasena_cambiada');

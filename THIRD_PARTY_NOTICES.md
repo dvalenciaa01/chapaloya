@@ -8,7 +8,7 @@ Este proyecto incluye en `js/vendor/` las siguientes librerías, sin modificar, 
 | jsPDF-AutoTable | 5.0.9 | `js/vendor/jspdf.plugin.autotable.min.js` | https://github.com/simonbengtsson/jsPDF-AutoTable |
 | ExcelJS | 4.4.0 | `js/vendor/exceljs.min.js` | https://github.com/exceljs/exceljs |
 
-Las fuentes Barlow y Barlow Condensed se cargan desde Google Fonts (SIL Open Font License 1.1). Las fotos de ejemplo de la web pública se cargan desde Unsplash.
+Las fuentes están alojadas en el propio sitio (`assets/fonts/`, con sus `@font-face` en `css/fonts/`), descargadas de Google Fonts en formato woff2 y solo con los subconjuntos latin y latin-ext. Todas usan la SIL Open Font License 1.1 (https://openfontlicense.org): Urbanist, Plus Jakarta Sans, Inter, Inter Tight, Alfa Slab One, Work Sans, Bodoni Moda, Jost, Cormorant Garamond, Figtree, Unbounded, DM Sans, IBM Plex Sans, IBM Plex Mono, Outfit, Fraunces, Source Sans 3, Fredoka, Nunito, Pirata One, Space Grotesk y Big Shoulders Display. Las fotos de ejemplo de la web pública se cargan desde Unsplash.
 
 ---
 

@@ -100,9 +100,9 @@
     // (migración 12); hoy es la fuente de la marca: Urbanist, como la landing.
     barlow: { label: 'Urbanist (de la marca)', display: "'Urbanist', system-ui, sans-serif", body: "'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif" },
     inter: { label: 'Inter', display: "'Inter', system-ui, sans-serif", body: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
-      href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
+      href: 'css/fonts/inter.css' },
     jakarta: { label: 'Plus Jakarta Sans', display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
-      href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap' },
+      href: 'css/fonts/jakarta.css' },
     system: { label: 'Del sistema', display: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", body: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }
   };
 

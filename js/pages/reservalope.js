@@ -394,7 +394,7 @@ const Reservalope = {
 
   /* C1: la paleta la puede escribir el administrador del negocio (por API).
      Aquí solo se aceptan colores #RRGGBB; cualquier otra cosa se reemplaza por
-     el color por defecto, y aun así todo se escapa al pintarlo. */
+     el color por defecto, y aun así siempre se escapa al pintarlo. */
   HEX: /^#[0-9a-fA-F]{6}$/,
   safePalette(t) {
     const p = TenantBrand.paletteOf(t) || {};
@@ -632,7 +632,7 @@ const Reservalope = {
     DB.log('Exportó un respaldo completo', root.tenants.length + ' negocios · ' + root.users.length + ' usuarios', { tenantId: null });
   },
 
-  // En producción no existe "borrar todo": los datos viven en Supabase y tienen respaldo.
+  // En producción no existe "vaciar los datos": los datos viven en Supabase y tienen respaldo.
   factoryReset() {
     UI.toast('No disponible en producción. Para empezar de cero se usa un proyecto nuevo de Supabase.', 'error');
   },

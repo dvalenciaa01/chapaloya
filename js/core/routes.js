@@ -4,7 +4,7 @@
    En los dominios de PRETTY_HOSTS (Cloudflare Pages, ver _redirects):
      /<enlace>/               web del negocio
      /crm/<enlace>/           CRM del negocio (/crm/<enlace>/ingresar = login)
-     /admin                   consola de Reservalope
+     la consola de Reservalope tiene su propia dirección
    En cualquier otro sitio (GitHub Pages, servidor local) siguen
    index.html?b=<enlace> y login.html?b=<enlace>.
    No depende de ningún otro archivo: se puede cargar en el <head>.
