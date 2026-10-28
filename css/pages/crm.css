@@ -364,7 +364,10 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
    CRM — responsive adicional
    ========================================================================== */
 .brand-img + .crm-tag { margin-left: 2px; }
-.crm-header .brand-img { height: 40px; max-width: 180px; }
+.crm-header .brand-img { height: 40px; width: auto; max-width: 180px; object-fit: contain; object-position: left center; }
+/* Con logo, el encabezado muestra solo el logo */
+.crm-header .brand-img ~ .crm-tag { display: none; }
+.brand-img.is-cleaning { opacity: 0; }
 .crm-header .brand-img[data-shape="compact"] { height: 46px; }
 
 /* Menú horizontal: degradado que indica que hay más opciones al deslizar */
