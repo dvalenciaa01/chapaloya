@@ -9,7 +9,7 @@ const Login = {
     const msg = this.messageFor(params.get('msg'));
     if (msg) this.showMsg(msg);
     this.bind();
-    this.applyBrand();
+    this.applyBrand().catch(() => {}).then(() => this.reveal());
 
     // Si ya hay una sesión válida, ir directo al CRM
     try {
@@ -35,6 +35,14 @@ const Login = {
       btn.setAttribute('aria-pressed', String(show));
       btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
     }));
+    if (!document.documentElement.classList.contains('login-pending')) document.getElementById('login-email').focus();
+  },
+
+  /* Quita la precarga (la pone el <head> cuando el ingreso es de un negocio) */
+  reveal() {
+    const root = document.documentElement;
+    if (!root.classList.contains('login-pending')) return;
+    root.classList.remove('login-pending');
     document.getElementById('login-email').focus();
   },
 
@@ -60,6 +68,9 @@ const Login = {
     else box.innerHTML = '<span class="brand-wordmark is-lg">' + UIx.esc(t.name) + '</span>';
     const back = document.getElementById('login-back');
     if (back) back.href = Routes.web(t.slug);
+    // Se espera al logo (máximo 2 s) para que no aparezca después de quitar la precarga
+    const img = box.querySelector('img');
+    if (img && !img.complete) await new Promise(ok => { img.onload = img.onerror = ok; setTimeout(ok, 2000); });
   },
 
   /* ?msg= solo acepta códigos conocidos con textos fijos (B13): un enlace con

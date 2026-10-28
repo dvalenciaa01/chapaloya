@@ -1264,6 +1264,23 @@ footer .word{color:var(--night-ink)}
   const par=[...document.querySelectorAll('[data-par]')];
   let ticking=false;
   addEventListener('scroll',()=>{if(ticking)return;ticking=true;requestAnimationFrame(()=>{const y=scrollY;par.forEach(el=>{el.style.translate=`0 ${y*parseFloat(el.dataset.par)}px`});ticking=false})},{passive:true});
+
+  /* Enlaces a secciones (#rubros, #demo…): bajan a la sección sin poner el # en la dirección.
+     El href con # se queda para que funcionen sin JavaScript; un enlace antiguo con # se limpia al llegar. */
+  const goSection=(id,smooth)=>{
+    const el=id==='inicio'?null:document.getElementById(id);
+    if(id!=='inicio'&&!el)return false;
+    const behavior=smooth&&!matchMedia('(prefers-reduced-motion:reduce)').matches?'smooth':'auto';
+    if(el){el.scrollIntoView({behavior,block:'start'});if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','-1');el.focus({preventScroll:true})}
+    else scrollTo({top:0,behavior});
+    return true;
+  };
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href^="#"]');
+    if(!a||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    if(goSection(a.getAttribute('href').slice(1),true))e.preventDefault();
+  });
+  if(location.hash){const id=decodeURIComponent(location.hash.slice(1));history.replaceState(null,'',location.pathname+location.search);requestAnimationFrame(()=>goSection(id,false))}
 })();
 </script>
 </body>

@@ -210,9 +210,9 @@ const TenantBrand = {
 
   withSlug(href, slug) {
     if (!href || !slug) return href;
-    // Con direcciones limpias el negocio ya va en la ruta (/<enlace>/servicios.html)
-    if (Routes.pretty() && Routes.pathSlug() === slug) return href;
     if (/^(https?:|mailto:|tel:|#|javascript:)/i.test(href)) return href;
+    // Con direcciones limpias el negocio ya va en la ruta y las páginas sin .html (/<enlace>/servicios)
+    if (Routes.pretty() && Routes.pathSlug() === slug) return /^(crm|login|reservalope)\.html/.test(href) ? href : Routes.clean(href);
     if (!/\.html(\?|#|$)/.test(href)) return href;
     if (/^(crm|login)\.html/.test(href)) return href;
     if (/[?&]b=/.test(href)) return href;

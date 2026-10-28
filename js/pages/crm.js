@@ -91,7 +91,7 @@ const CRM = {
     ['wa-card'].forEach(id => { const el = document.getElementById(id); if (el) el.hidden = !wa; });
     document.querySelectorAll('.wsp-float-btn, #wsp-modal').forEach(el => { el.hidden = !wa; });
     const link = document.getElementById('set-crm-custom-link');
-    if (link) link.href = 'reservalope.html#negocio/' + encodeURIComponent(DB.tenant.id) + '/crm';
+    if (link) link.href = Routes.admin() + '#negocio/' + encodeURIComponent(DB.tenant.id) + '/crm';
   },
   // Valor de un campo propio listo para pintar (escapado)
   cfx(f, extra) { return UI.esc(CrmConfig.display(f, (extra || {})[f.key])); },

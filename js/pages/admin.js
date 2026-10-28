@@ -65,7 +65,7 @@ const AdminUI = {
     if (!Auth.switchTenant(tenantId)) return;
     const t = DB.tenantById(tenantId);
     DB.log('Cambió de negocio', 'Ahora administra: ' + t.name, { tenantId });
-    window.location.href = 'crm.html?tab=dashboard';
+    window.location.href = Routes.crm(t.slug, { tab: 'dashboard' });
   },
 
   /* ---------------- Cuenta: cambiar contraseña ---------------- */

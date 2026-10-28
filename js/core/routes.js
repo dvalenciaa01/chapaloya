@@ -51,8 +51,13 @@ const Routes = {
   // Web del negocio; page = 'servicios.html', etc. (vacío = inicio)
   web(slug, page, params) {
     const p = page && page !== 'index.html' ? page : '';
-    if (this.pretty()) return '/' + slug + '/' + p + this.query(params);
+    if (this.pretty()) return '/' + slug + '/' + this.clean(p) + this.query(params);
     return (p || 'index.html') + this.query(Object.assign({ b: slug }, params));
+  },
+
+  // Con direcciones limpias las páginas van sin .html: 'servicios.html?x=1' → 'servicios?x=1', 'index.html' → './'
+  clean(href) {
+    return String(href || '').replace(/^index\.html(?=[?#]|$)/, './').replace(/\.html(?=[?#]|$)/, '');
   },
 
   crm(slug, params) {

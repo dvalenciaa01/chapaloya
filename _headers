@@ -9,12 +9,14 @@
 # Content-Security-Policy, de dónde puede cargar cada cosa:
 #   script-src   'unsafe-inline' porque las pantallas usan onclick="…" y hay
 #                <script> en línea en el <head>; Turnstile (captcha) viene
-#                de challenges.cloudflare.com.
+#                de challenges.cloudflare.com y las estadísticas de Cloudflare
+#                (Web Analytics) de static.cloudflareinsights.com.
 #   style-src    style="…" en línea. Las fuentes están en assets/fonts/
 #                (no se cargan de Google Fonts).
-#   img-src      fotos y logos en Supabase Storage; data: y blob: para las
+#   img-src      cualquier https: porque cada negocio puede poner imágenes
+#                (portada, fotos) desde otra web; data: y blob: para las
 #                imágenes comprimidas en el navegador y los PDF.
-#   connect-src  API y Realtime (wss) de Supabase.
+#   connect-src  API y Realtime (wss) de Supabase, y el envío de Web Analytics.
 #   form-action  el formulario de la landing envía a formsubmit.co.
 # Si se agrega un servicio externo nuevo, hay que sumarlo aquí.
 # ==========================================================================
@@ -25,7 +27,7 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://cdsstbykktdkhhxtcsnx.supabase.co; connect-src 'self' https://cdsstbykktdkhhxtcsnx.supabase.co wss://cdsstbykktdkhhxtcsnx.supabase.co; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://cdsstbykktdkhhxtcsnx.supabase.co wss://cdsstbykktdkhhxtcsnx.supabase.co https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none'; upgrade-insecure-requests
   Cache-Control: no-cache, no-store, must-revalidate
   ! Access-Control-Allow-Origin
 

@@ -15,10 +15,14 @@
   <link rel="stylesheet" href="css/fonts/urbanist.css" />
   <script>
     /* Sin ?b= (ni /crm/<enlace>/ingresar) es el ingreso de Reservalope (superadministrador):
-       su propia marca, antes de pintar */
+       su propia marca, antes de pintar. Con negocio, la página queda tapada por la precarga
+       hasta que llega su marca (Login.applyBrand), para no mostrar colores ni textos genéricos. */
     (function () {
       try {
-        if (!new URLSearchParams(location.search).get('b') && !Routes.pathSlug()) {
+        if (new URLSearchParams(location.search).get('b') || Routes.pathSlug()) {
+          document.documentElement.classList.add('login-pending');
+          setTimeout(function () { document.documentElement.classList.remove('login-pending'); }, 8000);
+        } else {
           document.documentElement.setAttribute('data-login', 'reservalope');
           /* mismo modo claro/oscuro que eligió la persona en la landing */
           var t = null; try { t = localStorage.getItem('reservalope-theme'); } catch (e) { t = null; }
@@ -31,6 +35,7 @@
   <link rel="stylesheet" href="css/pages/login.css" />
 </head>
 <body data-page="login">
+  <div class="login-preload" role="status" aria-label="Cargando"><span class="login-spinner"></span></div>
 
   <main class="login-shell" id="main">
     <section class="login-brand" aria-hidden="true">

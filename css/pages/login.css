@@ -303,3 +303,20 @@ body[data-page="login"] h2 { font-weight: 600; letter-spacing: -0.03em; }
   .login-points { display: none; }
   .login-panel { padding-top: 32px; }
 }
+
+/* Precarga del ingreso de un negocio: tapa la página hasta que llegan su color, logo y palabras
+   (login.html la activa con html.login-pending y Login.reveal() la quita) */
+.login-preload { display: none; }
+.login-pending .login-preload {
+  display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 100;
+  background: #0E1013;
+}
+.login-pending .login-shell { visibility: hidden; }
+.login-spinner {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.16); border-top-color: rgba(255, 255, 255, 0.85);
+  animation: login-spin 0.8s linear infinite;
+}
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .login-spinner { animation-duration: 2.4s; } }

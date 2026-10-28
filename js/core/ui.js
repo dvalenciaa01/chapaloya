@@ -81,7 +81,9 @@ const UI = {
 
   // Para meter texto dentro de onclick="Fn('...')"
   arg(str) {
-    return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    // Los saltos de línea también: dentro de '…' en un onclick romperían el JavaScript
+    return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;')
+      .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   },
 
   toast(message, type) {
