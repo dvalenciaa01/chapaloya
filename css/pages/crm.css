@@ -1019,3 +1019,18 @@ body.auth-ok .crm-boot { display: none; }
 .view-thumb-lista { grid-template-rows: repeat(4, 1fr); }
 .view-thumb-lista i:first-child { background: var(--line-dark-strong); }
 @media (max-width: 560px) { .view-choice { grid-template-columns: 1fr; } }
+/* --- Panel principal configurable --- */
+.dash-kpis { margin-bottom: var(--space-5); }
+.dash-kpis[hidden], #crm-pane-dashboard [data-dash][hidden], #dashboard-lists[hidden] { display: none; }
+#dashboard-lists.is-single { grid-template-columns: minmax(0, 1fr); }
+.dash-cards-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.dash-group { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dash-group legend { padding: 0; margin-bottom: var(--space-2); font-weight: 600; color: var(--white); }
+.dash-group .check-line { display: flex; gap: 10px; align-items: center; min-height: 40px; color: var(--on-dark-md); cursor: pointer; }
+.dash-group .check-line small { color: var(--on-dark-lo); }
+.dash-group input { width: 18px; height: 18px; accent-color: var(--yellow); flex-shrink: 0; }
+@media (max-width: 560px) { .dash-cards-list { grid-template-columns: 1fr; } }
+
+/* --- Botón de modo claro / noche --- */
+.theme-toggle { width: 40px; min-width: 40px; padding: 0; justify-content: center; }
+.theme-toggle .ic { width: 18px; height: 18px; }

@@ -250,12 +250,16 @@ const DB = {
     // Vista de la pestaña Citas (migración 14). Sin la columna, la elección queda en este navegador.
     t.hasApptView = 'appt_view' in r;
     t.apptView = r.appt_view === 'lista' ? 'lista' : 'agenda';
+    // Preferencias que elige el negocio (migración 15). Sin la columna, quedan en este navegador.
+    t.hasCrmPrefs = 'crm_prefs' in r;
+    t.crmPrefs = (r.crm_prefs && typeof r.crm_prefs === 'object' && !Array.isArray(r.crm_prefs)) ? r.crm_prefs : {};
     return t;
   },
   tenantRow(t) {
     const row = this.tenantRowBase(t);
     if (t.leadMinutes != null && !isNaN(Number(t.leadMinutes))) row.booking_lead_minutes = Math.min(1440, Math.max(0, Math.round(Number(t.leadMinutes))));
     if (t.hasApptView) row.appt_view = t.apptView === 'lista' ? 'lista' : 'agenda';
+    if (t.hasCrmPrefs) row.crm_prefs = t.crmPrefs || {};
     return row;
   },
   tenantRowBase(t) {
