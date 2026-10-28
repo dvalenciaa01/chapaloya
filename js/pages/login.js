@@ -8,6 +8,12 @@ const Login = {
     this.nextTab = params.get('tab') || '';
     const msg = this.messageFor(params.get('msg'));
     if (msg) this.showMsg(msg);
+    // El aviso ya se mostró: ?msg= sale de la dirección (se queda ?b= si lo hay)
+    if (params.has('msg')) {
+      params.delete('msg');
+      const q = params.toString();
+      try { history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (e) { /* sin historial */ }
+    }
     this.bind();
     this.applyBrand().catch(() => {}).then(() => this.reveal());
 
