@@ -639,6 +639,73 @@ footer .word{color:var(--night-ink)}
   .spec{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* Vista previa por rubro: la tarjeta abre debajo de su fila un panel con la web (celular) y el CRM (navegador) */
+.sp{padding:0}
+.sp-btn{all:unset;box-sizing:border-box;display:grid;gap:4px;align-content:start;width:100%;height:100%;padding:20px 20px 22px;border-radius:inherit;cursor:pointer}
+.sp-btn:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.sp-btn::after{content:"Ver vista previa";margin-top:10px;font:600 .8rem var(--font);color:var(--blue);opacity:0;transform:translateY(4px);transition:opacity .2s ease,transform .25s var(--ease)}
+.sp:hover .sp-btn::after,.sp-btn:focus-visible::after,.sp.is-open .sp-btn::after{opacity:1;transform:none}
+.sp.is-open .sp-btn::after{content:"Viendo vista previa"}
+.sp.is-open{background:var(--card);box-shadow:inset 0 0 0 2px var(--blue)}
+.sp.is-open:hover{transform:none}
+@media (hover:none){.sp-btn::after{opacity:1;transform:none}}
+
+.rub-prev{grid-column:1/-1;list-style:none;margin:4px 0 8px}
+.rub-prev[hidden]{display:none}
+.rp-in{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(22px,3.4vw,44px);border-radius:28px;
+  background:radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--rp-accent,#8B5CF6) 26%,transparent),transparent 60%),var(--soft);overflow:hidden;animation:rp-open .45s var(--ease)}
+@keyframes rp-open{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.rp-close{position:absolute;top:16px;right:16px;display:grid;place-items:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);cursor:pointer}
+.rp-close:hover{border-color:var(--ink)}
+.rp-close svg{width:18px;height:18px}
+.rp-kicker{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:var(--ink-3)}
+.rp-kicker::before{content:"";width:10px;height:10px;border-radius:999px;background:var(--rp-accent,#8B5CF6)}
+.rub-prev .rp-title.sp-name{margin:10px 0 8px;font-size:clamp(1.9rem,3.2vw,2.6rem);line-height:1.05;color:var(--ink)}
+.rp-note{color:var(--ink-2);margin:0 0 22px;max-width:40ch}
+.rp-facts{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
+.rp-facts li{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.rp-facts span{color:var(--ink-3)}
+.rp-facts strong{font-weight:600;color:var(--ink)}
+.rp-cta{gap:10px}
+.rp-cta svg{width:18px;height:18px}
+.rp-tabs{display:none}
+
+.rp-stage{position:relative;padding:0 12% 9% 0;transition:opacity .25s ease}
+.rp-stage.is-swap{opacity:.25}
+.rp-browser{margin:0;border-radius:14px;background:#0E1013;box-shadow:0 30px 70px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.06);overflow:hidden}
+.rp-bar{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;background:#1A1D21}
+.rp-bar i{width:9px;height:9px;border-radius:999px;background:#3A3F45}
+.rp-bar span{margin-left:10px;padding:2px 12px;border-radius:999px;background:#0E1013;color:#9AA3AD;font:500 .72rem var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-browser img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#15181C}
+.rp-phone{position:absolute;right:0;bottom:0;width:27%;margin:0;padding:6px;border-radius:30px;background:#0B0B0C;box-shadow:0 26px 60px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.08)}
+.rp-phone img{display:block;width:100%;height:auto;aspect-ratio:390/844;object-fit:cover;object-position:top;border-radius:24px;background:#F4F4F4}
+
+@media (max-width:900px){
+  .rp-in{grid-template-columns:1fr}
+  .rp-stage{order:-1}
+}
+@media (max-width:640px){
+  .sp-btn{padding:16px 14px 18px}
+  .rp-in{padding:20px 16px 22px;border-radius:22px}
+  .rp-close{top:12px;right:12px}
+  .rp-tabs{display:inline-flex;gap:4px;padding:4px;margin-bottom:16px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .rp-tabs button{all:unset;padding:8px 16px;border-radius:999px;font:600 .9rem var(--font);color:var(--ink-2);cursor:pointer}
+  .rp-tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+  .rp-tabs button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .rp-in{gap:0}
+  .rp-text{display:contents}
+  .rp-kicker{justify-self:start;padding-right:48px}
+  .rp-tabs{justify-self:start}
+  .rp-stage{order:1;padding:0;margin-bottom:22px}
+  .rp-facts{order:2}
+  .rp-cta{order:3}
+  .rp-stage[data-view="web"] .rp-browser{display:none}
+  .rp-stage[data-view="crm"] .rp-phone{display:none}
+  .rp-phone{position:static;width:min(62%,240px);margin:0 auto}
+  .rp-facts li{grid-template-columns:96px 1fr}
+  .rp-cta{width:100%}
+}
+@media (prefers-reduced-motion:reduce){.rp-in{animation:none}.rp-stage{transition:none}}
 </style>
 </head>
 <body>
@@ -656,6 +723,7 @@ footer .word{color:var(--night-ink)}
     <symbol id="i-wa" viewBox="0 0 32 32"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" d="M16 3.5A12.5 12.5 0 0 0 5.2 22.3L3.6 28.4l6.3-1.6A12.5 12.5 0 1 0 16 3.5Z"/><path fill="currentColor" d="M11.9 9.6c.3 0 .6 0 .8.6l1.1 2.6c.1.3 0 .6-.1.8l-.8 1c-.2.2-.2.5 0 .8.6 1 1.4 1.9 2.3 2.6.7.5 1.4.9 2.2 1.2.3.1.6 0 .8-.2l1-1.2c.2-.3.5-.3.8-.2l2.5 1.2c.3.1.5.3.5.6 0 .6-.1 1.5-.8 2.1-.7.6-1.8 1-3 .8-1.6-.3-3.5-1.2-5.2-2.8-1.7-1.6-2.9-3.4-3.4-5-.4-1.3-.1-2.4.5-3.3.4-.5.8-.6 1.1-.6Z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
     <symbol id="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></symbol>
@@ -786,16 +854,16 @@ footer .word{color:var(--night-ink)}
         <p class="lead">Cada rubro tiene su propio estilo: cambian la tipografía, las formas y los detalles de la web de reservas. Los colores siempre son los de tu marca, y las palabras se adaptan: barbero, doctor, terapeuta; cliente o paciente.</p>
       </div>
       <ul class="spec">
-        <li class="sp sp-barberia"><span class="sp-n">01</span><svg aria-hidden="true"><use href="#i-scissors"/></svg><span class="sp-name">Barbería</span><span class="sp-note">Cartel de taller clásico</span></li>
-        <li class="sp sp-salon"><span class="sp-n">02</span><svg aria-hidden="true"><use href="#i-comb"/></svg><span class="sp-name">Salón de belleza</span><span class="sp-note">Revista de moda</span></li>
-        <li class="sp sp-spa"><span class="sp-n">03</span><svg aria-hidden="true"><use href="#i-lotus"/></svg><span class="sp-name">Spa y estética</span><span class="sp-note">Jardín zen</span></li>
-        <li class="sp sp-unas"><span class="sp-n">04</span><svg aria-hidden="true"><use href="#i-nail"/></svg><span class="sp-name">Nail bar</span><span class="sp-note">Pop y brillo</span></li>
-        <li class="sp sp-consultorio"><span class="sp-n">05</span><svg aria-hidden="true"><use href="#i-steth"/></svg><span class="sp-name">Consultorio</span><span class="sp-note">Ficha clínica</span></li>
-        <li class="sp sp-dental"><span class="sp-n">06</span><svg aria-hidden="true"><use href="#i-tooth"/></svg><span class="sp-name">Clínica dental</span><span class="sp-note">Fresco y redondeado</span></li>
-        <li class="sp sp-psicologia"><span class="sp-n">07</span><svg aria-hidden="true"><use href="#i-heart"/></svg><span class="sp-name">Psicología</span><span class="sp-note">Cuaderno cálido</span></li>
-        <li class="sp sp-veterinaria"><span class="sp-n">08</span><svg aria-hidden="true"><use href="#i-paw"/></svg><span class="sp-name">Veterinaria</span><span class="sp-note">Amigable y robusta</span></li>
-        <li class="sp sp-tatuajes"><span class="sp-n">09</span><svg aria-hidden="true"><use href="#i-needle"/></svg><span class="sp-name">Tatuajes</span><span class="sp-note">Hoja de flash</span></li>
-        <li class="sp sp-fitness"><span class="sp-n">10</span><svg aria-hidden="true"><use href="#i-dumbbell"/></svg><span class="sp-name">Fitness</span><span class="sp-note">Cartel deportivo</span></li>
+        <li class="sp sp-barberia" data-rubro="barberia"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">01</span><svg aria-hidden="true"><use href="#i-scissors"/></svg><span class="sp-name">Barbería</span><span class="sp-note">Cartel de taller clásico</span></button></li>
+        <li class="sp sp-salon" data-rubro="salon"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">02</span><svg aria-hidden="true"><use href="#i-comb"/></svg><span class="sp-name">Salón de belleza</span><span class="sp-note">Revista de moda</span></button></li>
+        <li class="sp sp-spa" data-rubro="spa"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">03</span><svg aria-hidden="true"><use href="#i-lotus"/></svg><span class="sp-name">Spa y estética</span><span class="sp-note">Jardín zen</span></button></li>
+        <li class="sp sp-unas" data-rubro="unas"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">04</span><svg aria-hidden="true"><use href="#i-nail"/></svg><span class="sp-name">Nail bar</span><span class="sp-note">Pop y brillo</span></button></li>
+        <li class="sp sp-consultorio" data-rubro="consultorio"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">05</span><svg aria-hidden="true"><use href="#i-steth"/></svg><span class="sp-name">Consultorio</span><span class="sp-note">Ficha clínica</span></button></li>
+        <li class="sp sp-dental" data-rubro="dental"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">06</span><svg aria-hidden="true"><use href="#i-tooth"/></svg><span class="sp-name">Clínica dental</span><span class="sp-note">Fresco y redondeado</span></button></li>
+        <li class="sp sp-psicologia" data-rubro="psicologia"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">07</span><svg aria-hidden="true"><use href="#i-heart"/></svg><span class="sp-name">Psicología</span><span class="sp-note">Cuaderno cálido</span></button></li>
+        <li class="sp sp-veterinaria" data-rubro="veterinaria"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">08</span><svg aria-hidden="true"><use href="#i-paw"/></svg><span class="sp-name">Veterinaria</span><span class="sp-note">Amigable y robusta</span></button></li>
+        <li class="sp sp-tatuajes" data-rubro="tatuajes"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">09</span><svg aria-hidden="true"><use href="#i-needle"/></svg><span class="sp-name">Tatuajes</span><span class="sp-note">Hoja de flash</span></button></li>
+        <li class="sp sp-fitness" data-rubro="fitness"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">10</span><svg aria-hidden="true"><use href="#i-dumbbell"/></svg><span class="sp-name">Fitness</span><span class="sp-note">Cartel deportivo</span></button></li>
       </ul>
       <p class="rub-note"><span>¿Tu negocio es otro? También funciona con un estilo neutro para cualquier negocio con citas.</span><a class="tlink" href="#demo">Solicitar una prueba para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
     </div>
@@ -1264,6 +1332,96 @@ footer .word{color:var(--night-ink)}
   const par=[...document.querySelectorAll('[data-par]')];
   let ticking=false;
   addEventListener('scroll',()=>{if(ticking)return;ticking=true;requestAnimationFrame(()=>{const y=scrollY;par.forEach(el=>{el.style.translate=`0 ${y*parseFloat(el.dataset.par)}px`});ticking=false})},{passive:true});
+
+  /* Vista previa por rubro: abre un panel debajo de la fila de la tarjeta, sin salir de la página.
+     Las capturas (assets/rubros) son de los negocios de prueba demo-<rubro> y se descargan al abrir o al pasar el mouse. */
+  const RUB={
+    barberia:{demo:'El Clásico Barbería',accent:'#C8963E',font:'Alfa Slab One y Work Sans',shape:'Esquinas casi rectas',words:'barbero · cliente · servicio',opt:'Barbería',note:'Carteles de taller clásico: letras gruesas, mayúsculas y botones rectos.'},
+    salon:{demo:'Aurora Salón',accent:'#E8A0B4',font:'Bodoni Moda y Jost',shape:'Tarjetas rectas, botones en píldora',words:'estilista · cliente · servicio',opt:'Salón de belleza / peluquería',note:'Como una revista de moda: títulos en cursiva y mucho aire.'},
+    spa:{demo:'Bambú Spa',accent:'#A8C3A0',font:'Cormorant Garamond y Figtree',shape:'Curvas suaves',words:'especialista · cliente · tratamiento',opt:'Spa y estética',note:'Calma de jardín zen: serifas finas, curvas y tonos suaves.'},
+    unas:{demo:'Pop Nails Studio',accent:'#FF5FA2',font:'Unbounded y DM Sans',shape:'Redondeadas',words:'manicurista · cliente · servicio',opt:'Uñas / nail bar',note:'Pop y brillo: letras anchas, colores vivos y formas redondas.'},
+    consultorio:{demo:'Consultorio Dr. Salas',accent:'#3FA7D6',font:'IBM Plex Sans',shape:'Rectas y ordenadas',words:'doctor · paciente · consulta',opt:'Consultorio médico',note:'Ficha clínica: ordenado, legible y con aspecto profesional.'},
+    dental:{demo:'Sonríe Clínica Dental',accent:'#4FD1C5',font:'Outfit',shape:'Muy redondeadas',words:'odontólogo · paciente · tratamiento',opt:'Clínica dental',note:'Fresco y amable: formas redondeadas y mucha claridad.'},
+    psicologia:{demo:'Espacio Calma',accent:'#D9A066',font:'Fraunces y Source Sans 3',shape:'Esquinas suaves',words:'terapeuta · paciente · sesión',opt:'Psicología y terapia',note:'Cuaderno cálido: serifas suaves y tonos que dan confianza.'},
+    veterinaria:{demo:'Huellitas Veterinaria',accent:'#F2B544',font:'Fredoka y Nunito',shape:'Redondeadas',words:'veterinario · cliente · servicio',opt:'Veterinaria',note:'Amigable y robusta: letras redondas y colores alegres.'},
+    tatuajes:{demo:'Tinta Negra Tattoo',accent:'#D7263D',font:'Pirata One y Space Grotesk',shape:'Ángulos rectos',words:'tatuador · cliente · servicio',opt:'Estudio de tatuajes',note:'Hoja de flash: letras góticas, contraste fuerte y bordes rectos.'},
+    fitness:{demo:'Impulso Training',accent:'#C6FF3D',font:'Big Shoulders Display e Inter Tight',shape:'Rectas y firmes',words:'entrenador · cliente · sesión',opt:'Entrenador / estudio fitness',note:'Cartel deportivo: letras condensadas, mayúsculas y energía.'}
+  };
+  const spec=document.querySelector('.spec');
+  const shot=(r,k)=>'../assets/rubros/'+k+'-'+r+'.webp';
+  const preload=r=>{['web','crm'].forEach(k=>{const im=new Image();im.src=shot(r,k)})};
+  let prev=null,openRub=null;
+  const build=()=>{
+    prev=document.createElement('li');
+    prev.className='rub-prev';prev.id='rub-prev';prev.hidden=true;
+    prev.setAttribute('role','region');prev.setAttribute('aria-label','Vista previa del rubro');
+    prev.innerHTML='<div class="rp-in">'+
+      '<button type="button" class="rp-close" aria-label="Cerrar vista previa"><svg aria-hidden="true"><use href="#i-close"/></svg></button>'+
+      '<div class="rp-text"><span class="rp-kicker" data-rp="demo"></span><h3 class="rp-title sp-name" data-rp="title"></h3><p class="rp-note" data-rp="note"></p>'+
+      '<div class="rp-tabs" role="group" aria-label="Qué ver"><button type="button" data-view="web" aria-pressed="true">Web de reservas</button><button type="button" data-view="crm" aria-pressed="false">CRM del equipo</button></div>'+
+      '<ul class="rp-facts"><li><span>Tipografía</span><strong data-rp="font"></strong></li><li><span>Formas</span><strong data-rp="shape"></strong></li><li><span>Palabras</span><strong data-rp="words"></strong></li></ul>'+
+      '<a class="btn btn-primary rp-cta" href="#demo">Solicitar prueba con este estilo <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></div>'+
+      '<div class="rp-stage" data-view="web"><figure class="rp-browser"><div class="rp-bar"><i></i><i></i><i></i><span data-rp="url"></span></div><img data-rp="crm" alt="" width="1440" height="900" decoding="async"></figure>'+
+      '<figure class="rp-phone"><img data-rp="web" alt="" width="390" height="844" decoding="async"></figure></div></div>';
+    prev.querySelector('.rp-close').addEventListener('click',()=>close(true));
+    prev.querySelectorAll('.rp-tabs button').forEach(b=>b.addEventListener('click',()=>{
+      prev.querySelector('.rp-stage').dataset.view=b.dataset.view;
+      prev.querySelectorAll('.rp-tabs button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    }));
+    prev.querySelector('.rp-cta').addEventListener('click',()=>{
+      const sel=document.getElementById('f-rubro'),o=openRub&&RUB[openRub].opt;
+      if(sel&&o)[...sel.options].forEach((op,i)=>{if(op.text===o)sel.selectedIndex=i});
+    });
+    prev.addEventListener('keydown',e=>{if(e.key==='Escape')close(true)});
+  };
+  // El panel va después de la última tarjeta de la fila de la elegida
+  const place=li=>{
+    const items=[...spec.querySelectorAll('.sp')],cols=getComputedStyle(spec).gridTemplateColumns.split(' ').length||1;
+    const idx=items.indexOf(li),end=items[Math.min(items.length-1,Math.floor(idx/cols)*cols+cols-1)];
+    if(end.nextElementSibling!==prev)end.after(prev);
+  };
+  const fill=r=>{
+    const d=RUB[r],q=k=>prev.querySelector('[data-rp="'+k+'"]');
+    prev.style.setProperty('--rp-accent',d.accent);
+    q('demo').textContent='Vista previa · '+d.demo;
+    const t=q('title');t.textContent=document.querySelector('.sp-'+r+' .sp-name').textContent;
+    prev.querySelector('.rp-text').className='rp-text sp-'+r;
+    q('note').textContent=d.note;q('font').textContent=d.font;q('shape').textContent=d.shape;q('words').textContent=d.words;
+    q('url').textContent='reservalope.com/crm/demo-'+r;
+    const stage=prev.querySelector('.rp-stage'),web=q('web'),crm=q('crm');
+    stage.classList.add('is-swap');
+    let left=2;const done=()=>{if(--left<=0)stage.classList.remove('is-swap')};
+    [[web,'web'],[crm,'crm']].forEach(([im,k])=>{im.onload=im.onerror=done;im.src=shot(r,k)});
+    web.alt='Web de reservas de '+d.demo+' en un celular';crm.alt='CRM de '+d.demo+': panel principal con las citas del día';
+  };
+  const close=focusCard=>{
+    if(!prev||prev.hidden)return;
+    const li=spec.querySelector('.sp.is-open');
+    prev.hidden=true;openRub=null;
+    spec.querySelectorAll('.sp').forEach(x=>{x.classList.remove('is-open');x.querySelector('.sp-btn').setAttribute('aria-expanded','false')});
+    if(focusCard&&li)li.querySelector('.sp-btn').focus();
+  };
+  const open=li=>{
+    const r=li.dataset.rubro;
+    if(openRub===r){close(false);return}
+    if(!prev)build();
+    const wasOpen=!prev.hidden;
+    spec.querySelectorAll('.sp').forEach(x=>{const on=x===li;x.classList.toggle('is-open',on);x.querySelector('.sp-btn').setAttribute('aria-expanded',String(on))});
+    place(li);fill(r);openRub=r;prev.hidden=false;
+    if(!wasOpen){const inner=prev.querySelector('.rp-in');inner.style.animation='none';void inner.offsetWidth;inner.style.animation=''}
+    const top=prev.getBoundingClientRect().top;
+    if(top>innerHeight*.75||top<0)prev.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'nearest'});
+  };
+  if(spec){
+    spec.addEventListener('click',e=>{const b=e.target.closest('.sp-btn');if(b)open(b.closest('.sp'))});
+    spec.addEventListener('pointerenter',e=>{const li=e.target.closest&&e.target.closest('.sp');if(li&&!li.dataset.pre){li.dataset.pre='1';preload(li.dataset.rubro)}},true);
+    spec.addEventListener('keydown',e=>{
+      const b=e.target.closest('.sp-btn');if(!b||!['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'].includes(e.key))return;
+      const bs=[...spec.querySelectorAll('.sp-btn')],i=bs.indexOf(b),n=bs[(i+(e.key==='ArrowRight'||e.key==='ArrowDown'?1:-1)+bs.length)%bs.length];
+      e.preventDefault();n.focus();if(openRub)open(n.closest('.sp'));
+    });
+    addEventListener('resize',()=>{const li=spec.querySelector('.sp.is-open');if(li&&prev&&!prev.hidden)place(li)});
+  }
 
   /* Enlaces a secciones (#rubros, #demo…): bajan a la sección sin poner el # en la dirección.
      El href con # se queda para que funcionen sin JavaScript; un enlace antiguo con # se limpia al llegar. */
