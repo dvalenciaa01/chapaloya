@@ -247,11 +247,15 @@ const DB = {
     // CRM personalizable (migración 12): lo edita solo el superadministrador desde la consola.
     // No va en tenantRow: se guarda aparte (Reservalope.saveCrmConfig), nunca con DB.save().
     t.crmConfig = (r.crm_config && typeof r.crm_config === 'object' && !Array.isArray(r.crm_config)) ? r.crm_config : {};
+    // Vista de la pestaña Citas (migración 14). Sin la columna, la elección queda en este navegador.
+    t.hasApptView = 'appt_view' in r;
+    t.apptView = r.appt_view === 'lista' ? 'lista' : 'agenda';
     return t;
   },
   tenantRow(t) {
     const row = this.tenantRowBase(t);
     if (t.leadMinutes != null && !isNaN(Number(t.leadMinutes))) row.booking_lead_minutes = Math.min(1440, Math.max(0, Math.round(Number(t.leadMinutes))));
+    if (t.hasApptView) row.appt_view = t.apptView === 'lista' ? 'lista' : 'agenda';
     return row;
   },
   tenantRowBase(t) {

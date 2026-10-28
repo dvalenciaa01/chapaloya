@@ -17,6 +17,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261022000011_rubros.sql` | Rubros: cada negocio elige su tipo (barbería, salón, spa, consultorio, clínica dental…) en `tenants.business_type` y puede personalizar las palabras en `tenants.labels`; `web_barberia` los devuelve; WhatsApp acepta `{negocio}` y `{profesional}` y las plantillas de fábrica pasan a textos neutros; mensajes de error sin "barbería" / "barbero" |
 | `migrations/20261022000012_crm_personalizable.sql` | CRM personalizable por negocio (solo el superadmin): `tenants.crm_config` con módulos visibles, campos visibles u obligatorios, campos propios de clientes y citas, columnas de la tabla de citas, tema del CRM y portada de la web; clientes con correo, fecha de nacimiento, documento y dirección; `extra` en clientes y citas; `web_barberia` devuelve `booking_fields` y `site`; `crear_reserva` recibe `p_extra` |
 | `migrations/20261026000013_enlaces_reservados.sql` | Enlaces reservados: ningún negocio puede llamarse como una ruta del sitio (`crm`, `admin`, `css`, `js`…), necesario para las direcciones limpias `/<enlace>` y `/crm/<enlace>` |
+| `migrations/20261028000014_vista_citas.sql` | Vista de la pestaña Citas del CRM por negocio: `tenants.appt_view` (`agenda` por defecto o `lista`), la elige el administrador en **Configuración → Vista de citas** |
 | `tests/supabase_stub.sql`, `tests/qa_10.sql`, `tests/rubros_11.sql` y `tests/crm_12.sql` | Solo para probar en un PostgreSQL local (no se ejecutan en Supabase) |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
@@ -31,8 +32,10 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 
 1. Entra a tu proyecto en supabase.com → **SQL Editor** → **New query**.
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
-3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08`, `…09`, `…10`, `…11` y `…12`, **en ese orden**.
+3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08`, `…09`, `…10`, `…11`, `…12`, `…13` y `…14`, **en ese orden**.
 
+> **Si ya ejecutaste del 1 al 13, solo falta el `…14`** (vista de citas). Solo agrega una columna: todos los negocios quedan con la agenda del día. Mientras no se ejecute, el CRM igual muestra la agenda y la elección de **Configuración → Vista de citas** se guarda solo en el navegador de quien la cambie.
+>
 > **Si ya ejecutaste del 1 al 11, solo falta el `…12`** (CRM personalizable) y volver a publicar la función `reservar` (paso 2), que ahora envía los campos propios de la reserva (`extra`). Se puede ejecutar con datos y repetir: todos los negocios quedan con `crm_config = {}`, es decir, el CRM se ve igual que antes hasta que el superadmin lo personalice desde Reservalope. Mientras no publiques la nueva `reservar`, la web sigue reservando, pero un negocio con campos propios **obligatorios** en la reserva no podrá recibir reservas.
 >
 > **Si ya ejecutaste del 1 al 10, solo falta el `…11`** (rubros) y volver a publicar las dos funciones (paso 2), que ahora responden con palabras neutras. Se puede ejecutar con datos y repetir: los negocios existentes quedan con el rubro *barbería* (nada cambia para ellos hasta que elijan otro en **Configuración**); las plantillas de WhatsApp que seguían iguales a las de fábrica pasan a las nuevas (`{negocio}`, `{profesional}`, 📅) y las personalizadas no se tocan.

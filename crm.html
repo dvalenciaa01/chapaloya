@@ -245,6 +245,31 @@
               <button type="button" class="btn-golden" onclick="CRM.openAppointmentModal()"><i data-icon="plus"></i><span data-v-fmt="Agregar {appointment}">Agregar cita</span></button>
             </div>
           </div>
+          <!-- Vista agenda: un día, una columna por profesional (Configuración → Vista de citas) -->
+          <section class="agenda-board" id="appt-agenda-view" hidden aria-labelledby="agenda-date-title">
+            <div class="agenda-head">
+              <div>
+                <h2 class="agenda-date" id="agenda-date-title">Hoy</h2>
+                <p class="agenda-sub" id="agenda-sub" aria-live="polite"></p>
+              </div>
+              <span class="agenda-live" id="agenda-live" hidden><span class="agenda-live-dot" aria-hidden="true"></span>En vivo</span>
+            </div>
+            <div class="agenda-toolbar">
+              <div class="agenda-nav">
+                <button type="button" class="btn-dark btn-icon" onclick="CRM.agendaShift(-1)" aria-label="Día anterior"><i data-icon="chevronLeft"></i></button>
+                <button type="button" class="btn-dark" id="agenda-today-btn" onclick="CRM.agendaGo('')">Hoy</button>
+                <button type="button" class="btn-dark btn-icon" onclick="CRM.agendaShift(1)" aria-label="Día siguiente"><i data-icon="chevronRight"></i></button>
+                <label class="sr-only" for="agenda-date">Fecha</label>
+                <input type="date" id="agenda-date" class="input-dark agenda-date-input" onchange="CRM.agendaGo(this.value)" />
+              </div>
+              <div class="agenda-filter">
+                <label class="sr-only" for="agenda-staff" data-v="Staff">Profesional</label>
+                <select id="agenda-staff" class="input-dark" onchange="CRM.renderAgenda()"></select>
+              </div>
+            </div>
+            <div class="agenda-scroll" id="agenda-grid"></div>
+          </section>
+          <div id="appt-list-view">
           <div class="segmented" id="appt-quick-tabs" role="group" aria-label="Filtro rápido" data-v-attr="aria-label:Filtro rápido de {appointmentPlural}">
             <button type="button" class="btn-dark active" data-atab="TODAY" onclick="CRM.setApptTab('TODAY')">Hoy</button>
             <button type="button" class="btn-dark" data-atab="UPCOMING" onclick="CRM.setApptTab('UPCOMING')">Próximas</button>
@@ -280,6 +305,7 @@
             </table>
           </div>
           <div style="text-align:center; margin-top:16px;"><button type="button" class="btn-dark" id="appt-more" onclick="CRM.showMoreAppts()" hidden>Mostrar más</button></div>
+          </div>
         </div>
 
         <!-- ================= WALK-IN ================= -->
@@ -418,6 +444,23 @@
                 <button type="button" class="btn-golden" onclick="CRM.exportJSON()"><i data-icon="download"></i>Exportar respaldo JSON</button>
               </div>
             </div>
+          </div>
+          <div class="crm-section-card sch-card" id="appt-view-card">
+            <div class="card-head"><h3 id="appt-view-title" data-v-fmt="Vista de {appointmentPlural}">Vista de citas</h3></div>
+            <p class="card-text" data-vx="Cómo se ve la pestaña {AppointmentPlural} para todo el equipo de {este:business} {business}.">Cómo se ve la pestaña Citas para todo el equipo de este negocio.</p>
+            <div class="view-choice" role="radiogroup" aria-labelledby="appt-view-title">
+              <label class="view-option">
+                <input type="radio" name="appt-view" value="agenda" onchange="CRM.saveApptView(this.value)" />
+                <span class="view-thumb view-thumb-agenda" aria-hidden="true"><i></i><i></i><i></i><i class="is-new"></i></span>
+                <span class="view-option-text"><strong>Agenda del día</strong><span data-vx="Una columna por {staff} y l{os:appointment} {appointmentPlural} en su hora. Recomendada.">Una columna por profesional y las citas en su hora. Recomendada.</span></span>
+              </label>
+              <label class="view-option">
+                <input type="radio" name="appt-view" value="lista" onchange="CRM.saveApptView(this.value)" />
+                <span class="view-thumb view-thumb-lista" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="view-option-text"><strong>Lista</strong><span>La tabla con pestañas y filtros de siempre.</span></span>
+              </label>
+            </div>
+            <p class="field-hint" id="appt-view-note" hidden></p>
           </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
             <div class="card-head"><h3>Personalizar CRM</h3></div>

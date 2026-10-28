@@ -616,6 +616,12 @@ const CRM = {
   },
 
   renderAppointments() {
+    const agenda = this.apptView() === 'agenda';
+    const agendaEl = document.getElementById('appt-agenda-view');
+    const listEl = document.getElementById('appt-list-view');
+    if (agendaEl) agendaEl.hidden = !agenda;
+    if (listEl) listEl.hidden = agenda;
+    if (agenda) { this.renderAgenda(); return; }
     const tbody = document.getElementById('crm-appts-tbody');
     if (!tbody) return;
     const E = (v) => UI.esc(v);
@@ -655,6 +661,238 @@ const CRM = {
     }).join('');
   },
 
+  /* ---------- Vista agenda: un día, una columna por profesional ----------
+     La vista la elige el negocio en Configuración (tenants.appt_view, migración 14).
+     Sin la columna en la base, la elección se guarda en este navegador. */
+  AGENDA_HOUR_PX: 100,
+  AGENDA_NEW_MIN: 30,      // minutos que una reserva recién creada se resalta como "Nueva reserva"
+  agendaDate: '',
+  apptView() {
+    const t = DB.tenant;
+    if (!t) return 'agenda';
+    if (t.hasApptView) return t.apptView === 'lista' ? 'lista' : 'agenda';
+    return DB.pref('apptView:' + t.id) === 'lista' ? 'lista' : 'agenda';
+  },
+
+  async saveApptView(view) {
+    const t = DB.tenant;
+    view = view === 'lista' ? 'lista' : 'agenda';
+    if (!t || this.apptView() === view) return false;
+    const label = { agenda: 'Agenda del día', lista: 'Lista' };
+    const before = this.apptView();
+    if (!t.hasApptView) {
+      DB.pref('apptView:' + t.id, view);
+      this.renderAll();
+      UI.toast('Vista guardada en este navegador.');
+      return true;
+    }
+    t.apptView = view;
+    const ok = await DB.save();
+    if (!ok) { this.renderAll(); return false; }
+    DB.log('Cambió la vista de citas', 'Antes: ' + label[before] + ' · Ahora: ' + label[view]);
+    this.renderAll();
+    UI.toast(UI.v('Vista de {appointmentPlural} guardada: ') + label[view] + '.');
+    return true;
+  },
+
+  renderApptViewSetting() {
+    const view = this.apptView();
+    document.querySelectorAll('input[name="appt-view"]').forEach(r => { r.checked = r.value === view; });
+    const note = document.getElementById('appt-view-note');
+    if (note) {
+      const local = DB.tenant && !DB.tenant.hasApptView;
+      note.hidden = !local;
+      note.textContent = local ? 'Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 14 en Supabase.' : '';
+    }
+  },
+
+  agendaGo(date) {
+    this.agendaDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : '';
+    this.renderAgenda();
+  },
+  agendaShift(n) {
+    this.agendaGo(DB.addDays(this.agendaDate || DB.todayISO(), n));
+  },
+
+  fmtAgendaDate(iso) {
+    const d = new Date(iso + 'T12:00:00');
+    const sameYear = iso.slice(0, 4) === DB.todayISO().slice(0, 4);
+    const s = d.toLocaleDateString('es-PE', Object.assign({ weekday: 'long', day: 'numeric', month: 'long' }, sameYear ? {} : { year: 'numeric' }));
+    return UI.cap(s.replace(',', ''));
+  },
+
+  // Tramos de atención del negocio en esa fecha (fecha especial o semana)
+  agendaRanges(date) {
+    const sch = DB.tenant.schedule || DB.normSchedule(null);
+    const exc = DB.exceptionFor(date, null);
+    return DB.normRanges(exc ? exc.ranges : sch.week[DB.dayOfWeek(date)]);
+  },
+
+  isNewAppt(a) {
+    const t = Date.parse(a.createdAt || '');
+    return !isNaN(t) && Date.now() - t < this.AGENDA_NEW_MIN * 60000 && this.isVigente(a);
+  },
+
+  renderAgenda() {
+    const grid = document.getElementById('agenda-grid');
+    if (!grid || !DB.state) return;
+    const E = (v) => UI.esc(v);
+    const today = DB.todayISO();
+    if (this.agendaDate === today) this.agendaDate = '';
+    const date = this.agendaDate || today;
+    const isToday = date === today;
+
+    const dateIn = document.getElementById('agenda-date');
+    if (dateIn) dateIn.value = date;
+    const title = document.getElementById('agenda-date-title');
+    if (title) title.textContent = this.fmtAgendaDate(date);
+    const live = document.getElementById('agenda-live');
+    if (live) live.hidden = !isToday;
+    const todayBtn = document.getElementById('agenda-today-btn');
+    if (todayBtn) todayBtn.classList.toggle('active', isToday);
+
+    // Filtro de profesional (el personal vinculado solo se ve a sí mismo)
+    const all = DB.assignableBarbers();
+    const sel = document.getElementById('agenda-staff');
+    if (sel) {
+      const cur = sel.value || 'ALL';
+      sel.innerHTML = (all.length > 1 ? '<option value="ALL">' + this.vx('Tod{os:staff} l{os:staff} {staffPlural}') + '</option>' : '') +
+        all.map(b => '<option value="' + E(b.id) + '">' + E(b.name) + '</option>').join('');
+      sel.value = sel.querySelector('option[value="' + cur + '"]') ? cur : (sel.options[0] ? sel.options[0].value : '');
+      sel.closest('.agenda-filter').hidden = all.length < 2;
+    }
+    const fStaff = sel && sel.value && sel.value !== 'ALL' ? sel.value : null;
+
+    const dayAll = DB.visibleAppointments().filter(a => a.date === date);
+    const cancelled = dayAll.filter(a => a.status === 'CANCELADA').length;
+    let appts = dayAll.filter(a => a.status !== 'CANCELADA' && (!fStaff || a.barberId === fStaff));
+
+    const cols = (fStaff ? all.filter(b => b.id === fStaff) : all).map(b => ({ id: b.id, name: b.name }));
+    const known = new Set(cols.map(c => c.id));
+    const orphans = appts.filter(a => !known.has(a.barberId));
+    if (orphans.length && !fStaff) cols.push({ id: '', name: UI.v('Sin {staff}'), orphan: true });
+
+    const sub = document.getElementById('agenda-sub');
+    if (sub) {
+      const n = appts.length;
+      sub.textContent = n + ' ' + (n === 1 ? Vocab.t('appointment') : Vocab.t('appointmentPlural')) +
+        (cancelled ? ' · ' + cancelled + ' cancelad' + (cancelled === 1 ? UI.v('{o:appointment}') : UI.v('{os:appointment}')) : '');
+    }
+
+    if (!cols.length) {
+      grid.innerHTML = '<div class="empty-state">' + ic('users') + '<strong>' + this.vx('Aún no hay {staffPlural}') + '</strong>' + this.vx('Agrega {un:staff} {staff} para ver su agenda.') + '</div>';
+      return;
+    }
+
+    // Rango de horas: horario del negocio ampliado con las citas que caen fuera
+    const ranges = this.agendaRanges(date);
+    const span = (a) => { const s = DB.toMinutes(a.time); return [s, s + DB.apptDuration(a)]; };
+    let lo = Infinity, hi = -Infinity;
+    ranges.forEach(r => { lo = Math.min(lo, DB.toMinutes(r[0])); hi = Math.max(hi, DB.toMinutes(r[1])); });
+    appts.forEach(a => { const [s, e] = span(a); lo = Math.min(lo, s); hi = Math.max(hi, e); });
+    if (!isFinite(lo)) { lo = 9 * 60; hi = 18 * 60; }
+    lo = Math.floor(lo / 60) * 60;
+    hi = Math.min(24 * 60, Math.max(lo + 60, Math.ceil(hi / 60) * 60));
+    const H = this.AGENDA_HOUR_PX;
+    const y = (m) => (m - lo) / 60 * H;
+    const height = y(hi);
+
+    const hours = [];
+    for (let m = lo; m <= hi; m += 60) hours.push('<span class="agenda-hour" style="top:' + y(m) + 'px">' + DB.fromMinutes(m) + '</span>');
+
+    // Horas fuera de atención (antes de abrir, descansos y después de cerrar)
+    const off = [];
+    let cursor = lo;
+    ranges.forEach(r => {
+      const s = DB.toMinutes(r[0]), e = DB.toMinutes(r[1]);
+      if (s > cursor) off.push([cursor, s]);
+      cursor = Math.max(cursor, e);
+    });
+    if (cursor < hi) off.push([cursor, hi]);
+    const offHTML = off.map(o => '<span class="agenda-off" style="top:' + y(o[0]) + 'px;height:' + (y(o[1]) - y(o[0])) + 'px"></span>').join('');
+
+    const nowM = DB.nowMinutes();
+    const nowHTML = isToday && nowM >= lo && nowM <= hi
+      ? '<span class="agenda-now" style="top:' + y(nowM) + 'px"><span class="sr-only">Hora actual ' + DB.fromMinutes(nowM) + '</span></span>' : '';
+
+    const cur = this.cur();
+    // Tarjeta según su alto: completa (nombre, servicio y hora), compacta (nombre y hora) o en una línea
+    const card = (a, lane, lanes) => {
+      const [s, e] = span(a);
+      const h = Math.max(y(e) - y(s) - 6, 38);
+      const isNew = this.isNewAppt(a);
+      const size = h >= 84 ? 'full' : (h >= 50 ? 'compact' : 'short');
+      const range = E(a.time) + '–' + DB.fromMinutes(Math.min(e, 1439));
+      const st = a.status !== 'PROGRAMADA' ? ' · ' + E(DB.statusLabel(a.status)) : '';
+      const price = this.fshow('appointments', 'price') ? ' · ' + cur + E(a.price) : '';
+      const style = 'top:' + (y(s) + 3) + 'px;height:' + h + 'px' + (lanes > 1 ? ';left:calc(' + (lane * 100 / lanes) + '% + 4px);width:calc(' + (100 / lanes) + '% - 8px)' : '');
+      let body;
+      if (isNew) {
+        body = '<span class="agenda-card-flag">Nueva reserva</span>' +
+          (size === 'full' ? '<span class="agenda-card-meta">' + E(a.customerName) + ' · ' + E(a.service) + '</span><span class="agenda-card-time">' + range + ' · ' + E(a.barber) + '</span>'
+            : '<span class="agenda-card-time">' + E(a.customerName) + ' · ' + E(a.time) + '</span>');
+      } else if (size === 'full') {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-meta">' + E(a.service) + price + '</span><span class="agenda-card-time">' + range + st + '</span>';
+      } else if (size === 'compact') {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + range + st + '</span>';
+      } else {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + E(a.time) + '</span>';
+      }
+      return '<button type="button" class="agenda-card ag-' + E(a.status) + (isNew ? ' is-new' : '') + ' is-' + size + '" style="' + style + '"' +
+        ' onclick="CRM.openApptDetail(\'' + E(a.id) + '\')"' +
+        ' title="' + E(a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '"' +
+        ' aria-label="' + E((isNew ? 'Nueva reserva · ' : '') + a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '">' + body + '</button>';
+    };
+
+    // Cada columna: citas en orden; si dos se cruzan (casos raros) se reparten a lo ancho
+    const colHTML = cols.map(c => {
+      const list = appts.filter(a => c.orphan ? !known.has(a.barberId) : a.barberId === c.id)
+        .sort((x, z) => DB.toMinutes(x.time) - DB.toMinutes(z.time));
+      const laneEnd = [];
+      const placed = list.map(a => {
+        const [s, e] = span(a);
+        let lane = laneEnd.findIndex(end => end <= s);
+        if (lane < 0) { lane = laneEnd.length; laneEnd.push(e); } else laneEnd[lane] = e;
+        return { a, lane };
+      });
+      const lanes = Math.max(1, laneEnd.length);
+      const off = !c.orphan && DB.slotsFor(date, c.id).length === 0;
+      return { c, html: placed.map(p => card(p.a, p.lane, lanes)).join(''), n: list.length, off };
+    });
+
+    grid.innerHTML =
+      '<div class="agenda-grid" style="--agenda-cols:' + cols.length + ';--agenda-hour:' + H + 'px">' +
+        '<div class="agenda-corner"></div>' +
+        colHTML.map(x => '<div class="agenda-col-head' + (x.c.orphan ? ' is-orphan' : '') + '"><span class="agenda-col-name">' + E(x.c.name) + '</span>' +
+          '<span class="agenda-col-count">' + (x.off && !x.n ? 'No atiende' : x.n + ' ' + (x.n === 1 ? Vocab.t('appointment') : Vocab.t('appointmentPlural'))) + '</span></div>').join('') +
+        '<div class="agenda-times" style="height:' + height + 'px">' + hours.join('') + '</div>' +
+        '<div class="agenda-layer" style="height:' + height + 'px">' + offHTML + nowHTML + '</div>' +
+        colHTML.map((x, i) => '<div class="agenda-col' + (x.off ? ' is-off' : '') + '" style="grid-column:' + (i + 2) + ';height:' + height + 'px">' + x.html + '</div>').join('') +
+      '</div>';
+
+    // Al abrir hoy, la hora actual queda a la vista
+    if (isToday && this.currentTab === 'appointments' && this._agendaScrolled !== date) {
+      this._agendaScrolled = date;
+      const now = grid.querySelector('.agenda-now');
+      if (now) setTimeout(() => {
+        const r = now.getBoundingClientRect();
+        if (r.top > window.innerHeight - 80) window.scrollBy({ top: r.top - window.innerHeight / 2, behavior: 'smooth' });
+      }, 60);
+    }
+    this.startAgendaClock();
+  },
+
+  // Línea de la hora actual y resaltado de "Nueva reserva" al día, sin recargar datos
+  startAgendaClock() {
+    if (this._agendaClock) return;
+    this._agendaClock = setInterval(() => {
+      const overlay = document.getElementById('crm-modal-overlay');
+      if (this.currentTab !== 'appointments' || this.apptView() !== 'agenda' || document.hidden) return;
+      if (overlay && overlay.classList.contains('open')) return;
+      this.renderAgenda();
+    }, 60000);
+  },
+
   /* ---------- Ficha de la cita: datos, notas y campos propios (el personal también los edita) ---------- */
   openApptDetail(id) {
     const a = DB.state.appointments.find(x => x.id === id);
@@ -677,12 +915,18 @@ const CRM = {
       ? '<div class="cf-field cf-wide"><label class="field-lbl" for="m-ad-notes">Notas</label><textarea id="m-ad-notes" class="input-dark" rows="3" maxlength="500"' + (canEdit ? '' : ' disabled') + '>' + E(a.notes || '') + '</textarea></div>' : '';
     const custom = CrmConfig.formHTML('appointments', 'm-ad-x-', a.extra);
     const editable = notes || custom;
+    // Lo que se puede hacer con la cita (en la vista agenda la ficha es el único lugar)
+    const acts = Auth.can('appointments.status') ? this.apptActions(a).map(x => x.key === 'RESCHEDULE'
+      ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal(); CRM.openRescheduleModal(\'' + E(a.id) + '\')">' + ic('calendar') + 'Reprogramar</button>'
+      : '<button type="button" class="' + (x.key === 'CANCELADA' || x.key === 'NO_ASISTIO' ? 'btn-dark' : 'btn-golden') + ' btn-xs" onclick="CRM.closeModal(); CRM.setApptStatus(\'' + E(a.id) + '\',\'' + x.key + '\')">' + E(x.label) + '</button>'
+    ).join('') : '';
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">' + this.vx('Ficha de {el:appointment} {appointment}') + '</span><h3>' + E(a.customerName) + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveApptDetail(event, \'' + E(a.id) + '\')" novalidate>' +
         '<dl class="appt-facts">' + facts + '</dl>' +
         (notes ? '<div class="form-grid-2 cf-grid">' + notes + '</div>' : '') + custom +
         '<div class="form-error" id="m-ad-error" role="alert"></div>' +
+        (acts ? '<div class="appt-detail-actions">' + acts + '</div>' : '') +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cerrar</button>' +
           (editable && canEdit ? '<button type="submit" class="btn-golden">' + ic('check') + 'Guardar datos</button>' : '') + '</div>' +
       '</form>'
@@ -1133,6 +1377,7 @@ const CRM = {
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = Routes.web(t.slug); linkEl.textContent = Routes.display(Routes.web(t.slug)); }
     this.renderRubro();
+    this.renderApptViewSetting();
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();
