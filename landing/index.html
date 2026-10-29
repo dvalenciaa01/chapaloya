@@ -733,6 +733,121 @@ footer .word{color:var(--night-ink)}
 .vid.main figcaption b{font-size:1.35rem}
 .vid figcaption span{color:var(--ink-2);font-size:.96rem}
 @media (max-width:760px){.vids{grid-template-columns:1fr}.vid-frame,.vid.main .vid-frame{border-radius:18px}}
+/* Portada: flujo en 3 pasos (web → CRM → WhatsApp) con animación tipo motion graphics.
+   El titular va arriba y debajo las tres pantallas; un paquete con la cita viaja entre ellas. */
+.hero .hero-grid{grid-template-columns:1fr;gap:clamp(28px,4vw,48px)}
+.hero-copy{grid-template-columns:1.1fr .9fr;column-gap:clamp(32px,5vw,72px);align-items:end;padding-bottom:0}
+.hero-copy h1{grid-row:1 / span 3}
+.hero-copy .hero-arrow{display:none}
+.hero h1{font-size:clamp(2.6rem,5.6vw,4.6rem)}
+.flow{position:relative;display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:end;gap:clamp(16px,3vw,40px);margin-bottom:clamp(-110px,-8vw,-60px);z-index:2}
+.fcol{display:grid;justify-items:center;gap:16px;min-width:0}
+.step-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 7px;border-radius:999px;background:var(--card);color:var(--ink);font:600 .84rem var(--font);box-shadow:0 10px 26px rgba(11,31,26,.18);white-space:nowrap;transition:transform .45s var(--ease),background-color .3s ease,color .3s ease,opacity .3s ease}
+.step-chip b{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:.76rem;transition:background-color .3s ease,color .3s ease}
+.flow.run .step-chip{opacity:.55;transform:scale(.94)}
+.flow.run .step-chip.on{opacity:1;transform:scale(1.04);background:#0B1F1A;color:#F8FAFC}
+.flow.run .step-chip.on b{background:#fff;color:#0B1F1A}
+.flow.run .step-chip.wa.on b{background:#25D366;color:#0B1F1A}
+
+/* Celular con la web de reservas */
+.mph{width:min(220px,100%);background:#0B0B0C;border-radius:32px;padding:7px;box-shadow:0 30px 60px rgba(11,31,26,.35),0 0 0 1px rgba(255,255,255,.08);transition:transform .5s var(--ease)}
+.mw{position:relative;height:390px;border-radius:26px;overflow:hidden;background:#F8FAFC;color:#0B1F1A;padding:14px 12px;display:grid;align-content:start;gap:5px;font-size:.68rem;line-height:1.3;text-align:left}
+.mw-top{display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #E1E7E5;margin-bottom:2px}
+.mw-top .mw-logo{background:#8B5CF6;color:#fff}
+.mw-top .mw-logo svg{width:55%;height:55%}
+.mw-top .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
+.mw-top b{display:block;font-size:.8rem}
+.mw-top small{color:#5E706A;font-size:.6rem}
+.mw-sec{font-weight:700;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:#5E706A;margin-top:4px}
+.mw-opt{display:flex;justify-content:space-between;gap:6px;padding:6px 9px;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #E1E7E5;transition:box-shadow .25s ease,background-color .25s ease}
+.mw-opt span{color:#5E706A;white-space:nowrap}
+.mw-row{display:flex;flex-wrap:wrap;gap:5px}
+.mw-chip{padding:5px 9px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px #E1E7E5;transition:background-color .25s ease,color .25s ease,box-shadow .25s ease}
+.mw-chip.off{color:#C3CDCA;text-decoration:line-through}
+.mw .sel{background:#8B5CF6;color:#fff;box-shadow:none}
+.mw .sel span{color:#EDE6FE}
+.mw-btn{margin-top:8px;display:grid;place-items:center;height:34px;border-radius:999px;background:#0B1F1A;color:#F8FAFC;font-weight:700;font-size:.76rem;transition:transform .2s ease,filter .2s ease}
+.mw-btn.sel{transform:scale(.95);background:#8B5CF6;color:#fff}
+.mw-done{position:absolute;inset:auto 10px 12px;display:grid;justify-items:center;gap:2px;padding:14px 10px;border-radius:16px;background:#0B1F1A;color:#F8FAFC;text-align:center;opacity:0;transform:translateY(24px) scale(.9);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.4,1)}
+.mw-done svg{width:26px;height:26px;color:#46C77E;fill:none;stroke-dasharray:40;stroke-dashoffset:40}
+.mw-done b{font-size:.86rem}
+.mw-done small{color:#9DB3AC;font-size:.66rem}
+.mw.done .mw-done{opacity:1;transform:none}
+.mw.done .mw-done svg{stroke-dashoffset:0;transition:stroke-dashoffset .6s ease .25s}
+.tap{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(139,92,246,.35);box-shadow:0 0 0 2px rgba(139,92,246,.7);opacity:0;pointer-events:none;transition:transform .55s cubic-bezier(.5,0,.2,1),opacity .25s ease}
+.tap.on{opacity:1}
+.tap.hit{animation:tap .35s ease}
+@keyframes tap{50%{box-shadow:0 0 0 10px rgba(139,92,246,0);scale:.8}}
+
+/* Portátil con el CRM */
+.lap{position:relative;width:100%}
+.lap-screen{background:#0B0B0F;border-radius:16px 16px 6px 6px;padding:8px 8px 10px;box-shadow:0 40px 80px rgba(11,31,26,.35),0 0 0 1px rgba(255,255,255,.08)}
+.lap-bar{display:flex;align-items:center;gap:5px;height:24px;padding:0 8px;background:#1A1D21;border-radius:9px 9px 0 0}
+.lap-bar i{width:7px;height:7px;border-radius:9px;background:#3A3F45}
+.lap-bar span{margin-left:8px;padding:1px 10px;border-radius:999px;background:#0E1013;color:#9AA3AD;font:500 .66rem var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lap-base{height:14px;margin:0 -7%;background:linear-gradient(#D5DAD8,#9DA6A3);border-radius:2px 2px 14px 14px;position:relative;box-shadow:0 18px 30px rgba(11,31,26,.25)}
+.lap-base::before{content:"";position:absolute;left:50%;top:0;width:16%;height:5px;transform:translateX(-50%);background:#AEB6B3;border-radius:0 0 8px 8px}
+.crm{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:0 0 6px 6px;background:#0B1F1A;color:#F8FAFC;display:grid;grid-template-columns:22% 1fr;font-size:clamp(.5rem,.8vw,.7rem);line-height:1.25}
+.crm aside{display:grid;align-content:start;gap:4px;padding:12px 8px;border-right:1px solid #1F3A33}
+.crm aside b{color:#A78BFA;font-size:1.1em;margin:0 6px 8px}
+.crm aside span{display:flex;align-items:center;gap:6px;padding:6px;border-radius:7px;color:#9DB3AC}
+.crm aside span.on{background:#8B5CF6;color:#fff}
+.crm aside svg{width:1.2em;height:1.2em}
+.crm-main{padding:12px 14px;display:grid;grid-template-rows:auto 1fr;gap:10px;min-width:0}
+.crm-head{display:flex;align-items:baseline;gap:10px}
+.crm-head b{font-size:1.6em;font-weight:600;letter-spacing:-.02em}
+.crm-head span{color:#9DB3AC}
+.crm-grid{position:relative;display:grid;grid-template-columns:3.2em repeat(3,1fr);grid-template-rows:auto repeat(5,1fr);gap:0}
+.crm-h{padding:0 6px 6px;color:#B3A890;font-weight:600}
+.crm-t{color:#6F8A82;padding-top:2px}
+.crm-grid i{border-top:1px solid #1F3A33;border-left:1px solid #1F3A33}
+.ap{position:absolute;font-style:normal;padding:4px 6px;border-radius:6px;background:#132B24;border-left:3px solid #2E4D44;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  left:calc(3.2em + (100% - 3.2em) / 3 * (var(--c) - 1) + 3px);width:calc((100% - 3.2em) / 3 - 6px);
+  top:calc(1.9em + (100% - 1.9em) / 5 * (var(--r) - 1) + 3px);height:calc((100% - 1.9em) / 5 * var(--h) - 6px)}
+.ap.new{background:#8B5CF6;color:#fff;border-left-color:#F8FAFC;box-shadow:0 0 0 0 rgba(139,92,246,.6);opacity:0;transform:translateY(-30%) scale(.8)}
+.ap.new b{display:block}
+.crm.in .ap.new{opacity:1;transform:none;transition:opacity .3s ease,transform .6s cubic-bezier(.2,1.5,.4,1);animation:glow 1.6s ease .4s}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(139,92,246,.7)}100%{box-shadow:0 0 0 14px rgba(139,92,246,0)}}
+.crm-toast{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;border-radius:10px;background:#F8FAFC;color:#0B1F1A;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transform:translateX(30px);transition:opacity .3s ease,transform .45s var(--ease)}
+.crm-toast svg{width:22px;height:22px;padding:4px;border-radius:7px;background:#8B5CF6;color:#fff;flex:none}
+.crm-toast b{display:block;font-size:1.05em}
+.crm-toast small{color:#5E706A}
+.crm.in .crm-toast{opacity:1;transform:none}
+
+/* Teléfono de WhatsApp, más chico dentro del flujo */
+.flow .phone-stage{margin:0;width:min(240px,100%)}
+.flow .phone{zoom:.6}
+.flow .wa-badge{left:auto;right:-10px;top:-10px;zoom:.8}
+.flow .float{display:none}
+
+/* Flechas y paquete que viaja de una pantalla a la otra */
+.flow-arrow{position:absolute;top:22%;width:clamp(50px,7vw,90px);height:50px;fill:none;stroke:var(--hero-ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;z-index:3}
+.flow-arrow.a1{left:calc(25% - 40px)}.flow-arrow.a2{right:calc(25% - 40px)}
+.flow-arrow path{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .7s cubic-bezier(.6,0,.2,1)}
+.flow-arrow path+path{transition-delay:.55s;transition-duration:.25s}
+.flow-arrow.in path{stroke-dashoffset:0}
+.pkt{position:absolute;left:0;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:6px 11px 6px 7px;border-radius:999px;background:var(--ink);color:var(--bg);font:600 .74rem var(--font);white-space:nowrap;box-shadow:0 12px 28px rgba(11,31,26,.35);opacity:0;pointer-events:none}
+.pkt svg{width:16px;height:16px;color:#A78BFA}
+
+/* Entrada: las tres pantallas suben una tras otra */
+.flow.pre .fcol{opacity:0;transform:translateY(80px)}
+.flow.enter .fcol{animation:flowIn 1s cubic-bezier(.2,.9,.25,1.05) both}
+.flow.enter .c2{animation-delay:.15s}.flow.enter .c3{animation-delay:.3s}
+@keyframes flowIn{from{opacity:0;transform:perspective(1400px) translateY(80px) rotateX(18deg) scale(.94)}to{opacity:1;transform:none}}
+.flow.enter .phone-stage .phone{animation:none}
+
+@media (max-width:980px){.hero-copy{grid-template-columns:1fr}.hero-copy h1{grid-row:auto}}
+@media (max-width:760px){
+  .flow{grid-template-columns:1fr 1fr;row-gap:28px}
+  .c2{grid-column:1/-1;order:-1}
+  .flow-arrow,.pkt{display:none}
+  .flow .phone{zoom:.42}
+  .flow .phone-stage{width:100%}
+  .step-chip{white-space:normal;font-size:.76rem;line-height:1.25}
+  .mph{border-radius:22px;padding:4px}
+  .mw{border-radius:18px;zoom:.72;height:400px}
+  .crm aside{display:none}.crm{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -845,31 +960,89 @@ footer .word{color:var(--night-ink)}
         </ul>
       </div>
 
-      <div class="phone-stage mg">
-        <div class="phone" role="img" aria-label="Ejemplo de los mensajes de WhatsApp que recibe un cliente: registro de su cita, confirmación de asistencia y recordatorio del día anterior">
-          <div class="screen">
-            <div class="chat-head">
-              <span class="av nn-logo"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span>
-              <div><b>Navaja Norte</b><small id="chat-status">Barbería de demostración</small></div>
+      <div class="flow" id="flow">
+        <svg class="flow-arrow a1" viewBox="0 0 90 50" aria-hidden="true"><path pathLength="1" d="M4 30c20-22 50-24 78-6"/><path pathLength="1" d="m70 16 12 8-12 8"/></svg>
+        <svg class="flow-arrow a2" viewBox="0 0 90 50" aria-hidden="true"><path pathLength="1" d="M4 30c20-22 50-24 78-6"/><path pathLength="1" d="m70 16 12 8-12 8"/></svg>
+        <div class="pkt" aria-hidden="true"><svg><use href="#i-cal"/></svg>Martes 20 · 11:00</div>
+
+        <div class="fcol c1">
+          <span class="step-chip" data-flow-chip><b>1</b>El cliente reserva en tu web</span>
+          <div class="mph" role="img" aria-label="Web de reservas de Navaja Norte: el cliente elige servicio, barbero y hora, y reserva">
+            <div class="mw" id="mw">
+              <div class="mw-top"><span class="av mw-logo"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span><div><b>Navaja Norte</b><small>reservalope.com/navaja-norte</small></div></div>
+              <p class="mw-sec">Servicio</p>
+              <div class="mw-opt">Corte de Cabello<span>S/ 30</span></div>
+              <div class="mw-opt" data-pick>Corte de Cabello + Barba<span>S/ 45</span></div>
+              <p class="mw-sec">Barbero</p>
+              <div class="mw-row"><span class="mw-chip" data-pick>Luis</span><span class="mw-chip">Marco</span><span class="mw-chip">Andrés</span></div>
+              <p class="mw-sec">Martes 20 de octubre</p>
+              <div class="mw-row"><span class="mw-chip">10:00</span><span class="mw-chip" data-pick>11:00</span><span class="mw-chip off">12:00</span><span class="mw-chip">16:00</span></div>
+              <span class="mw-btn" data-pick>Reservar</span>
+              <div class="mw-done"><svg aria-hidden="true"><use href="#i-check"/></svg><b>¡Reserva lista!</b><small>Tu código es K7Q2MP</small></div>
+              <i class="tap"></i>
             </div>
-            <div class="chat-body" id="chat">
-              <span class="day-pill">Domingo 18 de octubre</span>
-              <div class="b in" data-step>Hola Sebastián, tu cita en <b>Navaja Norte</b> quedó registrada.
-                <dl class="cita"><dt>Servicio</dt><dd>Corte de Cabello + Barba</dd><dt>Barbero</dt><dd>Luis</dd><dt>Fecha</dt><dd>Martes 20 de octubre, 11:00</dd><dt>Código</dt><dd>K7Q2MP</dd></dl>
-                Por favor, confirma tu asistencia respondiendo <b>CONFIRMAR</b>.<time>18:40</time></div>
-              <div class="b out" data-step>Confirmar<time>18:42</time></div>
-              <div class="b in" data-step><div class="confirm"><strong><svg aria-hidden="true"><use href="#i-check"/></svg>Asistencia confirmada</strong></div>Gracias, Sebastián. Te esperamos el martes 20 a las 11:00.<time>18:42</time></div>
-              <span class="day-pill" data-step>Lunes 19 de octubre</span>
-              <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Trujillo. ¡Te esperamos!<time>11:00</time></div>
-              <div class="typing" id="typing" aria-hidden="true"><i></i><i></i><i></i></div>
-            </div>
-            <div class="chat-foot" aria-hidden="true"><span id="chat-input">Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
           </div>
         </div>
-        <span class="wa-badge" aria-hidden="true"><svg><use href="#i-wa"/></svg></span>
-        <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#8B5CF6"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
-        <div class="float f2" aria-hidden="true"><span class="fi" style="--c:#167A43"><svg><use href="#i-check"/></svg></span><div><b>Asistencia confirmada</b><small>Sebastián · K7Q2MP</small></div></div>
-        <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
+
+        <div class="fcol c2">
+          <span class="step-chip" data-flow-chip><b>2</b>La cita entra a tu CRM</span>
+          <div class="lap" role="img" aria-label="Panel de Navaja Norte: la nueva cita aparece en la agenda del martes a las 11:00 con Luis">
+            <div class="lap-screen">
+              <div class="lap-bar"><i></i><i></i><i></i><span>reservalope.com/crm/navaja-norte</span></div>
+              <div class="lap-view crm" id="crm">
+                <aside><b>Navaja Norte</b><span class="on"><svg aria-hidden="true"><use href="#i-cal"/></svg>Citas</span><span><svg aria-hidden="true"><use href="#i-users"/></svg>Clientes</span><span><svg aria-hidden="true"><use href="#i-cash"/></svg>Ventas</span><span><svg aria-hidden="true"><use href="#i-chart"/></svg>Reportes</span></aside>
+                <div class="crm-main">
+                  <div class="crm-head"><b>Agenda</b><span>Martes 20 de octubre</span></div>
+                  <div class="crm-grid">
+                    <span class="crm-h"></span><span class="crm-h">Luis</span><span class="crm-h">Marco</span><span class="crm-h">Andrés</span>
+                    <span class="crm-t">9:00</span><i></i><i></i><i></i>
+                    <span class="crm-t">10:00</span><i></i><i></i><i></i>
+                    <span class="crm-t">11:00</span><i></i><i></i><i></i>
+                    <span class="crm-t">12:00</span><i></i><i></i><i></i>
+                    <span class="crm-t">13:00</span><i></i><i></i><i></i>
+                    <em class="ap" style="--c:1;--r:1;--h:1">Diego · Corte</em>
+                    <em class="ap" style="--c:2;--r:2;--h:2">Ana · Tinte</em>
+                    <em class="ap" style="--c:3;--r:1;--h:1">Raúl · Barba</em>
+                    <em class="ap" style="--c:3;--r:4;--h:1">Iván · Corte</em>
+                    <em class="ap new" style="--c:1;--r:3;--h:1"><b>Sebastián</b> Corte + Barba</em>
+                  </div>
+                </div>
+                <div class="crm-toast"><svg aria-hidden="true"><use href="#i-bell"/></svg><div><b>Nueva reserva desde la web</b><small>Sebastián · 11:00 con Luis</small></div></div>
+              </div>
+            </div>
+            <div class="lap-base"></div>
+          </div>
+        </div>
+
+        <div class="fcol c3">
+          <span class="step-chip wa" data-flow-chip><b>3</b>WhatsApp confirma y recuerda</span>
+        <div class="phone-stage mg">
+          <div class="phone" role="img" aria-label="Ejemplo de los mensajes de WhatsApp que recibe un cliente: registro de su cita, confirmación de asistencia y recordatorio del día anterior">
+            <div class="screen">
+              <div class="chat-head">
+                <span class="av nn-logo"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span>
+                <div><b>Navaja Norte</b><small id="chat-status">Barbería de demostración</small></div>
+              </div>
+              <div class="chat-body" id="chat">
+                <span class="day-pill">Domingo 18 de octubre</span>
+                <div class="b in" data-step>Hola Sebastián, tu cita en <b>Navaja Norte</b> quedó registrada.
+                  <dl class="cita"><dt>Servicio</dt><dd>Corte de Cabello + Barba</dd><dt>Barbero</dt><dd>Luis</dd><dt>Fecha</dt><dd>Martes 20 de octubre, 11:00</dd><dt>Código</dt><dd>K7Q2MP</dd></dl>
+                  Por favor, confirma tu asistencia respondiendo <b>CONFIRMAR</b>.<time>18:40</time></div>
+                <div class="b out" data-step>Confirmar<time>18:42</time></div>
+                <div class="b in" data-step><div class="confirm"><strong><svg aria-hidden="true"><use href="#i-check"/></svg>Asistencia confirmada</strong></div>Gracias, Sebastián. Te esperamos el martes 20 a las 11:00.<time>18:42</time></div>
+                <span class="day-pill" data-step>Lunes 19 de octubre</span>
+                <div class="b in" data-step>Hola Sebastián, te recordamos tu cita de mañana a las 11:00 con Luis en Navaja Norte, Av. Universitaria 1520, Trujillo. ¡Te esperamos!<time>11:00</time></div>
+                <div class="typing" id="typing" aria-hidden="true"><i></i><i></i><i></i></div>
+              </div>
+              <div class="chat-foot" aria-hidden="true"><span id="chat-input">Escribe un mensaje</span><i><svg><use href="#i-send"/></svg></i></div>
+            </div>
+          </div>
+          <span class="wa-badge" aria-hidden="true"><svg><use href="#i-wa"/></svg></span>
+          <div class="float f1" aria-hidden="true"><span class="fi" style="--c:#8B5CF6"><svg><use href="#i-bell"/></svg></span><div><b>Nueva reserva</b><small>Martes 20 · 11:00 con Luis</small></div></div>
+          <div class="float f2" aria-hidden="true"><span class="fi" style="--c:#167A43"><svg><use href="#i-check"/></svg></span><div><b>Asistencia confirmada</b><small>Sebastián · K7Q2MP</small></div></div>
+          <div class="float f3" aria-hidden="true"><span class="fi" style="--c:#B45309"><svg><use href="#i-clock"/></svg></span><div><b>Recordatorio enviado</b><small>Un día antes de la cita</small></div></div>
+        </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1195,14 +1368,61 @@ footer .word{color:var(--night-ink)}
   const stop=()=>{run++;timers.forEach(clearTimeout);timers=[];playing=false};
   const show=st=>{st.classList.remove('hidden-step','pop');void st.offsetWidth;st.classList.add('pop')};
 
+  /* Portada en 3 pasos: el cliente reserva en la web, la cita viaja al CRM y luego sigue el chat de WhatsApp */
+  const flow=(()=>{
+    const el=document.getElementById('flow'), chips=[...el.querySelectorAll('[data-flow-chip]')];
+    const mw=document.getElementById('mw'), tap=mw.querySelector('.tap'), picks=[...mw.querySelectorAll('[data-pick]')];
+    const crm=document.getElementById('crm'), pkt=el.querySelector('.pkt'), arrows=[...el.querySelectorAll('.flow-arrow')];
+    const cols=[...el.querySelectorAll('.fcol')];
+    const on=i=>chips.forEach((c,j)=>c.classList.toggle('on',i===j));
+    const center=(node,base)=>{const r=node.getBoundingClientRect(),b=base.getBoundingClientRect();return [r.left-b.left+r.width/2,r.top-b.top+r.height/2]};
+    // El paquete con la cita salta en arco de una pantalla a la siguiente
+    const fly=(from,to)=>{
+      if(getComputedStyle(pkt).display==='none')return Promise.resolve();
+      const [x1,y1]=center(from,el),[x2,y2]=center(to,el),w=pkt.offsetWidth/2,h=pkt.offsetHeight/2;
+      return pkt.animate([
+        {opacity:0,transform:`translate(${x1-w}px,${y1-h}px) scale(.6)`},
+        {opacity:1,transform:`translate(${(x1+x2)/2-w}px,${Math.min(y1,y2)-h-70}px) scale(1.05)`,offset:.5},
+        {opacity:1,transform:`translate(${x2-w}px,${y2-h}px) scale(.8)`,offset:.9},
+        {opacity:0,transform:`translate(${x2-w}px,${y2-h}px) scale(.4)`}
+      ],{duration:1000,easing:'cubic-bezier(.5,0,.3,1)'}).finished;
+    };
+    const reset=()=>{on(-1);el.classList.add('run');mw.classList.remove('done');picks.forEach(p=>p.classList.remove('sel'));tap.classList.remove('on');crm.classList.remove('in');arrows.forEach(a=>a.classList.remove('in'))};
+    async function run(wait,alive){
+      on(0); await wait(500); if(!alive())return;
+      const m=mw.getBoundingClientRect(), z=parseFloat(getComputedStyle(mw).zoom)||1;
+      tap.classList.add('on');
+      for(const p of picks){
+        const r=p.getBoundingClientRect();
+        tap.style.transform=`translate(${(r.left-m.left+r.width*.6)/z}px,${(r.top-m.top+r.height/2)/z}px)`;
+        await wait(600); if(!alive())return;
+        tap.classList.remove('hit');void tap.offsetWidth;tap.classList.add('hit');p.classList.add('sel');
+        await wait(350); if(!alive())return;
+      }
+      tap.classList.remove('on'); mw.classList.add('done');
+      await wait(900); if(!alive())return;
+      arrows[0].classList.add('in'); on(1);
+      await fly(cols[0].querySelector('.mph'),crm); if(!alive())return;
+      crm.classList.add('in');
+      await wait(2000); if(!alive())return;
+      arrows[1].classList.add('in');
+      await fly(crm,cols[2].querySelector('.phone')); if(!alive())return;
+      on(2);
+    }
+    el.classList.add('pre');
+    loaded.then(()=>{el.classList.remove('pre');el.classList.add('enter');setTimeout(()=>el.classList.remove('enter'),1400)});
+    return {reset,run};
+  })();
+
   async function play(){
     stop(); const id=run; playing=true;
     const alive=()=>id===run;
     while(alive()){
       chat.classList.remove('fading'); chat.classList.add('playing'); floats.forEach(f=>f.classList.remove('on','off'));
       steps.forEach(st=>{st.classList.add('hidden-step');st.classList.remove('pop')});
-      typing.style.display='none';
+      typing.style.display='none'; flow.reset();
       await wait(500); if(!alive())return;
+      await flow.run(wait,alive); if(!alive())return;
       for(const st of steps){
         if(st.classList.contains('in')){
           st.before(typing); typing.style.display='flex'; typing.classList.remove('pop');void typing.offsetWidth;typing.classList.add('pop');
