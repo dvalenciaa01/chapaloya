@@ -711,6 +711,28 @@ footer .word{color:var(--night-ink)}
   .rp-cta{width:100%}
 }
 @media (prefers-reduced-motion:reduce){.rp-in{animation:none}.rp-stage{transition:none}}
+/* Videos: uno destacado y dos debajo. Se cargan solo al pulsar reproducir (preload="none" + portada) */
+.vids{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.vid{margin:0;display:grid;gap:14px;min-width:0}
+.vid.main{grid-column:1/-1}
+.vid-frame{position:relative;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:var(--night);border:1px solid var(--line);box-shadow:0 24px 60px rgba(11,31,26,.12)}
+.vid.main .vid-frame{border-radius:28px}
+.vid video{display:block;width:100%;height:100%;object-fit:cover;background:var(--night)}
+.vid-play{all:unset;position:absolute;inset:0;display:grid;place-items:center;cursor:pointer;background:linear-gradient(180deg,transparent 45%,rgba(11,31,26,.45))}
+.vid-play i{display:grid;place-items:center;width:clamp(58px,7vw,84px);height:clamp(58px,7vw,84px);border-radius:999px;background:var(--blue);color:var(--on-blue);box-shadow:0 14px 34px color-mix(in srgb,var(--blue) 45%,transparent);transition:transform .25s var(--ease),background-color .2s ease}
+.vid-play i svg{width:42%;height:42%;margin-left:6%}
+.vid-play:hover i{transform:scale(1.08);background:var(--blue-hover)}
+.vid-play:focus-visible i{outline:3px solid #fff;outline-offset:4px}
+.vid-play .dur{position:absolute;left:16px;bottom:14px;padding:4px 10px;border-radius:999px;background:rgba(11,31,26,.72);color:#F8FAFC;font:600 .8rem var(--font)}
+.vid:not(.main) .vid-play{place-items:end start;padding:16px}
+.vid:not(.main) .vid-play i{width:54px;height:54px}
+.vid:not(.main) .dur{left:auto;right:16px;bottom:16px}
+.vid.is-on .vid-play{display:none}
+.vid figcaption{display:grid;gap:4px;padding-inline:4px}
+.vid figcaption b{font-size:1.15rem;font-weight:600;letter-spacing:-.02em}
+.vid.main figcaption b{font-size:1.35rem}
+.vid figcaption span{color:var(--ink-2);font-size:.96rem}
+@media (max-width:760px){.vids{grid-template-columns:1fr}.vid-frame,.vid.main .vid-frame{border-radius:18px}}
 </style>
 </head>
 <body>
@@ -790,6 +812,7 @@ footer .word{color:var(--night-ink)}
       <ul>
         <li><a href="#rubros">Rubros</a></li>
         <li><a href="#plataforma">Producto</a></li>
+        <li><a href="#videos">Videos</a></li>
         <li><a href="#reservas">Cómo se reserva</a></li>
         <li><a href="#whatsapp">WhatsApp</a></li>
                 <li><a href="#preguntas">Preguntas</a></li>
@@ -934,6 +957,39 @@ footer .word{color:var(--night-ink)}
           </div>
           <p>Confirmación de asistencia al reservar, recordatorios antes de la cita y aviso a tu equipo cuando una cita se crea, se cancela o se reprograma.</p>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="videos">
+    <div class="wrap">
+      <div class="head wide">
+        <span class="eyebrow">En video</span>
+        <h2 class="h2">Míralo funcionar <span class="hl">en un minuto.</span></h2>
+        <p class="lead">Una presentación de Reservalope y dos reservas de principio a fin: una en un spa y otra en una barbería, hasta el recordatorio por WhatsApp.</p>
+      </div>
+      <div class="vids">
+        <figure class="vid main">
+          <div class="vid-frame">
+            <video preload="none" playsinline poster="../assets/videos/reservalope-presentacion.jpg" aria-label="Presentación de Reservalope"><source src="../assets/videos/reservalope-presentacion.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la presentación de Reservalope"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">1:00</span></button>
+          </div>
+          <figcaption><b>Reservalope en 60 segundos</b><span>Web de reservas, panel y WhatsApp trabajando juntos.</span></figcaption>
+        </figure>
+        <figure class="vid">
+          <div class="vid-frame">
+            <video preload="none" playsinline poster="../assets/videos/reservalope-flujo-spa.jpg" aria-label="Reserva en un spa de principio a fin"><source src="../assets/videos/reservalope-flujo-spa.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la reserva en un spa"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">0:54</span></button>
+          </div>
+          <figcaption><b>Una reserva en un spa</b><span>Del enlace del negocio a la cita confirmada.</span></figcaption>
+        </figure>
+        <figure class="vid">
+          <div class="vid-frame">
+            <video preload="none" playsinline poster="../assets/videos/reservalope-flujo-barberia.jpg" aria-label="Reserva en una barbería de principio a fin"><source src="../assets/videos/reservalope-flujo-barberia.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la reserva en una barbería"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">0:54</span></button>
+          </div>
+          <figcaption><b>Una reserva en una barbería</b><span>Servicio, barbero y hora, y el aviso llega al equipo.</span></figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -1377,7 +1433,7 @@ footer .word{color:var(--night-ink)}
   split(h1);
   loaded.then(()=>requestAnimationFrame(()=>{h1.classList.add('in');heroCard.classList.add('in');heroCard.querySelectorAll('.draw').forEach(d=>setTimeout(()=>d.classList.add('in'),900))}));
 
-  const revealSel='.head,.spec>li,.rub-note,.pains>li,.prod,.booker,.cal,.rv-points>li,.rules>li,.inbox,.mods>.mod,.panel>.eyebrow,.panel>h3,.seq>li,.faq>details,.closer,.foot>div,.legal';
+  const revealSel='.head,.spec>li,.rub-note,.pains>li,.prod,.booker,.cal,.rv-points>li,.rules>li,.inbox,.mods>.mod,.panel>.eyebrow,.panel>h3,.seq>li,.vid,.faq>details,.closer,.foot>div,.legal';
   const groups=new Map();
   document.querySelectorAll(revealSel).forEach(el=>{
     if(el.getBoundingClientRect().top<innerHeight*.9) return;   // lo visible al cargar no se oculta
@@ -1498,6 +1554,17 @@ footer .word{color:var(--night-ink)}
     if(goSection(a.getAttribute('href').slice(1),true))e.preventDefault();
   });
   if(location.hash){const id=decodeURIComponent(location.hash.slice(1));history.replaceState(null,'',location.pathname+location.search);requestAnimationFrame(()=>goSection(id,false))}
+})();
+</script>
+<script>
+/* Videos: al pulsar reproducir se muestran los controles; si empieza uno, se pausan los demás */
+(function(){
+  const vids=[...document.querySelectorAll('.vid video')];
+  document.querySelectorAll('.vid-play').forEach(btn=>btn.addEventListener('click',()=>{
+    const fig=btn.closest('.vid'),v=fig.querySelector('video');
+    fig.classList.add('is-on');v.controls=true;v.play().catch(()=>{});v.focus();
+  }));
+  vids.forEach(v=>v.addEventListener('play',()=>vids.forEach(o=>{if(o!==v)o.pause()})));
 })();
 </script>
 </body>
