@@ -1611,15 +1611,25 @@ const CRM = {
   /* ---------- WhatsApp: vincular, mensajes y recordatorios ---------- */
   WA_KIND: { SHOP_NEW: 'Aviso de reserva', SHOP_CANCEL: 'Aviso de cancelación', SHOP_RESCHEDULE: 'Aviso de cambio',
     CLIENT_CONFIRM: 'Confirmación', CLIENT_CANCEL: 'Cancelación al cliente', CLIENT_RESCHEDULE: 'Cambio al cliente',
-    REMINDER: 'Recordatorio', REPLY: 'Respuesta', TEST: 'Prueba' },
+    REMINDER: 'Recordatorio', REPLY: 'Respuesta', TEST: 'Prueba', SHOP_ALERT: 'Aviso al equipo',
+    REVIEW: 'Pedido de reseña', WINBACK: 'Te extrañamos', WAITLIST: 'Lista de espera' },
   WA_STATUS: { PENDING: ['Programado', 'PROGRAMADA'], SENDING: ['Enviando', 'PROGRAMADA'], SENT: ['Enviado', 'COMPLETADA'],
     FAILED: ['Falló', 'CANCELADA'], CANCELLED: ['Anulado', 'NO_ASISTIO'] },
   // Textos que se ofrecen si el negocio aún no tiene la plantilla (la base trae los mismos por defecto).
   // {negocio} y {profesional} son los recomendados; {barberia} y {barbero} siguen funcionando.
   WA_TPL_FALLBACK: {
     clientCancel: '{cliente}, tu cita en {negocio} del {fecha} a las {hora} fue cancelada. Si quieres otra fecha, reserva de nuevo o escríbenos.',
-    clientReschedule: '{cliente}, tu cita en {negocio} cambió: ahora es el {fecha} a las {hora} con {profesional}. Código {codigo}.'
+    clientReschedule: '{cliente}, tu cita en {negocio} cambió: ahora es el {fecha} a las {hora} con {profesional}. Código {codigo}.',
+    review: 'Hola {cliente}, gracias por visitarnos en *{negocio}*. 🙌\n\n¿Nos ayudas con una reseña? Te toma un minuto:\n{resena}\n\n¡Gracias!',
+    winback: 'Hola {cliente}, hace tiempo que no te vemos en *{negocio}*. 😊\n\nCuando quieras, reserva tu próxima cita aquí:\n{enlace}\n\nSi no quieres recibir estos mensajes, responde *BAJA*.'
   },
+  // Recordatorios que se encienden con los interruptores "1 día antes" y "2 horas antes"
+  WA_REM_PRESET: {
+    1440: 'Hola {cliente}, te recordamos tu cita {cuando} a las {hora} con {profesional} en {negocio}. {direccion}\n¡Te esperamos!',
+    120: '{cliente}, tu cita es {cuando} a las {hora} con {profesional}. ¡Te esperamos en {negocio}!'
+  },
+  // Respuestas automáticas y mensajes nuevos (migración 17): encendidos o apagados de fábrica
+  WA_BOT_DEFAULT: { menu: true, cancel: true, reschedule: true, waitlist: false, review: false, winback: false, winbackDays: 30 },
   WA_QR_TTL: 2 * 60 * 1000,      // un QR de WhatsApp no sirve después de ~2 min
   WA_STALE: 3 * 60 * 1000,       // sin latido del bot en 3 min = bot apagado
 
@@ -1635,7 +1645,20 @@ const CRM = {
     if (!this.waDirty) {
       const c = this.waConfig();
       const tp = c.templates || {};
+      const bot = Object.assign({}, this.WA_BOT_DEFAULT, c.bot && typeof c.bot === 'object' ? c.bot : {});
       document.getElementById('wa-enabled').checked = !!c.enabled;
+      document.getElementById('wa-opt-confirm').checked = c.confirmationToClient !== false;
+      ['menu', 'cancel', 'reschedule', 'waitlist', 'review', 'winback'].forEach(k => {
+        const el = document.getElementById('wa-bot-' + k);
+        if (el) el.checked = bot[k] === true;
+      });
+      const days = document.getElementById('wa-winback-days');
+      if (days) {
+        const d = String(bot.winbackDays || 30);
+        if (![...days.options].some(o => o.value === d)) days.add(new Option(d + ' días', d));
+        days.value = d;
+      }
+      document.getElementById('wa-review-url').value = typeof c.reviewUrl === 'string' ? c.reviewUrl : '';
       document.getElementById('wa-notify').value = (c.notifyTo || []).join(', ');
       document.getElementById('wa-quiet-from').value = (c.quietHours && c.quietHours.from) || '';
       document.getElementById('wa-quiet-to').value = (c.quietHours && c.quietHours.to) || '';
@@ -1644,6 +1667,10 @@ const CRM = {
       if (cc) cc.value = tp.clientCancel != null ? tp.clientCancel : this.WA_TPL_FALLBACK.clientCancel;
       const cr = document.getElementById('wa-tpl-cresched');
       if (cr) cr.value = tp.clientReschedule != null ? tp.clientReschedule : this.WA_TPL_FALLBACK.clientReschedule;
+      document.getElementById('wa-tpl-review').value = tp.review != null ? tp.review : this.WA_TPL_FALLBACK.review;
+      document.getElementById('wa-tpl-winback').value = tp.winback != null ? tp.winback : this.WA_TPL_FALLBACK.winback;
+      const bu = document.getElementById('wa-booking-url');
+      if (bu) bu.textContent = this.waBookingUrl() ? 'Enlace para reservar que envía el bot: ' + this.waBookingUrl() : '';
       this.waReminders = (c.reminders || []).map(r => Object.assign({}, r));
       this.renderWaReminders();
       // Plantillas antiguas con {barbero}/{barberia}: se avisa que siguen funcionando
@@ -1655,7 +1682,8 @@ const CRM = {
       }
       document.getElementById('wa-error').textContent = '';
       // Lo que hay en pantalla al abrir: se guarda solo lo que cambie respecto de esto
-      this.waBase = this.readWaForm();
+      // (el enlace para reservar se compara con el guardado, para guardarlo si falta o cambió)
+      this.waBase = Object.assign(this.readWaForm(), { bookingUrl: typeof c.bookingUrl === 'string' ? c.bookingUrl : '' });
     }
     this.renderWaSession();
     this.waPoll();
@@ -1669,15 +1697,81 @@ const CRM = {
       '<div class="wa-rem">' +
         '<div><label class="field-lbl" for="wa-rem-h-' + i + '">Horas antes de la cita</label>' +
           '<input type="number" id="wa-rem-h-' + i + '" class="input-dark" min="0.5" max="168" step="0.5" inputmode="decimal" value="' +
-          UI.esc(Number(r.offsetMinutes) / 60) + '" />' +
-          '<label class="check-line wa-rem-only"><input type="checkbox" id="wa-rem-c-' + i + '"' + (r.onlyIfNotConfirmed ? ' checked' : '') + ' />' +
+          UI.esc(Number(r.offsetMinutes) / 60) + '" oninput="CRM.waDirty = true" onchange="CRM.waSyncOpts()" />' +
+          '<label class="check-line wa-rem-only"><input type="checkbox" id="wa-rem-c-' + i + '"' + (r.onlyIfNotConfirmed ? ' checked' : '') + ' onchange="CRM.waDirty = true" />' +
           '<span>' + this.vx('Solo si el {client} no confirmó') + '</span></label></div>' +
         '<div><label class="field-lbl" for="wa-rem-t-' + i + '">Mensaje</label>' +
-          '<textarea id="wa-rem-t-' + i + '" class="input-dark" rows="3" maxlength="600">' + UI.esc(r.template || '') + '</textarea></div>' +
+          '<textarea id="wa-rem-t-' + i + '" class="input-dark" rows="3" maxlength="600" oninput="CRM.waDirty = true">' + UI.esc(r.template || '') + '</textarea></div>' +
         '<div><span class="field-lbl">&nbsp;</span><button type="button" class="btn-dark" onclick="CRM.waRemoveReminder(' + i + ')" aria-label="Quitar recordatorio"><i data-icon="trash"></i></button></div>' +
       '</div>').join('')
       : '<p class="sch-exc-empty">Sin recordatorios.</p>';
     Icons.hydrate(box);
+    this.waSyncOpts();
+  },
+
+  /* Interruptores del paso 2: muestran lo que corresponde a cada uno y
+     reflejan los recordatorios (1 día y 2 horas antes) del editor de textos. */
+  waSyncOpts() {
+    const on = (id) => !!(document.getElementById(id) || {}).checked;
+    const show = (id, v) => { const el = document.getElementById(id); if (el) el.hidden = !v; };
+    show('wa-review-box', on('wa-bot-review'));
+    show('wa-winback-box', on('wa-bot-winback'));
+    const wrap = document.getElementById('wa-opts-wrap');
+    if (wrap) wrap.classList.toggle('is-off', !on('wa-enabled'));
+    const rems = this.readWaReminders();
+    const r1 = document.getElementById('wa-opt-r1440');
+    const r2 = document.getElementById('wa-opt-r120');
+    if (r1) r1.checked = rems.some(r => r.offsetMinutes === 1440);
+    if (r2) r2.checked = rems.some(r => r.offsetMinutes === 120);
+    const others = rems.filter(r => r.offsetMinutes !== 1440 && r.offsetMinutes !== 120);
+    const note = document.getElementById('wa-rem-custom');
+    if (note) {
+      note.hidden = !others.length;
+      note.textContent = others.length ? 'Además tienes ' + (others.length === 1 ? 'un recordatorio' : others.length + ' recordatorios') + ' a tu medida (' +
+        others.map(r => (r.offsetMinutes / 60) + ' h antes').join(', ') + '). Lo ves en “Personalizar textos y horarios”.' : '';
+    }
+  },
+
+  waOptChange() {
+    this.waDirty = true;
+    this.waSyncOpts();
+  },
+
+  // Interruptor "Recordatorio 1 día / 2 horas antes": agrega o quita ese recordatorio
+  waToggleReminder(minutes, on) {
+    this.waReminders = this.readWaReminders();
+    if (on && !this.waReminders.some(r => r.offsetMinutes === minutes)) {
+      if (this.waReminders.length >= 5) { UI.toast('Máximo 5 recordatorios por cita.', 'error'); this.waSyncOpts(); return; }
+      this.waReminders.push({ id: 'r' + minutes + '-' + Date.now().toString(36), offsetMinutes: minutes, onlyIfNotConfirmed: false,
+        template: this.WA_REM_PRESET[minutes] });
+      this.waReminders.sort((a, b) => b.offsetMinutes - a.offsetMinutes);
+    } else if (!on) {
+      this.waReminders = this.waReminders.filter(r => r.offsetMinutes !== minutes);
+    }
+    this.waDirty = true;
+    this.renderWaReminders();
+  },
+
+  /* Enlace para reservar que el bot manda (REPROGRAMAR, CANCELAR, menú, lista
+     de espera, "te extrañamos"). Se arma con la dirección desde la que se usa
+     el CRM; en una vista previa de Cloudflare (<hash>.<proyecto>.pages.dev) se
+     usa la dirección principal del proyecto. */
+  waBookingUrl() {
+    if (!DB.tenant || !DB.tenant.slug || typeof Routes === 'undefined') return '';
+    try {
+      const u = new URL(Routes.web(DB.tenant.slug, 'reservar.html'), location.href);
+      if (!/^https?:$/.test(u.protocol)) return '';
+      const parts = u.hostname.split('.');
+      if (u.hostname.endsWith('.pages.dev') && parts.length > 3) u.hostname = parts.slice(-3).join('.');
+      return u.href;
+    } catch (e) { return ''; }
+  },
+
+  // Aviso "vinculado pero apagado": encender y guardar con un toque
+  waQuickEnable() {
+    document.getElementById('wa-enabled').checked = true;
+    this.waOptChange();
+    return this.saveWhatsApp();
   },
 
   // Copia lo escrito en pantalla antes de agregar o quitar un recordatorio
@@ -1699,12 +1793,21 @@ const CRM = {
     const g = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
     const nums = g('wa-notify').split(/[,;\n]/).map(s => s.replace(/\D/g, '')).filter(Boolean);
     const qf = g('wa-quiet-from'), qt = g('wa-quiet-to');
+    const on = (id) => !!(document.getElementById(id) || {}).checked;
+    const bot = {};
+    ['menu', 'cancel', 'reschedule', 'waitlist', 'review', 'winback'].forEach(k => { bot[k] = on('wa-bot-' + k); });
+    bot.winbackDays = parseInt(g('wa-winback-days'), 10) || 30;
     return {
-      enabled: !!(document.getElementById('wa-enabled') || {}).checked,
+      enabled: on('wa-enabled'),
+      confirmationToClient: on('wa-opt-confirm'),
+      bot,
+      reviewUrl: g('wa-review-url').trim(),
+      bookingUrl: this.waBookingUrl(),
       notifyTo: nums.map(n => n.slice(-9)),
       quietHours: qf || qt ? { from: qf, to: qt } : {},
       reminders: this.readWaReminders(),
-      templates: { clientConfirm: g('wa-tpl-confirm').trim(), clientCancel: g('wa-tpl-ccancel').trim(), clientReschedule: g('wa-tpl-cresched').trim() }
+      templates: { clientConfirm: g('wa-tpl-confirm').trim(), clientCancel: g('wa-tpl-ccancel').trim(), clientReschedule: g('wa-tpl-cresched').trim(),
+        review: g('wa-tpl-review').trim(), winback: g('wa-tpl-winback').trim() }
     };
   },
 
@@ -1739,6 +1842,11 @@ const CRM = {
       if (!r.template) { err.textContent = 'Escribe el mensaje de cada recordatorio.'; return false; }
     }
     if (!form.templates.clientConfirm) { err.textContent = 'Escribe el mensaje que se envía al reservar.'; return false; }
+    const urlOk = (u) => /^https?:\/\/[^\s<>"]+$/.test(u) && u.length <= 300;
+    if (form.reviewUrl && !urlOk(form.reviewUrl)) { err.textContent = 'El enlace de reseñas debe empezar con https:// (cópialo tal cual desde Google).'; return false; }
+    if (form.bot.review && !form.reviewUrl) { err.textContent = 'Pega el enlace de reseñas de Google o apaga “Pedir una reseña”.'; document.getElementById('wa-review-url').focus(); return false; }
+    if (form.bot.review && !form.templates.review) { err.textContent = 'Escribe el mensaje del pedido de reseña (en “Personalizar textos”).'; return false; }
+    if (form.bot.winback && !form.templates.winback) { err.textContent = 'Escribe el mensaje para quienes no vuelven (en “Personalizar textos”).'; return false; }
     // clientCancel / clientReschedule vacíos = ese aviso al cliente no se envía
     const qh = form.quietHours;
     const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -1751,7 +1859,8 @@ const CRM = {
     const base = this.waBase || {};
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const patch = {};
-    ['enabled', 'notifyTo', 'quietHours', 'reminders'].forEach(k => { if (!same(form[k], base[k])) patch[k] = form[k]; });
+    ['enabled', 'confirmationToClient', 'bot', 'reviewUrl', 'bookingUrl', 'notifyTo', 'quietHours', 'reminders'].forEach(k => { if (!same(form[k], base[k])) patch[k] = form[k]; });
+    if (patch.bookingUrl === '') delete patch.bookingUrl;   // sin dirección válida: se conserva la guardada
     const tplPatch = {};
     Object.keys(form.templates).forEach(k => { if (!same(form.templates[k], (base.templates || {})[k])) tplPatch[k] = form.templates[k]; });
     if (!Object.keys(patch).length && !Object.keys(tplPatch).length) {
@@ -1767,6 +1876,8 @@ const CRM = {
       if (e1) throw e1;
       const current = (row && row.whatsapp && typeof row.whatsapp === 'object') ? row.whatsapp : {};
       next = Object.assign({}, current, patch);
+      // bot: solo las claves de esta pantalla (el resto, p. ej. el tope diario, se conserva)
+      if (patch.bot) next.bot = Object.assign({}, current.bot && typeof current.bot === 'object' ? current.bot : {}, patch.bot);
       if (Object.keys(tplPatch).length) next.templates = Object.assign({}, current.templates || {}, tplPatch);
       const { data, error } = await sb.from('tenants').update({ whatsapp: next }).eq('id', DB.tenant.id).select('whatsapp');
       if (error) throw error;
@@ -1834,16 +1945,20 @@ const CRM = {
     this.waLastFetch = Date.now();
     try {
       const sb = DB.client();
-      const [ses, hist, outs] = await Promise.all([
+      const [ses, hist, outs, wait] = await Promise.all([
         sb.from('wa_sessions').select('*').eq('tenant_id', tid).maybeSingle(),
         sb.from('wa_outbox').select('kind, recipient, body, status, send_at, sent_at, last_error')
           .eq('tenant_id', tid).order('created_at', { ascending: false }).limit(12),
-        sb.from('wa_opt_outs').select('phone, created_at').eq('tenant_id', tid).order('created_at', { ascending: false }).limit(100)
+        sb.from('wa_opt_outs').select('phone, created_at').eq('tenant_id', tid).order('created_at', { ascending: false }).limit(100),
+        sb.from('wa_lista_espera').select('id, phone, name, date_from, date_to, notified_at').eq('tenant_id', tid).order('created_at').limit(50)
       ]);
       if (!DB.tenant || DB.tenant.id !== tid) return;
       if (!ses.error) this.waSession = ses.data;
       if (!hist.error) this.waHistory = hist.data || [];
       this.waOptOuts = outs.error ? null : (outs.data || []);
+      // Sin la tabla de la migración 17 se avisa en el paso 2
+      this.waMig17 = !wait.error || !/wa_lista_espera|schema cache|does not exist/i.test(wait.error.message || '');
+      this.waWaitlist = wait.error ? null : (wait.data || []);
     } catch (e) { /* sin conexión: se reintenta */ }
     this.renderWaSession();
     this.waPoll();
@@ -1866,7 +1981,7 @@ const CRM = {
     const noBot = !!(s.requested_action && this.waRequestedAt && now - this.waRequestedAt > 20000);
     const lastSeen = seen ? new Date(seen).toLocaleString('es-PE') : '';
     const st = { label: 'Sin vincular', cls: 'PROGRAMADA', showQr: false, link: true, logout: false,
-      text: UI.v('Pulsa "Vincular WhatsApp" y escanea el código con el celular {del:business} {business}: WhatsApp → Dispositivos vinculados → Vincular un dispositivo.') };
+      text: 'Todavía no hay un WhatsApp conectado. Sigue estos pasos:' };
     if (s.status === 'CONNECTED' && !stale) {
       Object.assign(st, { label: 'Conectado', cls: 'CONFIRMADA_WSP', link: false, logout: true,
         text: 'Conectado al número +' + (s.phone || '') + '. Los mensajes salen solos.' });
@@ -1881,7 +1996,7 @@ const CRM = {
             : 'El código QR expiró. Pulsa "Vincular WhatsApp" para generar uno nuevo.' });
       } else if (s.qr) {
         Object.assign(st, { label: 'Esperando escaneo', cls: 'PROGRAMADA', showQr: true, link: false, logout: true,
-          text: UI.v('Abre WhatsApp en el celular {del:business} {business} → Dispositivos vinculados → Vincular un dispositivo, y escanea este código (vence en unos 2 minutos).') });
+          text: UI.v('Escanea este código con el celular {del:business} {business}. Vence en unos 2 minutos.') });
       } else if (noBot || (seen && stale)) {
         Object.assign(st, { label: 'Bot apagado', cls: 'CANCELADA', link: true, logout: false,
           text: 'Bot apagado: enciende el bot para generar el código QR' + (lastSeen ? ' (última señal: ' + lastSeen + ')' : '') + '.' });
@@ -1914,6 +2029,10 @@ const CRM = {
     if (!st.showQr) { qr.innerHTML = ''; qr.dataset.src = ''; }
     document.getElementById('wa-btn-logout').hidden = !st.logout;
     document.getElementById('wa-btn-link').hidden = !st.link;
+    const howto = document.getElementById('wa-howto');
+    if (howto) howto.hidden = !(st.link || st.showQr);     // los pasos del celular, solo mientras hay que vincular
+    const mig = document.getElementById('wa-mig-note');
+    if (mig) mig.hidden = this.waMig17 !== false;
 
     // Aviso: vinculado pero con los mensajes automáticos apagados (fácil de olvidar)
     const warn = document.getElementById('wa-warn');
@@ -1921,8 +2040,11 @@ const CRM = {
       const c = this.waConfig();
       const linked = s.status === 'CONNECTED';
       warn.hidden = !(linked && !c.enabled);
-      warn.innerHTML = warn.hidden ? '' : ic('alert') + '<span>El WhatsApp está vinculado pero los mensajes automáticos están <strong>apagados</strong>: no saldrán confirmaciones ni recordatorios. Marca “Enviar mensajes automáticos por WhatsApp” y pulsa Guardar.</span>';
+      warn.innerHTML = warn.hidden ? '' : ic('alert') + '<span>El WhatsApp ya está conectado, pero los mensajes automáticos están <strong>apagados</strong>: no saldrán confirmaciones ni recordatorios.</span>' +
+        '<button type="button" class="btn-golden btn-xs" onclick="CRM.waQuickEnable()">Encender ahora</button>';
     }
+    this.renderWaSteps(st);
+    this.renderWaWaitlist();
 
     this.renderWaOptOuts();
 
@@ -1937,6 +2059,42 @@ const CRM = {
         ((m.status === 'FAILED' || m.status === 'CANCELLED') && m.last_error ? '<span>' + (m.status === 'FAILED' ? 'Error: ' : 'Motivo: ') + UI.esc(m.last_error) + '</span>' : '') + '</div>' +
         '<div><span class="st-badge st-' + UI.esc(sx[1]) + '">' + UI.esc(sx[0]) + '</span><span style="display:block; margin-top:4px;">' + UI.esc(when) + '</span></div></div>';
     }).join('') : '<p class="sch-exc-empty">Todavía no hay envíos.</p>';
+  },
+
+  // Pasos 1-2-3 arriba: hecho, actual o pendiente
+  renderWaSteps(st) {
+    const box = document.getElementById('wa-steps');
+    if (!box) return;
+    const c = this.waConfig();
+    const done = {
+      1: st.label === 'Conectado',
+      2: !!c.enabled,
+      3: (this.waHistory || []).some(m => m.status === 'SENT')
+    };
+    const current = [1, 2, 3].find(n => !done[n]);
+    box.querySelectorAll('li[data-step]').forEach(li => {
+      const n = Number(li.dataset.step);
+      li.classList.toggle('is-done', !!done[n]);
+      li.classList.toggle('is-current', n === current);
+      if (n === current) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    });
+  },
+
+  // Quienes escribieron AVISAME (se borran solos cuando pasa la fecha)
+  renderWaWaitlist() {
+    const wrap = document.getElementById('wa-waitlist-wrap');
+    const box = document.getElementById('wa-waitlist');
+    if (!wrap || !box) return;
+    const rows = this.waWaitlist;
+    wrap.hidden = rows == null;
+    if (rows == null) return;
+    const day = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' });
+    box.innerHTML = rows.length ? rows.map(r => {
+      const who = (r.name ? r.name + ' · ' : '') + String(r.phone || '').replace(/^51(?=9\d{8}$)/, '');
+      const when = r.date_from === r.date_to ? day(r.date_from) : day(r.date_from) + ' al ' + day(r.date_to);
+      return '<div class="sch-exc-item"><div><strong>' + UI.esc(who) + '</strong><span>' + UI.esc(when) + '</span></div>' +
+        '<div><span class="st-badge st-' + (r.notified_at ? 'COMPLETADA' : 'PROGRAMADA') + '">' + (r.notified_at ? 'Avisado' : 'Esperando') + '</span></div></div>';
+    }).join('') : '<p class="sch-exc-empty">Nadie en espera. Quien escriba AVISAME por WhatsApp aparecerá aquí.</p>';
   },
 
   /* Clientes (pacientes…) que pidieron no recibir mensajes (respondieron BAJA).

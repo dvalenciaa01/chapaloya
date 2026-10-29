@@ -772,7 +772,7 @@ body.auth-ok .crm-boot { display: none; }
 }
 
 /* ---------- WhatsApp (Configuración) ---------- */
-.wa-link { display: flex; gap: var(--space-4); align-items: flex-start; flex-wrap: wrap; margin-bottom: var(--space-4); }
+.wa-connect { display: flex; gap: var(--space-4); align-items: flex-start; flex-wrap: wrap; margin-bottom: var(--space-2); }
 .wa-qr { background: #fff; padding: 8px; line-height: 0; }
 .wa-qr img { width: 220px; height: 220px; display: block; }
 .wa-link-text { flex: 1 1 260px; min-width: 0; }
@@ -786,6 +786,65 @@ body.auth-ok .crm-boot { display: none; }
 .wa-test { margin-top: var(--space-5); }
 .wa-test .input-dark { max-width: 220px; }
 .wa-hist-body { white-space: pre-line; }
+
+/* Pasos 1-2-3 */
+.wa-steps { display: flex; gap: var(--space-2); list-style: none; padding: 0; margin: var(--space-4) 0 0; flex-wrap: wrap; }
+.wa-steps li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border: 1px solid var(--line-dark);
+  border-radius: var(--radius-pill); color: var(--on-dark-lo); font-size: var(--fs-sm); font-weight: 600; }
+.wa-step-n { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(var(--fg-rgb), 0.08); font-size: var(--fs-xs); }
+.wa-steps li.is-current { border-color: var(--yellow-line); color: var(--on-dark-hi); }
+.wa-steps li.is-current .wa-step-n { background: var(--yellow); color: var(--black); }
+.wa-steps li.is-done { color: var(--success-text); border-color: rgba(34, 197, 94, 0.4); }
+.wa-steps li.is-done .wa-step-n { background: rgba(34, 197, 94, 0.18); color: var(--success-text); font-size: 0; }
+.wa-steps li.is-done .wa-step-n::before { content: '✓'; font-size: var(--fs-sm); }
+
+/* Paso 1: instrucciones para el celular */
+.wa-howto { margin: var(--space-2) 0 var(--space-4); padding-left: 1.3em; color: var(--on-dark-md); font-size: var(--fs-sm); line-height: 1.55; }
+.wa-howto li + li { margin-top: 4px; }
+.wa-howto[hidden] { display: none; }
+
+/* Paso 2: interruptores */
+.wa-group-title { margin: var(--space-5) 0 var(--space-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--on-dark-lo); }
+.wa-opts { display: grid; border: 1px solid var(--line-dark); border-radius: var(--radius); }
+.wa-opt { display: flex; gap: var(--space-3); align-items: flex-start; padding: 14px var(--space-4); cursor: pointer; }
+.wa-opts > .wa-opt + .wa-opt, .wa-opts > .wa-opt-extra + .wa-opt, .wa-opts > .wa-rem-custom + .wa-opt { border-top: 1px solid var(--line-dark); }
+.wa-opt > span { display: grid; gap: 2px; min-width: 0; }
+.wa-opt strong { color: var(--on-dark-hi); font-weight: 600; }
+.wa-opt small { color: var(--on-dark-lo); font-size: var(--fs-sm); line-height: 1.45; }
+.wa-master { margin-top: var(--space-2); border: 1px solid var(--yellow-line); border-radius: var(--radius); background: var(--yellow-soft); }
+.wa-opt-extra { padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + 44px + var(--space-3)); }
+.wa-opt-extra[hidden] { display: none; }
+.wa-opt-extra .input-dark { width: 100%; max-width: 460px; }
+.wa-opt-extra .wa-select { max-width: 220px; }
+.wa-rem-custom { margin: 0; padding: 0 var(--space-4) var(--space-3) calc(var(--space-4) + 44px + var(--space-3)); }
+.wa-rem-custom[hidden] { display: none; }
+.wa-opts-wrap { transition: opacity var(--dur) var(--ease-out); }
+.wa-opts-wrap.is-off { opacity: 0.55; }
+.wa-mig-note[hidden] { display: none; }
+#wa-notify { width: 100%; max-width: 460px; }
+
+/* Interruptor (checkbox con forma de switch) */
+.wa-switch { appearance: none; -webkit-appearance: none; flex: 0 0 auto; position: relative; width: 44px; height: 26px; margin: 0;
+  border-radius: 999px; background: rgba(var(--fg-rgb), 0.18); cursor: pointer; transition: background var(--dur-fast); }
+.wa-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform var(--dur-fast) var(--ease-out); }
+.wa-switch:checked { background: #25D366; }
+.wa-switch:checked::after { transform: translateX(18px); }
+.wa-switch:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+/* Avanzado e historial, plegados */
+.wa-advanced { margin-top: var(--space-5); border-top: 1px solid var(--line-dark); padding-top: var(--space-3); }
+.wa-advanced > summary, .wa-more > summary { cursor: pointer; font-weight: 600; color: var(--yellow); padding: 6px 0; min-height: 32px; }
+.wa-adv-body { padding-top: var(--space-2); }
+.wa-more > summary { font-size: var(--fs-md); color: var(--on-dark-hi); }
+.wa-warn .btn-xs { margin-left: auto; flex: 0 0 auto; }
+@media (max-width: 760px) {
+  .wa-opt-extra, .wa-rem-custom { padding-left: var(--space-4); }
+  .wa-warn { flex-wrap: wrap; }
+  .wa-warn .btn-xs { margin-left: 28px; }
+}
 @media (max-width: 760px) {
   .wa-rem { grid-template-columns: 1fr; }
   .wa-qr img { width: 200px; height: 200px; }

@@ -103,6 +103,10 @@ export function loadConfig() {
     inboundMax: num('BOT_INBOUND_MAX', 5, 1, 100),
     inboundWindowMinutes: num('BOT_INBOUND_WINDOW_MINUTES', 10, 1, 1440),
     maxReconnects: num('BOT_MAX_RECONNECTS', 40, 1, 1000),
+    // Si el negocio escribió a mano a un cliente en estas horas, el bot no le manda el menú al saludar
+    humanQuietHours: num('BOT_HUMAN_QUIET_HOURS', 6, 0, 72),
+    // Cada cuántos minutos se programan los "te extrañamos" (bot_campanas)
+    campaignMinutes: num('BOT_CAMPAIGN_MINUTES', 10, 1, 120),
     healthPort: num('BOT_HEALTH_PORT', 8080, 0, 65535),
     logLevel: process.env.BOT_LOG_LEVEL || 'info'
   };
