@@ -4,20 +4,25 @@
 // Vincula el número con un QR (que el CRM muestra), mantiene la conexión,
 // envía mensajes y pasa a la base de datos las respuestas de los clientes.
 //
+// Si el negocio escribe a mano a un cliente desde el celular, el bot lo
+// recuerda unas horas (BOT_HUMAN_QUIET_HOURS) y no le manda el menú cuando
+// salude: así no interrumpe una conversación.
+//
 // Cada start() abre un socket nuevo y sube `gen`: los eventos y reconexiones
 // pendientes de un socket anterior se descartan, así un "Vincular" que llega
 // mientras se reconecta no deja dos sockets abiertos con la misma sesión.
 // ==========================================================================
 import { join } from 'node:path';
 import makeWASocket, {
-  Browsers, DisconnectReason, fetchLatestBaileysVersion, isJidGroup, isLidUser,
+  Browsers, DisconnectReason, fetchLatestBaileysVersion, generateMessageIDV2, isJidGroup, isLidUser,
   isPnUser, jidDecode, makeCacheableSignalKeyStore
 } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import { hasLinkedSession, useEncryptedAuthState, wipeSession } from './auth-state.js';
-import { backoffMs, sleep } from './util.js';
+import { backoffMs, createRecent, sleep } from './util.js';
 
 let waVersion = null;
+let legacyReply = false;     // la base no tiene bot_respuesta con p_humano (falta la migración 17)
 async function currentVersion(log) {
   if (waVersion) return waVersion;
   try {
@@ -74,6 +79,9 @@ export class TenantSession {
     this.retries = 0;
     this.firstAttemptDone = false;   // terminó el primer intento de conexión tras start()
     this.startedAt = 0;
+    // Números a los que el negocio escribió a mano hace poco, e ids de lo que envió el bot
+    this.humanRecent = createRecent({ ttlMs: (config.humanQuietHours || 0) * 3600000, max: 5000 });
+    this.sentIds = createRecent({ ttlMs: 30 * 60000, max: 2000 });
   }
 
   // Hay un socket abierto o reconectándose
@@ -210,8 +218,9 @@ export class TenantSession {
     }
   }
 
-  // Número (9XXXXXXXX con prefijo) de quien escribió, aunque WhatsApp mande un LID
-  async senderNumber(sock, key) {
+  // Número (9XXXXXXXX con prefijo) de quien escribió, aunque WhatsApp mande un LID.
+  // quiet = no registrar si no se pudo (mensajes que envió el propio negocio)
+  async senderNumber(sock, key, quiet = false) {
     const candidates = [key.remoteJid, key.remoteJidAlt, key.senderPn];
     for (const jid of candidates) {
       if (jid && isPnUser(jid)) return jidDecode(jid).user;
@@ -225,6 +234,7 @@ export class TenantSession {
         this.log.debug({ err: e.message }, 'Fallo al consultar el mapeo LID');
       }
     }
+    if (quiet) return null;
     // Registrar estos casos (B4) para saber cuántos CONFIRMAR se pierden
     this.log.warn({ jid: key.remoteJid, alt: key.remoteJidAlt || null },
       'No se pudo saber el número de quien escribió (ID privado de WhatsApp); su respuesta se ignora');
@@ -232,10 +242,18 @@ export class TenantSession {
   }
 
   async onMessages(sock, { messages, type }) {
-    if (type !== 'notify') return;
+    if (type !== 'notify') return;      // lo que envía el bot llega como 'append'
     for (const m of messages) {
       const key = m.key || {};
-      if (key.fromMe || !key.remoteJid || isJidGroup(key.remoteJid) || key.remoteJid === 'status@broadcast') continue;
+      if (!key.remoteJid || isJidGroup(key.remoteJid) || key.remoteJid === 'status@broadcast') continue;
+      if (key.fromMe) {
+        // El negocio escribió desde su celular (no es un envío del bot)
+        if (this.config.humanQuietHours > 0 && !(key.id && this.sentIds.has(key.id))) {
+          const to = await this.senderNumber(sock, key, true);
+          if (to) this.humanRecent.add(to);
+        }
+        continue;
+      }
       const msg = m.message || {};
       const text = msg.conversation || (msg.extendedTextMessage && msg.extendedTextMessage.text) || '';
       if (!text || text.length > 60) continue;          // solo respuestas cortas (CONFIRMAR, BAJA…)
@@ -246,13 +264,27 @@ export class TenantSession {
         this.log.warn({ remitente: from.slice(-4) }, 'Demasiados mensajes seguidos de este número; se ignora');
         continue;
       }
-      const { data, error } = await this.db.rpc('bot_respuesta', { p_tenant_id: this.tenantId, p_from: from, p_text: text });
+      const { data, error } = await this.reply(from, text);
       if (error) { this.log.error({ err: error.message }, 'bot_respuesta falló'); continue; }
       if (data) {
         this.log.info('Respuesta del cliente procesada');
         this.onInbound(this);
       }
     }
+  }
+
+  // bot_respuesta con p_humano (migración 17). Si la base aún no la tiene,
+  // se usa la versión anterior sin ese dato.
+  async reply(from, text) {
+    const args = { p_tenant_id: this.tenantId, p_from: from, p_text: text };
+    if (legacyReply) return this.db.rpc('bot_respuesta', args);
+    const res = await this.db.rpc('bot_respuesta', { ...args, p_humano: this.humanRecent.has(from) });
+    if (res.error && res.error.code === 'PGRST202') {
+      legacyReply = true;
+      this.log.warn('Falta la migración 17 en Supabase: el bot solo responde CONFIRMAR y BAJA');
+      return this.db.rpc('bot_respuesta', args);
+    }
+    return res;
   }
 
   async send(recipient, body) {
@@ -271,7 +303,10 @@ export class TenantSession {
       await sock.sendPresenceUpdate('paused', jid);
     } catch { /* no es crítico */ }
     if (sock !== this.sock || !this.connected) throw new Error('WhatsApp desconectado');
-    await sock.sendMessage(jid, { text: body });
+    // Id propio para reconocer el envío cuando vuelva como mensaje "del negocio"
+    const messageId = generateMessageIDV2(sock.user && sock.user.id);
+    this.sentIds.add(messageId);
+    await sock.sendMessage(jid, { text: body }, { messageId });
   }
 
   async logout() {

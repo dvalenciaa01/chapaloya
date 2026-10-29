@@ -8,8 +8,11 @@
 //    el WhatsApp de cada barbería. Cada barbería tiene su propio turno de
 //    envío, con su propia pausa anti-spam: una barbería con mucha cola no
 //    retrasa a las demás.
-// 3. Las respuestas de los clientes (CONFIRMAR, BAJA) se pasan a la base,
-//    que confirma la cita y deja en la cola el mensaje de respuesta.
+// 3. Las respuestas de los clientes (CONFIRMAR, CANCELAR, REPROGRAMAR,
+//    MI CITA, el menú al saludar, AVISAME, BAJA) se pasan a la base, que hace
+//    el cambio y deja en la cola el mensaje de respuesta.
+// 4. Cada BOT_CAMPAIGN_MINUTES pide a la base que programe los "te
+//    extrañamos" de los negocios que los encendieron (bot_campanas).
 //
 // Solo puede haber un bot por carpeta (candado bot.lock): un segundo bot
 // sale sin conectarse, porque dos bots con la misma sesión se expulsan
@@ -377,6 +380,27 @@ async function runOutbox() {
 }
 
 // --------------------------------------------------------------------------
+// "Te extrañamos": la base elige a quién y cuándo (tope diario, de 10 a 18 h)
+// --------------------------------------------------------------------------
+let campaignsMissing = false;
+async function campaigns() {
+  if (campaignsMissing) return;
+  const ids = [...sessions.values()].filter((s) => s.connected).map((s) => s.tenantId);
+  if (!ids.length) return;
+  const { data, error } = await db.rpc('bot_campanas', { p_tenants: ids });
+  if (error) {
+    if (error.code === 'PGRST202') {
+      campaignsMissing = true;
+      log.warn('Falta la migración 17 en Supabase: no se programan los "te extrañamos"');
+    } else {
+      log.error({ err: error.message }, 'bot_campanas falló');
+    }
+    return;
+  }
+  if (data) log.info({ programados: data }, 'Mensajes "te extrañamos" programados');
+}
+
+// --------------------------------------------------------------------------
 // Latido: el CRM sabe que el bot está encendido
 // --------------------------------------------------------------------------
 async function heartbeat() {
@@ -386,6 +410,7 @@ async function heartbeat() {
     return;
   }
   inboundLimiter.prune();
+  for (const s of sessions.values()) { s.humanRecent.prune(); s.sentIds.prune(); }
   const ids = [...sessions.values()].filter((s) => s.connected).map((s) => s.tenantId);
   if (!ids.length) return;
   const { error } = await db.from('wa_sessions').update({ last_seen_at: new Date().toISOString() }).in('tenant_id', ids);
@@ -447,6 +472,7 @@ async function main() {
   every(config.pollSeconds, runOutbox);
   every(30, heartbeat);
   every(3, checkStopFile);
+  setTimeout(() => every(config.campaignMinutes * 60, campaigns), 60000);   // tras reconectar
 }
 
 // --------------------------------------------------------------------------

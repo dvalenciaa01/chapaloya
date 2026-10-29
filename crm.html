@@ -560,73 +560,159 @@
             <div>
               <span class="eyebrow-golden" data-v="Business">Negocio</span>
               <h1 class="crm-title">WhatsApp</h1>
-              <p class="crm-lead">Vinculación, mensajes automáticos y recordatorios.</p>
+              <p class="crm-lead" data-vx="Conecta el WhatsApp {del:business} {business} una sola vez y los mensajes salen solos. Son tres pasos.">Conecta el WhatsApp del negocio una sola vez y los mensajes salen solos. Son tres pasos.</p>
             </div>
           </div>
+
+          <ol class="wa-steps" id="wa-steps" aria-label="Pasos para configurar WhatsApp">
+            <li data-step="1"><span class="wa-step-n" aria-hidden="true">1</span><span>Conectar</span></li>
+            <li data-step="2"><span class="wa-step-n" aria-hidden="true">2</span><span>Elegir mensajes</span></li>
+            <li data-step="3"><span class="wa-step-n" aria-hidden="true">3</span><span>Probar</span></li>
+          </ol>
+
+          <!-- Paso 1 · Conectar -->
           <div class="crm-section-card sch-card" id="wa-card">
-            <div class="card-head"><h3>Vinculación y mensajes</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
-            <p class="card-text" data-vx="Con el WhatsApp {del:business} {business} se envían la confirmación y los recordatorios a los {clientPlural} que lo aceptan, y un aviso al equipo por cada reserva. El {client} confirma su asistencia respondiendo CONFIRMAR.">Con el WhatsApp del negocio se envían la confirmación y los recordatorios a los clientes que lo aceptan, y un aviso al equipo por cada reserva. El cliente confirma su asistencia respondiendo CONFIRMAR.</p>
-            <div class="wa-link">
+            <div class="card-head"><h3 data-vx="1. Conecta el WhatsApp {del:business} {business}">1. Conecta el WhatsApp del negocio</h3><span id="wa-status" class="st-badge st-PROGRAMADA">Sin vincular</span></div>
+            <div class="wa-connect">
               <div class="wa-qr" id="wa-qr" hidden></div>
               <div class="wa-link-text">
                 <p id="wa-link-msg" class="card-text"></p>
+                <ol class="wa-howto" id="wa-howto">
+                  <li>Pulsa <strong>Vincular WhatsApp</strong>: aparece un código QR.</li>
+                  <li>En el celular <span data-vx="{del:business} {business}">del negocio</span> abre WhatsApp y entra a <strong>Dispositivos vinculados</strong> (en el menú <strong>⋮</strong> o en <strong>Configuración</strong>).</li>
+                  <li>Toca <strong>Vincular un dispositivo</strong> y apunta la cámara al código.</li>
+                </ol>
                 <div class="btn-row">
                   <button type="button" class="btn-golden" id="wa-btn-link" onclick="CRM.waRequest('LINK')"><i data-icon="refresh"></i>Vincular WhatsApp</button>
                   <button type="button" class="btn-dark" id="wa-btn-logout" onclick="CRM.waRequest('LOGOUT')" hidden>Desvincular</button>
                 </div>
               </div>
             </div>
+          </div>
 
+          <!-- Paso 2 · Qué mensajes se envían -->
+          <div class="crm-section-card sch-card" id="wa-msgs-card">
+            <div class="card-head"><h3>2. Elige qué mensajes se envían</h3></div>
             <div id="wa-warn" class="wa-warn" role="alert" hidden></div>
-            <label class="check-line wa-enable"><input type="checkbox" id="wa-enabled" oninput="CRM.waDirty = true" />
-              <span>Enviar mensajes automáticos por WhatsApp</span></label>
+            <p class="field-hint wa-mig-note" id="wa-mig-note" hidden>Para que funcionen las respuestas automáticas, la reseña, “te extrañamos” y la lista de espera falta ejecutar la migración 17 en Supabase.</p>
 
-            <div class="form-grid-2">
-              <div>
-                <label class="field-lbl" for="wa-notify">Celulares que reciben el aviso de cada reserva</label>
-                <input type="text" id="wa-notify" class="input-dark" placeholder="Ej. 999 111 222, 988 777 666" oninput="CRM.waDirty = true" />
-                <p class="field-hint">Separa los números con comas. Déjalo vacío si no quieres avisos.</p>
+            <label class="wa-opt wa-master"><input type="checkbox" id="wa-enabled" class="wa-switch" onchange="CRM.waOptChange()" />
+              <span><strong>Mensajes automáticos</strong><small>Enciéndelo para que salgan los mensajes que marques abajo. Apágalo para pausarlos todos.</small></span></label>
+
+            <div class="wa-opts-wrap" id="wa-opts-wrap">
+              <div class="wa-group-title" data-v-fmt="A tus {clientPlural}">A tus clientes</div>
+              <div class="wa-opts">
+                <label class="wa-opt"><input type="checkbox" id="wa-opt-confirm" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Confirmación al reservar</strong><small data-vx="Con los datos de {el:appointment} {appointment}. {El:client} {client} confirma respondiendo CONFIRMAR.">Con los datos de la cita. El cliente confirma respondiendo CONFIRMAR.</small></span></label>
+                <label class="wa-opt"><input type="checkbox" id="wa-opt-r1440" class="wa-switch" onchange="CRM.waToggleReminder(1440, this.checked)" />
+                  <span><strong>Recordatorio 1 día antes</strong><small data-vx="Un día antes de {el:appointment} {appointment}, con la hora y la dirección.">Un día antes de la cita, con la hora y la dirección.</small></span></label>
+                <label class="wa-opt"><input type="checkbox" id="wa-opt-r120" class="wa-switch" onchange="CRM.waToggleReminder(120, this.checked)" />
+                  <span><strong>Recordatorio 2 horas antes</strong><small>Un aviso corto el mismo día.</small></span></label>
+                <p class="field-hint wa-rem-custom" id="wa-rem-custom" hidden></p>
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-review" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Pedir una reseña en Google</strong><small data-vx="Unas horas después de atender {al:client} {client}. Como máximo una vez cada 2 meses por persona.">Unas horas después de atender al cliente. Como máximo una vez cada 2 meses por persona.</small></span></label>
+                <div class="wa-opt-extra" id="wa-review-box" hidden>
+                  <label class="field-lbl" for="wa-review-url">Enlace para dejar una reseña en Google</label>
+                  <input type="url" id="wa-review-url" class="input-dark" maxlength="300" placeholder="https://g.page/r/…/review" oninput="CRM.waDirty = true" />
+                  <p class="field-hint">Cómo conseguirlo: busca tu negocio en Google Maps, entra a <strong>Pedir reseñas</strong> (o “Compartir el formulario de reseñas”) y copia el enlace.</p>
+                </div>
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-winback" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Recordar a quienes no vuelven</strong><small data-vx="Un mensaje con el enlace para reservar si {el:client} {client} no regresa en un tiempo. Solo a quienes aceptaron WhatsApp, máximo 5 al día y en horario de oficina.">Un mensaje con el enlace para reservar si el cliente no regresa en un tiempo. Solo a quienes aceptaron WhatsApp, máximo 5 al día y en horario de oficina.</small></span></label>
+                <div class="wa-opt-extra" id="wa-winback-box" hidden>
+                  <label class="field-lbl" for="wa-winback-days">Enviarlo cuando pasen</label>
+                  <select id="wa-winback-days" class="input-dark wa-select" onchange="CRM.waDirty = true">
+                    <option value="21">3 semanas</option>
+                    <option value="30">1 mes</option>
+                    <option value="45">mes y medio</option>
+                    <option value="60">2 meses</option>
+                    <option value="90">3 meses</option>
+                  </select>
+                  <p class="field-hint" data-vx="Desde la última visita {del:client} {client}.">Desde la última visita del cliente.</p>
+                </div>
               </div>
-              <div>
-                <label class="field-lbl" for="wa-quiet-from" data-v-fmt="No enviar mensajes a {clientPlural} entre">No enviar mensajes a clientes entre</label>
-                <div class="sch-inline"><input type="time" step="300" id="wa-quiet-from" class="input-dark sch-time" oninput="CRM.waDirty = true" /><span>y</span><input type="time" step="300" id="wa-quiet-to" class="input-dark sch-time" oninput="CRM.waDirty = true" /></div>
-                <p class="field-hint" data-v-fmt="Formato HH:MM. Aplica a todos los mensajes a {clientPlural}: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.">Formato HH:MM. Aplica a todos los mensajes a clientes: un recordatorio que caiga en ese horario se adelanta (o, si ya no se puede, sale al terminar el silencio); las confirmaciones y avisos esperan a que termine.</p>
+
+              <div class="wa-group-title">Respuestas automáticas</div>
+              <div class="wa-opts">
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-menu" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Menú al saludar</strong><small>Si alguien escribe “hola”, recibe opciones: reservar, ver su cita, horario y dirección o hablar con una persona. Si estás chateando con esa persona desde el celular, el bot no interrumpe.</small></span></label>
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-cancel" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Cancelar respondiendo CANCELAR</strong><small data-vx="{El:appointment} {appointment} se cancela sol{o:appointment}, el horario queda libre y te avisamos.">La cita se cancela sola, el horario queda libre y te avisamos.</small></span></label>
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-reschedule" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Cambiar de horario respondiendo REPROGRAMAR</strong><small data-vx="Recibe el enlace para elegir otra hora. Cuando reserva {un:appointment} nuev{o:appointment}, {el:appointment} anterior se libera sol{o:appointment}.">Recibe el enlace para elegir otra hora. Cuando reserva una nueva, la anterior se libera sola.</small></span></label>
+                <label class="wa-opt"><input type="checkbox" id="wa-bot-waitlist" class="wa-switch" onchange="CRM.waOptChange()" />
+                  <span><strong>Lista de espera</strong><small>Quien escribe AVISAME queda en espera. Si alguien cancela, se avisa a los 3 primeros de ese día.</small></span></label>
               </div>
+
+              <div class="wa-group-title">A ti y a tu equipo</div>
+              <label class="field-lbl" for="wa-notify">Celulares que reciben un aviso por cada reserva, cancelación o cambio</label>
+              <input type="text" id="wa-notify" class="input-dark" placeholder="Ej. 999 111 222, 988 777 666" oninput="CRM.waDirty = true" />
+              <p class="field-hint">Separa los números con comas. Déjalo vacío si no quieres avisos.</p>
             </div>
 
-            <div class="wa-msg">
-              <label class="field-lbl" for="wa-tpl-confirm">Mensaje al reservar</label>
-              <textarea id="wa-tpl-confirm" class="input-dark" rows="10" maxlength="900" oninput="CRM.waDirty = true"></textarea>
-            </div>
-            <div class="form-grid-2">
-              <div class="wa-msg">
-                <label class="field-lbl" for="wa-tpl-ccancel">Mensaje cuando se cancela la cita (vacío = no se envía)</label>
-                <textarea id="wa-tpl-ccancel" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+            <details class="wa-advanced" id="wa-advanced">
+              <summary>Personalizar textos y horarios (opcional)</summary>
+              <div class="wa-adv-body">
+                <p class="field-hint">Los textos de fábrica ya funcionan bien. Cámbialos solo si quieres otro tono.</p>
+                <div>
+                  <label class="field-lbl" for="wa-quiet-from" data-v-fmt="No enviar mensajes a {clientPlural} entre">No enviar mensajes a clientes entre</label>
+                  <div class="sch-inline"><input type="time" step="300" id="wa-quiet-from" class="input-dark sch-time" oninput="CRM.waDirty = true" /><span>y</span><input type="time" step="300" id="wa-quiet-to" class="input-dark sch-time" oninput="CRM.waDirty = true" /></div>
+                  <p class="field-hint">Un recordatorio que caiga en ese horario se adelanta; lo demás espera a que termine.</p>
+                </div>
+                <div class="wa-msg">
+                  <label class="field-lbl" for="wa-tpl-confirm">Mensaje al reservar</label>
+                  <textarea id="wa-tpl-confirm" class="input-dark" rows="9" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+                </div>
+                <div class="form-grid-2">
+                  <div class="wa-msg">
+                    <label class="field-lbl" for="wa-tpl-ccancel">Cuando se cancela (vacío = no se envía)</label>
+                    <textarea id="wa-tpl-ccancel" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+                  </div>
+                  <div class="wa-msg">
+                    <label class="field-lbl" for="wa-tpl-cresched">Cuando se reprograma (vacío = no se envía)</label>
+                    <textarea id="wa-tpl-cresched" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+                  </div>
+                  <div class="wa-msg">
+                    <label class="field-lbl" for="wa-tpl-review">Pedido de reseña</label>
+                    <textarea id="wa-tpl-review" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+                  </div>
+                  <div class="wa-msg">
+                    <label class="field-lbl" for="wa-tpl-winback">Recordar a quienes no vuelven</label>
+                    <textarea id="wa-tpl-winback" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
+                  </div>
+                </div>
+                <div class="field-lbl wa-sub">Recordatorios</div>
+                <div id="wa-reminders"></div>
+                <button type="button" class="btn-dark" onclick="CRM.waAddReminder()"><i data-icon="plus"></i>Agregar recordatorio</button>
+                <p class="field-hint wa-vars">Datos que puedes usar en los textos: {cliente} {servicio} {profesional} {fecha} {hora} {cuando} {negocio} {direccion} {precio} {codigo} {enlace} {resena} {opciones}. {cuando} dice "hoy", "mañana" o la fecha; {enlace} es el enlace para reservar; {resena} el de Google; {opciones} explica cómo cancelar o cambiar la cita.<span id="wa-vars-legacy" hidden></span></p>
+                <p class="field-hint" id="wa-booking-url"></p>
               </div>
-              <div class="wa-msg">
-                <label class="field-lbl" for="wa-tpl-cresched">Mensaje cuando se reprograma la cita (vacío = no se envía)</label>
-                <textarea id="wa-tpl-cresched" class="input-dark" rows="6" maxlength="900" oninput="CRM.waDirty = true"></textarea>
-              </div>
-            </div>
-            <div class="field-lbl wa-sub">Recordatorios</div>
-            <div id="wa-reminders"></div>
-            <button type="button" class="btn-dark" onclick="CRM.waAddReminder()"><i data-icon="plus"></i>Agregar recordatorio</button>
-            <p class="field-hint wa-vars">Datos que puedes usar en los textos: {cliente} {servicio} {profesional} {fecha} {hora} {cuando} {negocio} {direccion} {precio} {codigo}. {cuando} dice "hoy", "mañana" o la fecha; {profesional} es el nombre de quien atiende y {negocio} el nombre del negocio.<span id="wa-vars-legacy" hidden></span></p>
+            </details>
 
             <p class="form-error" id="wa-error" role="alert"></p>
-            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWhatsApp()"><i data-icon="check"></i>Guardar WhatsApp</button></div>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWhatsApp()"><i data-icon="check"></i>Guardar</button></div>
+          </div>
 
+          <!-- Paso 3 · Prueba -->
+          <div class="crm-section-card sch-card" id="wa-test-card">
+            <div class="card-head"><h3>3. Envía una prueba</h3></div>
+            <p class="card-text">Escribe tu celular y pulsa <strong>Enviar prueba</strong>. Si te llega el mensaje, todo está listo.</p>
             <div class="wa-test">
-              <label class="field-lbl" for="wa-test-num">Enviar un mensaje de prueba a</label>
+              <label class="field-lbl" for="wa-test-num">Tu celular</label>
               <div class="sch-inline"><input type="tel" id="wa-test-num" class="input-dark" placeholder="999 111 222" inputmode="numeric" /><button type="button" class="btn-dark" onclick="CRM.waTest()">Enviar prueba</button></div>
             </div>
+          </div>
 
-            <div class="field-lbl wa-sub" data-v-fmt="{ClientPlural} que pidieron no recibir mensajes">Clientes que pidieron no recibir mensajes</div>
-            <div id="wa-optouts" class="sch-exc-list"></div>
-
+          <details class="crm-section-card sch-card wa-more" id="wa-more">
+            <summary>Últimos envíos, lista de espera y bajas</summary>
             <div class="field-lbl wa-sub">Últimos envíos</div>
             <div id="wa-history" class="sch-exc-list"></div>
-          </div>
+            <div id="wa-waitlist-wrap" hidden>
+              <div class="field-lbl wa-sub">Lista de espera</div>
+              <div id="wa-waitlist" class="sch-exc-list"></div>
+            </div>
+            <div class="field-lbl wa-sub" data-v-fmt="{ClientPlural} que pidieron no recibir mensajes">Clientes que pidieron no recibir mensajes</div>
+            <div id="wa-optouts" class="sch-exc-list"></div>
+          </details>
         </div>
 
         <!-- ================= USUARIOS Y ACCESOS ================= -->

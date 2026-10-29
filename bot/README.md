@@ -5,7 +5,15 @@ Programa que envía los mensajes de WhatsApp de todos los negocios y recibe sus 
 Qué hace:
 
 - **Envía la cola `wa_outbox`:** el aviso al equipo por cada reserva, cancelación o cambio; la confirmación al cliente; los recordatorios; y los mensajes de prueba. Cada negocio envía por su lado, esperando entre 8 y 20 segundos entre un mensaje y otro: si un negocio tiene mucha cola, no retrasa a los demás.
-- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "confirmar" y el código, si tiene varias citas), la cita queda **Confirmada** y se le responde una vez. Si escribe **BAJA**, deja de recibir recordatorios. Cualquier otro mensaje no se toca: lo contesta el negocio desde su celular. Si un mismo número escribe muchas veces seguidas (más de 5 en 10 minutos), el resto se ignora.
+- **Recibe las respuestas:** si el cliente escribe **CONFIRMAR** (o "confirmar" y el código, si tiene varias citas), la cita queda **Confirmada** y se le responde una vez. Además (migración 17, cada una se apaga en **CRM → WhatsApp**):
+  - **CANCELAR** cancela la cita, le responde con el enlace para reservar otra y avisa al equipo.
+  - **REPROGRAMAR** le manda el enlace para elegir otro horario y avisa al equipo; si reserva la nueva en 72 h, la anterior se cancela sola.
+  - **MI CITA** le responde con sus próximas citas.
+  - Un saludo ("hola", "buenas tardes"…) recibe un **menú**: 1 reservar, 2 ver mi cita, 3 horario y dirección, 4 hablar con una persona (avisa al equipo) y, con lista de espera, 5 avisarme. Una vez cada 12 h por número, nunca a los celulares del equipo y **no** si el negocio le escribió a mano a esa persona en las últimas `BOT_HUMAN_QUIET_HOURS` horas.
+  - **AVISAME** (o "AVISAME 15/11") lo pone en la lista de espera: si alguien cancela ese día, se avisa a los 3 primeros.
+  - **BAJA** deja de enviarle mensajes automáticos.
+  Cualquier otro mensaje no se toca: lo contesta el negocio desde su celular. Si un mismo número escribe muchas veces seguidas (más de 5 en 10 minutos), el resto se ignora.
+- **Programa los "te extrañamos"** cada `BOT_CAMPAIGN_MINUTES` (si el negocio los encendió): solo a clientes que aceptaron WhatsApp, máximo 5 por día por negocio, uno cada 20 minutos y de 10:00 a 18:00. El pedido de reseña de Google (unas horas después de una cita completada) lo programa la base de datos sola.
 - **Vincula y desvincula** cuando el administrador lo pide en **CRM → Configuración → WhatsApp** (el QR aparece ahí mismo).
 
 > Importante: no es la API oficial de WhatsApp. Funciona como WhatsApp Web y es gratis, pero WhatsApp puede bloquear un número que envíe spam. Usa un número con antigüedad, escribe solo a clientes que aceptaron y no subas la cantidad de recordatorios.
@@ -86,11 +94,11 @@ sudo systemctl restart reservalope-bot       # reiniciar
 
 ## 6. Vincular el WhatsApp de un negocio
 
-1. Ejecuta la migración `supabase/migrations/20261019000009_whatsapp_confirmar.sql` (una sola vez).
+1. Ejecuta las migraciones de `supabase/migrations/` que falten (la más reciente del bot es `20261029000017_whatsapp_respuestas.sql`), una sola vez cada una.
 2. En el CRM del negocio: **Configuración → WhatsApp → Vincular WhatsApp**.
 3. En el celular del negocio: **WhatsApp → Dispositivos vinculados → Vincular un dispositivo** y escanea el QR.
-4. Cuando diga **Conectado**, marca **Enviar mensajes automáticos por WhatsApp**, escribe los celulares que deben recibir el aviso de cada reserva y pulsa **Guardar WhatsApp**.
-5. Usa **Enviar prueba** con tu celular para comprobarlo.
+4. Cuando diga **Conectado**, en el paso 2 enciende **Mensajes automáticos**, elige qué mensajes salen, escribe los celulares que deben recibir el aviso de cada reserva y pulsa **Guardar**.
+5. En el paso 3 usa **Enviar prueba** con tu celular para comprobarlo.
 
 ## 7. Actualizar el bot
 

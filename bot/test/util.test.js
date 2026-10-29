@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  acquireLock, backoffMs, createJournal, createRateLimiter, groupByTenant, lockIsStale, RotatingFile
+  acquireLock, backoffMs, createJournal, createRateLimiter, createRecent, groupByTenant, lockIsStale, RotatingFile
 } from '../src/util.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'bot-test-'));
@@ -29,6 +29,24 @@ test('límite por remitente: 5 cada 10 minutos', () => {
   t = 2000000;
   rl.prune();
   assert.equal(rl.size(), 0);
+});
+
+test('marcas que vencen: recuerda por un tiempo y con tope', () => {
+  let t = 0;
+  const r = createRecent({ ttlMs: 1000, max: 2, now: () => t });
+  r.add('a');
+  assert.equal(r.has('a'), true);
+  assert.equal(r.has('b'), false);
+  t = 999;
+  assert.equal(r.has('a'), true);
+  t = 1000;
+  assert.equal(r.has('a'), false, 'pasado el tiempo se olvida');
+  r.add('a'); r.add('b'); r.add('c');
+  assert.equal(r.size(), 2, 'no guarda más de max');
+  assert.equal(r.has('a'), false, 'se olvida la más vieja');
+  t = 5000;
+  r.prune();
+  assert.equal(r.size(), 0);
 });
 
 test('groupByTenant conserva el orden', () => {

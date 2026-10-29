@@ -51,6 +51,36 @@ export function createRateLimiter({ max, windowMs, now = () => Date.now() }) {
 }
 
 // --------------------------------------------------------------------------
+// Marcas que vencen: recuerda una clave durante `ttlMs` (y como máximo
+// `max` claves, olvidando las más viejas). Sirve para saber si el negocio
+// escribió a mano a un cliente hace poco y qué mensajes envió el propio bot.
+// --------------------------------------------------------------------------
+export function createRecent({ ttlMs, max = 5000, now = () => Date.now() }) {
+  const marks = new Map();   // clave → marca de tiempo (en orden de llegada)
+  return {
+    add(key) {
+      marks.delete(key);
+      marks.set(key, now());
+      while (marks.size > max) marks.delete(marks.keys().next().value);
+    },
+    has(key) {
+      const t = marks.get(key);
+      if (t === undefined) return false;
+      if (now() - t < ttlMs) return true;
+      marks.delete(key);
+      return false;
+    },
+    prune() {
+      const t = now();
+      for (const [k, x] of marks) {
+        if (t - x >= ttlMs) marks.delete(k);
+      }
+    },
+    size: () => marks.size
+  };
+}
+
+// --------------------------------------------------------------------------
 // Agrupa los mensajes tomados de la cola por barbería, sin cambiar su orden
 // --------------------------------------------------------------------------
 export function groupByTenant(rows) {
