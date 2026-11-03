@@ -465,15 +465,6 @@
             <p class="field-hint" id="dash-cards-note" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveDashCards()"><i data-icon="check"></i>Guardar panel</button></div>
           </div>
-          <div class="crm-section-card sch-card" id="wa-manual-card">
-            <div class="card-head"><h3>Confirmación por WhatsApp (manual)</h3></div>
-            <p class="card-text" data-vx="En {AppointmentPlural}, el botón “Enviar confirmación” abre WhatsApp con este mensaje para {el:client} {client}. Sirve aunque el bot no esté conectado.">En Citas, el botón “Enviar confirmación” abre WhatsApp con este mensaje para el cliente. Sirve aunque el bot no esté conectado.</p>
-            <label class="field-lbl" for="wa-manual-tpl">Mensaje</label>
-            <textarea id="wa-manual-tpl" class="input-dark" rows="4" maxlength="1000" oninput="CRM.waManualDirty = true"></textarea>
-            <p class="field-hint">Puedes usar {cliente}, {negocio}, {servicio}, {profesional}, {fecha}, {hora} y {codigo}. Vacío = mensaje de fábrica.</p>
-            <p class="field-hint" id="wa-manual-note" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
-            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWaManual()"><i data-icon="check"></i>Guardar mensaje</button></div>
-          </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
             <div class="card-head"><h3>Personalizar CRM</h3></div>
             <p class="card-text">Módulos visibles, campos, campos propios y apariencia de este CRM. Solo el superadministrador los cambia, desde la consola.</p>
@@ -700,6 +691,16 @@
               <label class="field-lbl" for="wa-test-num">Tu celular</label>
               <div class="sch-inline"><input type="tel" id="wa-test-num" class="input-dark" placeholder="999 111 222" inputmode="numeric" /><button type="button" class="btn-dark" onclick="CRM.waTest()">Enviar prueba</button></div>
             </div>
+          </div>
+
+          <div class="crm-section-card sch-card" id="wa-manual-card">
+            <div class="card-head"><h3>Confirmación manual (sin bot)</h3></div>
+            <p class="card-text" data-vx="En {AppointmentPlural}, el botón “Enviar confirmación” abre WhatsApp con este mensaje para {el:client} {client}. Sirve aunque el bot no esté conectado.">En Citas, el botón “Enviar confirmación” abre WhatsApp con este mensaje para el cliente. Sirve aunque el bot no esté conectado.</p>
+            <label class="field-lbl" for="wa-manual-tpl">Mensaje</label>
+            <textarea id="wa-manual-tpl" class="input-dark" rows="4" maxlength="1000" oninput="CRM.waManualDirty = true"></textarea>
+            <p class="field-hint">Puedes usar {cliente}, {negocio}, {servicio}, {profesional}, {fecha}, {hora} y {codigo}. Vacío = mensaje de fábrica.</p>
+            <p class="field-hint" id="wa-manual-note" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWaManual()"><i data-icon="check"></i>Guardar mensaje</button></div>
           </div>
 
           <details class="crm-section-card sch-card wa-more" id="wa-more">
