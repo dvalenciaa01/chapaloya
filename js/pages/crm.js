@@ -1342,7 +1342,10 @@ const CRM = {
           (facts.length ? '<dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl>' : '') +
           (F('notes') ? '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + E(c.notes || 'Sin observaciones') + '</p>' : '') +
         '</div>' +
-        (canEdit ? '<div class="row-actions"><button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')">' + ic('edit') + 'Editar ficha</button></div>' : '') +
+        (canEdit ? '<div class="row-actions">' +
+          '<button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')" aria-label="Editar a ' + E(c.name) + '">' + ic('edit') + 'Editar</button>' +
+          '<button type="button" class="btn-danger btn-xs" onclick="CRM.deleteCustomer(\'' + E(c.id) + '\')" aria-label="Eliminar a ' + E(c.name) + '">' + ic('trash') + 'Eliminar</button>' +
+        '</div>' : '') +
       '</div>';
     }).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>' + this.vx('Sin {clientPlural}') + '</strong>' + (q ? 'Nadie coincide con la búsqueda.' : this.vx('Se agregan al registrar {appointmentPlural} con celular.')) + '</div>';
     const more = document.getElementById('cust-more');
@@ -2482,9 +2485,37 @@ const CRM = {
         '</div>' +
         CrmConfig.formHTML('customers', 'm-cu-x-', c ? c.extra : {}) +
         '<div class="form-error" id="m-cu-error" role="alert"></div>' +
-        '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">Guardar</button></div>' +
+        '<div class="modal-actions">' +
+          (c ? '<button type="button" class="btn-danger" style="margin-right:auto;" onclick="CRM.deleteCustomer(\'' + E(c.id) + '\')">' + ic('trash') + 'Eliminar</button>' : '') +
+          '<button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">Guardar</button></div>' +
       '</form>'
     );
+  },
+
+  /* Elimina la ficha de un cliente (con confirmación). Sus citas NO se borran:
+     guardan su propio nombre y celular, así que el historial y las ventas
+     siguen igual (la base de datos solo suelta el vínculo con la ficha). */
+  deleteCustomer(id) {
+    const c = DB.state.customers.find(x => x.id === id);
+    if (!c) return;
+    const phone = DB.cleanPhone(c.phone);
+    const today = DB.todayISO();
+    const mine = phone ? DB.state.appointments.filter(a => DB.cleanPhone(a.phone) === phone) : [];
+    const future = mine.filter(a => a.date >= today && this.isVigente(a)).length;
+    const msg = 'Se borrará la ficha de “' + c.name + '”' + (phone ? ' (' + phone + ')' : '') + ' con todos sus datos. Esta acción no se puede deshacer.' +
+      (mine.length ? (mine.length === 1 ? ' Su cita se mantiene' : ' Sus ' + mine.length + ' citas se mantienen') + ' en el historial y las ventas no cambian.' : '') +
+      (future ? ' Ojo: ' + (future === 1 ? 'tiene 1 cita próxima que sigue agendada; cancélala' : 'tiene ' + future + ' citas próximas que siguen agendadas; cancélalas') + ' en Citas si ya no va.' : '') +
+      (phone ? ' Si vuelve a reservar con ese celular, se creará una ficha nueva.' : '');
+    UI.confirm({ title: UI.v('Eliminar {client}'), message: msg, confirmText: 'Eliminar', danger: true }).then(async ok => {
+      if (!ok) return;
+      DB.state.customers = DB.state.customers.filter(x => x.id !== id);
+      DB.markDeleted('customers', id);
+      const saved = await DB.save();
+      this.renderAll();
+      if (!saved) return;
+      DB.log(UI.v('Eliminó la ficha de {un:client} {client}'), c.name + (phone ? ' · ' + phone : '') + (mine.length ? ' · ' + mine.length + ' cita(s) conservadas' : ''));
+      UI.toast(UI.v('{Client} eliminad{o:client}.'));
+    });
   },
 
   /* Lee y valida el formulario de la ficha. Devuelve { data } o { error }. */
