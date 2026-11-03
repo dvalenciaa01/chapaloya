@@ -19,7 +19,7 @@ const Guard = {
     ['[onclick*="CRM.setWalkInStatus"]', 'walkins.status'],
     ['[onclick*="CRM.openBarberProfileModal"], [onclick*="CRM.openAddHaircutPhotoModal"], [onclick*="CRM.deleteHaircutPhoto"], [onclick*="CRM.deleteBarberProfile"]', 'barbers.manage'],
     ['[onclick*="CRM.openServiceModal"], [onclick*="CRM.deleteService"]', 'services.manage'],
-    ['[onclick*="CRM.openCustomerModal"]', 'customers.manage'],
+    ['[onclick*="CRM.openCustomerModal"], [onclick*="CRM.deleteCustomer"]', 'customers.manage'],
     ['[onclick*="CRM.exportCustomersCSV"]', 'customers.view'],
     ['[onclick*="CRM.exportApptsCSV"]', 'appointments.view'],
     ['[onclick*="CRM.exportJSON"]', 'settings.manage']
@@ -183,6 +183,7 @@ const Guard = {
     G.wrap(CRM, 'deleteService', 'services.manage');
     G.wrap(CRM, 'refreshApptSlots', 'appointments.create');
     G.wrap(CRM, 'openCustomerModal', 'customers.manage');
+    G.wrap(CRM, 'deleteCustomer', 'customers.manage');
     G.wrap(CRM, 'saveCustomerModal', 'customers.manage', (e, editId) => ({ action: UI.v(editId ? 'Editó la ficha de {un:client} {client}' : 'Registró {un:client} {client}'), detail: G.val('m-cu-name') + (G.val('m-cu-phone') ? ' · ' + G.val('m-cu-phone') : '') }));
     G.wrap(CRM, 'exportCustomersCSV', 'customers.view', () => ({ action: UI.v('Exportó {clientPlural} (CSV)'), detail: DB.tenant.name }));
     G.wrap(CRM, 'saveSettings', 'settings.manage');
