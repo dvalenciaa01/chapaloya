@@ -861,7 +861,7 @@ Object.assign(Reservalope, {
   /* ---------- Módulos ---------- */
   cePanelModules() {
     const c = this.ce.cfg;
-    return '<p class="ce-hint">Un módulo apagado desaparece del menú y de las acciones para todo el equipo (administradores y personal). Configuración siempre queda visible.</p>' +
+    return '<p class="ce-hint">Un módulo apagado desaparece del menú y de las acciones para todo el equipo (administradores y personal). Si apagas Configuración, el negocio no puede cambiar sus datos, rubro ni vistas; Horario y WhatsApp siguen en su propia pestaña.</p>' +
       '<div class="ce-grid">' + CrmConfig.MODULES.map(m =>
         this.ceChk('ce-mod-' + m.key, this.ceV(m.label), c.modules[m.key] !== false, 'Reservalope.ceSetModule(\'' + m.key + '\', this.checked)')).join('') + '</div>';
   },

@@ -6,7 +6,7 @@
    impide en tenants_guard y lo valida con private.crm_config_valida).
    Forma (todas las claves opcionales; {} = el CRM de siempre):
      modules       { dashboard, appointments, walkin, customers, services,
-                     staff, sales, reports, whatsapp, audit } → false oculta
+                     staff, sales, reports, whatsapp, audit, settings } → false oculta
      fields        { appointments|customers|services|staff: { campo: {show, required} } }
      customFields  { customers: [...], appointments: [...] } campos propios
      lists         { appointments: { columns: ['client', …, 'x:clave'] } }
@@ -29,7 +29,9 @@
     { key: 'sales', label: 'Ventas', tab: 'sales' },
     { key: 'reports', label: 'Reportes', tab: 'reports' },
     { key: 'whatsapp', label: 'WhatsApp', tab: 'whatsapp' },
-    { key: 'audit', label: 'Historial', tab: 'audit' }
+    { key: 'audit', label: 'Historial', tab: 'audit' },
+    // Solo oculta la pestaña Configuración: Horario y WhatsApp tienen su propia pestaña
+    { key: 'settings', label: 'Configuración', tab: 'settings' }
   ];
 
   // Permiso → módulo (un módulo apagado apaga sus permisos para todos)

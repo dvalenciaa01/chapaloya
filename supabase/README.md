@@ -20,6 +20,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261028000014_vista_citas.sql` | Vista de la pestaña Citas del CRM por negocio: `tenants.appt_view` (`agenda` por defecto o `lista`), la elige el administrador en **Configuración → Vista de citas** |
 | `migrations/20261028000015_preferencias_crm.sql` | Preferencias del CRM que elige el administrador del negocio: `tenants.crm_prefs` (por ahora, qué tarjetas y secciones se ven en el Panel principal, desde **Configuración → Panel principal**) |
 | `migrations/20261028000016_solicitudes_landing.sql` | Solicitudes de prueba de la landing: tabla `solicitudes` (estado `NUEVA` / `CONTACTADA` / `CERRADA` y nota) y `registrar_solicitud`, que llama el formulario de reservalope.com (además del correo de FormSubmit). Solo el superadministrador las ve, en **/admin → Solicitudes**. Prueba local: `supabase/tests/solicitudes_16.sql` |
+| `migrations/20261103000018_configuracion_modulo.sql` | El superadministrador puede ocultar la pestaña **Configuración** del CRM de un negocio (Reservalope → Personalizar CRM → Módulos), como los demás módulos. Solo cambia la validación de `crm_config`; ningún dato cambia. Prueba local: `supabase/tests/configuracion_18.sql` |
 | `tests/supabase_stub.sql`, `tests/qa_10.sql`, `tests/rubros_11.sql` y `tests/crm_12.sql` | Solo para probar en un PostgreSQL local (no se ejecutan en Supabase) |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
@@ -35,6 +36,8 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 1. Entra a tu proyecto en supabase.com → **SQL Editor** → **New query**.
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
 3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08`, `…09`, `…10`, `…11`, `…12`, `…13` y `…14`, **en ese orden**.
+
+> **Si ya ejecutaste hasta el `…17`, solo falta el `…18`** (Configuración ocultable). Es corto, se puede repetir y no toca datos. Mientras no se ejecute, apagar el módulo Configuración en la consola da un error al guardar; lo demás funciona igual.
 
 > **Si ya ejecutaste del 1 al 13, solo falta el `…14`** (vista de citas). Solo agrega una columna: todos los negocios quedan con la agenda del día. Mientras no se ejecute, el CRM igual muestra la agenda y la elección de **Configuración → Vista de citas** se guarda solo en el navegador de quien la cambie.
 >
