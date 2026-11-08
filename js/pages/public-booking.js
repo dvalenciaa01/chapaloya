@@ -421,6 +421,54 @@ const PublicBooking = {
     '</article>';
   },
 
+  /* Una sola profesional atiende (diseño boutique): "Equipo" daría a entender que
+     son varias, así que esa parte de la web pasa a ser "Galería". */
+  isSolo() {
+    return document.documentElement.getAttribute('data-layout') === 'boutique' && DB.state.barberProfiles.length === 1;
+  },
+
+  // Ideas de diseño ilustradas (cuando aún no hay fotos de trabajos)
+  IDEAS: ['Clásica', 'Francesa', 'Puntos', 'Floral', 'Ombré', 'Tono intenso'],
+  ideasHTML() {
+    return this.IDEAS.map((name, i) =>
+      '<a class="bq-idea reveal" href="' + this.esc(this.href('reservar.html')) + '">' +
+        '<span class="bq-idea-art bq-sw-' + i + '">' + this.artSVG(i) + '</span>' +
+        '<span class="bq-idea-name">' + this.esc(name) + '</span>' +
+      '</a>'
+    ).join('');
+  },
+
+  applySolo() {
+    if (!this.isSolo()) return;
+    // Menú y pie: "Equipo" → "Galería"
+    document.querySelectorAll('a[href*="barberos"]').forEach(a => {
+      if (a.textContent.trim() === 'Equipo') a.textContent = 'Galería';
+    });
+    // Inicio: la sección del equipo se reemplaza por la galería (renderBoutique)
+    document.querySelectorAll('.home-team').forEach(sec => { sec.hidden = true; });
+    // Página del equipo → Galería
+    const page = document.getElementById('pub-barberos');
+    if (!page) return;
+    const bp = DB.state.barberProfiles[0];
+    document.title = document.title.replace(/^Equipo/, 'Galería');
+    const crumb = page.querySelector('.breadcrumb [aria-current]');
+    if (crumb) crumb.textContent = 'Galería';
+    const eyebrow = page.querySelector('.page-hero .eyebrow');
+    if (eyebrow) eyebrow.textContent = 'Nuestros trabajos';
+    const h1 = page.querySelector('.page-hero h1');
+    if (h1) h1.textContent = 'Galería';
+    const lead = page.querySelector('.page-hero p');
+    if (lead) lead.textContent = 'Diseños y trabajos de ' + bp.name + '. Inspírate y reserva tu ' + this.v('appointment') + ' cuando quieras.';
+    const filter = document.getElementById('pub-barber-filter-bar');
+    if (filter) filter.hidden = true;
+    const list = document.getElementById('pub-barbers-showcase-list');
+    if (list && !bp.works.length && !list.querySelector('.bq-ideas-block')) {
+      list.insertAdjacentHTML('afterbegin',
+        '<div class="bq-ideas-block reveal"><div class="works-head"><h2>Ideas para tu próxima cita</h2></div>' +
+        '<div class="bq-gallery">' + this.ideasHTML() + '</div></div>');
+    }
+  },
+
   renderBoutique(ordered, cur) {
     const heroArt = document.getElementById('bq-hero-art');
     if (!heroArt || document.documentElement.getAttribute('data-layout') !== 'boutique') return;
@@ -455,17 +503,25 @@ const PublicBooking = {
       why.classList.toggle('has-photo', !!withPhoto);
     }
 
-    // Galería: trabajos del equipo (hasta 6); sin trabajos, la sección no se muestra
+    // Galería: trabajos del equipo (hasta 6). Sin fotos, la sección solo se muestra
+    // cuando atiende una sola persona (reemplaza a "Equipo"): ideas de diseño ilustradas.
     const gal = document.getElementById('bq-gallery');
     if (gal) {
+      const solo = this.isSolo();
       const works = [];
       DB.state.barberProfiles.forEach(b => b.works.forEach(w => works.push({ b, w })));
-      gal.innerHTML = works.slice(0, 6).map(({ b, w }) =>
-        '<button type="button" class="bq-shot reveal" data-pb-action="work" data-id="' + this.esc(b.id) + '" data-work="' + this.esc(w.id) + '">' +
-          '<img src="' + this.esc(w.image) + '" alt="' + this.esc(w.title || ('Trabajo de ' + b.name)) + '" loading="lazy" decoding="async" />' +
-        '</button>'
-      ).join('');
-      document.getElementById('bq-gallery-section').hidden = !works.length;
+      if (works.length) {
+        gal.innerHTML = works.slice(0, 6).map(({ b, w }) =>
+          '<button type="button" class="bq-shot reveal" data-pb-action="work" data-id="' + this.esc(b.id) + '" data-work="' + this.esc(w.id) + '">' +
+            '<img src="' + this.esc(w.image) + '" alt="' + this.esc(w.title || ('Trabajo de ' + b.name)) + '" loading="lazy" decoding="async" />' +
+          '</button>'
+        ).join('');
+      } else if (solo) {
+        gal.innerHTML = this.ideasHTML();
+        document.getElementById('bq-gal-eyebrow').textContent = 'Galería';
+        document.getElementById('bq-gal-title').textContent = 'Inspírate para tu próxima cita';
+      }
+      document.getElementById('bq-gallery-section').hidden = !works.length && !solo;
     }
 
     const offer = document.getElementById('bq-offer-art');
@@ -511,6 +567,7 @@ const PublicBooking = {
     this.renderBoutique(ordered, cur);
     this.renderHomeBarbers();
     this.renderBarbersShowcase();
+    this.applySolo();
     this.renderBookingForm();
 
     if (typeof SiteUI !== 'undefined') SiteUI.observeReveal();

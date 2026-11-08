@@ -49,6 +49,19 @@ html[data-layout="boutique"] {
 }
 [data-layout="boutique"] .brand-wordmark { font-weight: 400; letter-spacing: 0.01em; font-size: 1.45rem; }
 
+/* ---------------- Franja final de las páginas interiores: clara ---------------- */
+[data-layout="boutique"] .cta-band {
+  --brand: var(--bq-blush-2);
+  --on-brand: var(--text);
+  --on-brand-2: var(--text-2);
+  --on-brand-3: var(--text-3);
+  --line-dark: var(--line);
+  --line-dark-strong: var(--line-strong);
+  --focus: var(--black);
+}
+[data-layout="boutique"] .cta-band .btn-accent,
+[data-layout="boutique"] .cta-band .btn-accent:hover { --btn-bg: var(--black); --btn-fg: var(--white); --btn-line: var(--black); }
+
 /* ---------------- Pie claro ---------------- */
 [data-layout="boutique"] .site-footer {
   --brand: var(--bq-blush);
@@ -71,8 +84,6 @@ html[data-layout="boutique"] {
   font-family: var(--font-body); font-size: 0.75rem; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase; color: var(--bq-ink-soft);
 }
-[data-layout="boutique"] h1,
-[data-layout="boutique"] h2 { color: var(--text); }
 .bq-note {
   font-family: var(--font-note); font-weight: 500; font-size: 1.85rem; line-height: 1.05;
   color: var(--text); transform: rotate(-8deg); pointer-events: none;
@@ -277,3 +288,16 @@ html[data-layout="boutique"] {
 @media (prefers-reduced-motion: reduce) {
   .bq-srv, .bq-srv:hover, .bq-shot img, .bq-shot:hover img { transition: none; transform: none; }
 }
+
+/* ---------------- Galería con una sola profesional (sin fotos aún) ---------------- */
+.bq-idea {
+  display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--card);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.bq-idea:hover { border-color: var(--line-strong); transform: translateY(-3px); }
+.bq-idea-art { display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 4 / 3; padding: var(--s3) var(--s3) 0; }
+.bq-idea-name { padding: var(--s2) var(--s3); font-weight: 700; font-size: 0.9rem; }
+.bq-ideas-block { margin-bottom: var(--s6); }
+.bq-ideas-block h2 { font-size: var(--fs-xl); }
+@media (prefers-reduced-motion: reduce) { .bq-idea, .bq-idea:hover { transition: none; transform: none; } }
