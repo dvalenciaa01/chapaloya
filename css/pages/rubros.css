@@ -95,30 +95,25 @@ html[data-rubro="spa"] {
 @media (max-width: 959px) { [data-rubro="spa"] .section { padding: 80px 0; } }
 
 /* ==========================================================================
-   UÑAS / NAIL BAR · pop
+   UÑAS / NAIL BAR · boutique
+   Títulos con serifa, tonos rubor y notas a mano. Inicio usa el diseño
+   "boutique" (css/pages/boutique.css, TenantBrand.LAYOUTS).
    ========================================================================== */
 html[data-rubro="unas"] {
-  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-display: 'DM Serif Display', 'Didot', Georgia, serif;
   --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --r-sm: 12px; --r: 16px; --r-lg: 24px; --r-xl: 32px; --btn-r: 999px;
+  --r-sm: 10px; --r: 14px; --r-lg: 18px; --r-xl: 28px; --btn-r: 999px;
 }
-[data-rubro="unas"] h1 { font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; font-size: clamp(2.3rem, 6vw, 4.2rem); }
-[data-rubro="unas"] h2 { font-weight: 600; letter-spacing: -0.035em; }
-[data-rubro="unas"] h3 { font-weight: 600; letter-spacing: -0.02em; font-size: 1.1rem; }
-[data-rubro="unas"] .hero-sub { font-family: var(--font-body); font-weight: 500; }
-/* Sello "24/7" sobre la tarjeta de reserva */
-[data-rubro="unas"] .hero-card::after {
-  content: "24/7"; content: "24/7" / "";
-  position: absolute; top: -24px; right: 16px;
-  display: flex; align-items: center; justify-content: center;
-  width: 76px; height: 76px; border-radius: 50%;
-  background: var(--accent); color: var(--on-accent); border: 3px solid var(--card);
-  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; letter-spacing: -0.04em;
-  transform: rotate(-12deg);
-}
-[data-rubro="unas"] .hero-card-head { padding-right: 72px; }
-[data-rubro="unas"] .team-card:nth-child(odd) .team-photo { transform: rotate(-1.5deg); }
-[data-rubro="unas"] .team-card:nth-child(even) .team-photo { transform: rotate(1.5deg); }
+[data-rubro="unas"] h1,
+[data-rubro="unas"] h2 { font-weight: 400; letter-spacing: -0.01em; }
+[data-rubro="unas"] h1 { line-height: 1.02; }
+[data-rubro="unas"] h3 { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em; }
+[data-rubro="unas"] .hero-sub,
+[data-rubro="unas"] .hero-card-head strong { font-family: var(--font-body); font-weight: 600; }
+[data-rubro="unas"] .service-price,
+[data-rubro="unas"] .booking-total-amount { font-family: var(--font-body); font-weight: 700; }
+[data-rubro="unas"] .btn { font-weight: 700; font-size: 0.95rem; }
+[data-rubro="unas"] .page-hero { background: linear-gradient(100deg, var(--paper), color-mix(in srgb, var(--accent) 12%, var(--white))); }
 
 /* ==========================================================================
    CONSULTORIO MÉDICO · ficha clínica

@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="css/fonts/urbanist.css" />
   <link rel="stylesheet" href="css/pages/publico.css" />
   <link rel="stylesheet" href="css/pages/rubros.css" />
+  <link rel="stylesheet" href="css/pages/boutique.css" />
 </head>
 <body data-page="inicio">
 
@@ -68,7 +69,92 @@
 
   <main id="main" tabindex="-1">
     <section id="pub-inicio" class="page-view">
-      <section class="hero on-brand" aria-labelledby="hero-title">
+      <!-- ============ Portada "boutique" (rubros con data-layout="boutique", hoy uñas) ============
+           La rellena PublicBooking.renderBoutique(): título y foto salen de la portada que el
+           negocio define en la consola; sin foto se dibuja una ilustración con sus colores. -->
+      <section class="bq-hero bq-only" aria-labelledby="bq-title">
+        <div class="container bq-hero-grid">
+          <div class="bq-hero-copy">
+            <span class="bq-eyebrow"><span data-v="business">negocio</span><span data-t-row> · <span data-t="city"></span></span></span>
+            <h1 id="bq-title" class="bq-title">Manos lindas, confianza todos los días</h1>
+            <p class="bq-lead" data-v-fmt="Cuidado, diseño y un momento solo para ti. Reserva tu {appointment} en línea en menos de un minuto.">Cuidado, diseño y un momento solo para ti. Reserva tu cita en línea en menos de un minuto.</p>
+            <div class="bq-actions">
+              <a class="btn btn-solid btn-lg" href="reservar.html"><span>Reservar mi <span data-v="appointment">cita</span></span><i data-icon="arrowRight"></i></a>
+              <a class="bq-link-round" href="servicios.html"><span class="bq-round-ic" aria-hidden="true"><i data-icon="sparkles"></i></span><span>Ver <span data-v="servicePlural">servicios</span></span></a>
+            </div>
+            <ul class="bq-badges">
+              <li><span class="bq-badge-ic" aria-hidden="true"><i data-icon="clock"></i></span><strong>Reserva 24/7</strong><span>Cuando quieras</span></li>
+              <li><span class="bq-badge-ic" aria-hidden="true"><i data-icon="tag"></i></span><strong>Precios claros</strong><span>Sin sorpresas</span></li>
+              <li><span class="bq-badge-ic" aria-hidden="true"><i data-icon="calendar"></i></span><strong>Horarios reales</strong><span>Solo lo disponible</span></li>
+              <li data-wa-only><span class="bq-badge-ic" aria-hidden="true"><i data-icon="whatsapp"></i></span><strong>Aviso por WhatsApp</strong><span>Tu cita confirmada</span></li>
+              <li data-wa-off hidden><span class="bq-badge-ic" aria-hidden="true"><i data-icon="checkCircle"></i></span><strong>Código al instante</strong><span>Tu cita confirmada</span></li>
+            </ul>
+          </div>
+          <div class="bq-hero-art" id="bq-hero-art">
+            <p class="bq-note bq-note-hero" aria-hidden="true">Uñas lindas,<br />días felices <span>♡</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="bq-section bq-only" aria-labelledby="bq-srv-title">
+        <div class="container">
+          <div class="bq-head reveal">
+            <div>
+              <span class="bq-eyebrow">Nuestros <span data-v="servicePlural">servicios</span></span>
+              <h2 id="bq-srv-title">Date un gusto</h2>
+            </div>
+            <a class="bq-more" href="servicios.html">Ver todos <i data-icon="arrowRight"></i></a>
+          </div>
+          <div class="bq-services" id="bq-services"></div>
+        </div>
+      </section>
+
+      <section class="bq-why bq-only" aria-labelledby="bq-why-title">
+        <div class="bq-why-grid">
+          <div class="bq-why-art" id="bq-why-art"></div>
+          <div class="bq-why-copy reveal">
+            <p class="bq-note bq-note-why" aria-hidden="true">Cuídate,<br />te lo mereces <span>♡</span></p>
+            <span class="bq-eyebrow">Por qué elegirnos</span>
+            <h2 id="bq-why-title" data-v-fmt="Más que un {business}">Más que un negocio</h2>
+            <ul class="bq-features">
+              <li><span class="bq-feat-ic" aria-hidden="true"><i data-icon="user"></i></span><div><strong>Atención con cita</strong><p>Sin esperas: tu horario queda reservado solo para ti.</p></div></li>
+              <li><span class="bq-feat-ic" aria-hidden="true"><i data-icon="tag"></i></span><div><strong>Precios claros</strong><p data-v-fmt="Ves el precio y la duración de cada {service} antes de reservar.">Ves el precio y la duración de cada servicio antes de reservar.</p></div></li>
+              <li><span class="bq-feat-ic" aria-hidden="true"><i data-icon="sparkles"></i></span><div><strong>Reserva en un minuto</strong><p data-v-fmt="Elige {service}, {staff} y horario desde tu celular.">Elige servicio, profesional y horario desde tu celular.</p></div></li>
+              <li data-wa-only><span class="bq-feat-ic" aria-hidden="true"><i data-icon="whatsapp"></i></span><div><strong>Recordatorio por WhatsApp</strong><p data-v-fmt="Te avisamos antes de tu {appointment} para que no se te pase.">Te avisamos antes de tu cita para que no se te pase.</p></div></li>
+              <li data-wa-off hidden><span class="bq-feat-ic" aria-hidden="true"><i data-icon="search"></i></span><div><strong>Consulta tu <span data-v="appointment">cita</span></strong><p>Con tu código la revisas cuando quieras.</p></div></li>
+            </ul>
+            <a class="btn bq-btn-soft btn-lg" href="reservar.html"><span>Reservar mi momento</span><i data-icon="arrowRight"></i></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="bq-section bq-only" id="bq-gallery-section" aria-labelledby="bq-gal-title" hidden>
+        <div class="container">
+          <div class="bq-head reveal">
+            <div>
+              <span class="bq-eyebrow">Trabajos destacados</span>
+              <h2 id="bq-gal-title">Diseños que hablan por ti</h2>
+            </div>
+            <a class="bq-more" href="barberos.html">Ver galería <i data-icon="arrowRight"></i></a>
+          </div>
+          <div class="bq-gallery" id="bq-gallery"></div>
+        </div>
+      </section>
+
+      <section class="bq-offer bq-only" aria-labelledby="bq-offer-title">
+        <div class="container bq-offer-inner">
+          <div class="bq-offer-copy">
+            <span class="bq-eyebrow">Tu momento</span>
+            <h2 id="bq-offer-title">Relájate. Reserva. Brilla.</h2>
+            <p data-v-fmt="Elige {service}, {staff} y horario en línea. Recibes tu código al instante.">Elige servicio, profesional y horario en línea. Recibes tu código al instante.</p>
+            <a class="btn btn-solid btn-lg" href="reservar.html"><span>Reservar ahora</span><i data-icon="arrowRight"></i></a>
+          </div>
+          <div class="bq-offer-art" id="bq-offer-art" aria-hidden="true"></div>
+          <p class="bq-note bq-note-offer" aria-hidden="true">Pequeños detalles,<br />gran felicidad <span>♡</span></p>
+        </div>
+      </section>
+
+      <section class="hero on-brand classic-only" aria-labelledby="hero-title">
         <div class="container hero-grid">
           <div class="hero-copy">
             <span class="hero-kicker"><span class="kicker-icon" data-v-icon><i data-icon="calendar"></i></span><span data-v="Business">Negocio</span><span data-t-row>· <span data-t="city"></span></span></span>
@@ -100,7 +186,7 @@
         </div>
       </section>
 
-      <section class="section" aria-labelledby="srv-title">
+      <section class="section classic-only" aria-labelledby="srv-title">
         <div class="container">
           <div class="section-head reveal">
             <div>
@@ -114,7 +200,7 @@
         </div>
       </section>
 
-      <section class="section section-alt" aria-labelledby="team-title">
+      <section class="section section-alt home-team" aria-labelledby="team-title">
         <div class="container">
           <div class="section-head reveal">
             <div>
@@ -128,7 +214,7 @@
         </div>
       </section>
 
-      <section class="cta-band on-brand" aria-labelledby="cta-title">
+      <section class="cta-band on-brand classic-only" aria-labelledby="cta-title">
         <div class="container cta-band-inner">
           <div>
             <h2 id="cta-title" data-v-fmt="¿Listo para reservar tu {appointment}?">¿Listo para reservar tu cita?</h2>
