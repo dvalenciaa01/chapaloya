@@ -479,11 +479,27 @@ const PublicBooking = {
     if (title && site.heroTitle) title.textContent = site.heroTitle;
     const lead = document.querySelector('.bq-lead');
     if (lead && site.heroSubtitle) { lead.removeAttribute('data-v-fmt'); lead.textContent = site.heroSubtitle; }
+    // Con foto: ocupa todo el ancho de la portada (el texto va sobre su lado claro);
+    // sin foto: ilustración a la derecha.
+    const hero = heroArt.closest('.bq-hero');
     const note = heroArt.querySelector('.bq-note');
-    heroArt.innerHTML = site.heroImage
-      ? '<div class="bq-hero-photo"><img src="' + this.esc(site.heroImage) + '" alt="" decoding="async" /></div>'
-      : '<div class="bq-hero-illus">' + this.artSVG('hero') + '</div>';
-    heroArt.classList.toggle('has-photo', !!site.heroImage);
+    let bg = hero.querySelector('img.bq-hero-bg');
+    if (site.heroImage) {
+      if (!bg) {
+        bg = document.createElement('img');
+        bg.className = 'bq-hero-bg';
+        bg.alt = '';
+        bg.decoding = 'async';
+        bg.setAttribute('fetchpriority', 'high');
+        hero.insertBefore(bg, hero.firstChild);
+      }
+      if (bg.getAttribute('src') !== site.heroImage) bg.src = site.heroImage;
+      heroArt.innerHTML = '';
+    } else {
+      if (bg) bg.remove();
+      heroArt.innerHTML = '<div class="bq-hero-illus">' + this.artSVG('hero') + '</div>';
+    }
+    hero.classList.toggle('has-photo', !!site.heroImage);
     if (note) heroArt.appendChild(note);
 
     // Servicios: hasta 6 en fila

@@ -147,14 +147,25 @@ html[data-layout="boutique"] {
 }
 .bq-hero-art { position: relative; min-height: 300px; }
 .bq-hero-illus { width: min(100%, 520px); margin: 0 auto; aspect-ratio: 440 / 460; }
-.bq-hero-photo {
-  position: relative; width: 100%; aspect-ratio: 5 / 4; overflow: hidden;
-  border-radius: 240px 240px var(--r-xl) var(--r-xl);
+/* Portada con foto del negocio: a todo el ancho, el texto sobre su lado izquierdo
+   con un velo del color de fondo (contraste del texto garantizado). En móvil la
+   foto va debajo del texto, sin velo. */
+.bq-hero-bg { display: block; width: 100%; object-fit: cover; }
+.bq-hero.has-photo .bq-note-hero { display: none; }
+@media (min-width: 960px) {
+  .bq-hero.has-photo { min-height: 600px; display: flex; align-items: center; background: var(--paper); }
+  .bq-hero.has-photo .bq-hero-grid { position: relative; z-index: 2; }
+  .bq-hero.has-photo .bq-hero-bg { position: absolute; inset: 0; height: 100%; object-position: right center; z-index: 0; }
+  .bq-hero.has-photo::before {
+    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(90deg, var(--paper) 0%, color-mix(in srgb, var(--paper) 92%, transparent) 34%, color-mix(in srgb, var(--paper) 0%, transparent) 58%);
+  }
+  .bq-hero.has-photo .bq-hero-art { min-height: 0; }
 }
-.bq-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
-.bq-note-hero { position: absolute; top: 4%; right: 2%; text-align: center; }
-.bq-hero-art.has-photo .bq-note-hero {
-  padding: var(--s2) var(--s3); border-radius: var(--r); background: color-mix(in srgb, var(--white) 86%, transparent);
+@media (max-width: 959px) {
+  .bq-hero.has-photo { display: flex; flex-direction: column; padding-bottom: 0; }
+  .bq-hero.has-photo .bq-hero-bg { order: 2; aspect-ratio: 16 / 10; object-position: 72% center; margin-top: var(--s6); }
+  .bq-hero.has-photo .bq-hero-art { display: none; }
 }
 @media (max-width: 959px) {
   .bq-hero-art { max-width: 400px; width: 100%; margin: 0 auto; padding-top: 56px; min-height: 0; }
