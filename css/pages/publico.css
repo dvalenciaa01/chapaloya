@@ -158,7 +158,10 @@ strong { font-weight: 600; }
 .brand-pending [data-wa-only],
 .brand-pending [data-v],
 .brand-pending [data-v-fmt],
-.brand-pending [data-v-icon] { visibility: hidden; }
+.brand-pending [data-v-icon],
+.brand-pending .site-nav,
+.brand-pending main,
+.brand-pending .site-footer { visibility: hidden; }
 
 /* ---------------- Botones ---------------- */
 .btn {
