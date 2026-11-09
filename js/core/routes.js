@@ -16,7 +16,7 @@ const Routes = {
 
   // Primeros tramos que usa el sitio: ningún negocio puede llamarse así
   // (la base de datos también lo impide: migración 13)
-  RESERVED: ['admin', 'api', 'assets', 'barberos', 'bot', 'consultar-cita', 'crm', 'css', 'docs', 'index',
+  RESERVED: ['admin', 'api', 'assets', 'barberos', 'bot', 'consultar-cita', 'crm', 'css', 'docs', 'galeria', 'index',
     'ingresar', 'js', 'landing', 'login', 'privacidad', 'reservalope', 'reservar', 'servicios', 'supabase', 'www'],
 
   pretty() {

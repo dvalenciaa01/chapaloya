@@ -850,6 +850,7 @@ Object.assign(Reservalope, {
     if (!el || !this.ce) return;
     const f = { modules: 'cePanelModules', fields: 'cePanelFields', custom: 'cePanelCustom', theme: 'cePanelTheme', site: 'cePanelSite' }[this.ce.tab];
     el.innerHTML = this[f]();
+    if (this.ce.tab === 'site') this.ceSecPreview();
     const err = document.getElementById('ce-error');
     if (err) err.textContent = '';
   },
@@ -1117,7 +1118,15 @@ Object.assign(Reservalope, {
   cePanelSite() {
     const s = this.ce.cfg.site;
     const E = UI.esc;
-    return '<p class="ce-hint">Portada de la web pública. Vacío usa los textos e imagen por defecto.</p>' +
+    return '<p class="ce-hint">Solo cambia la web pública del negocio; el CRM no usa nada de esta pestaña.</p>' +
+      '<div class="form-stack">' +
+        '<div><label class="field-lbl" for="ce-site-layout">Diseño de la web</label><select id="ce-site-layout" class="input-dark" onchange="Reservalope.ceSetSite(\'layout\', this.value)">' +
+          CrmConfig.SITE_LAYOUTS.map(l => '<option value="' + l.key + '"' + ((s.layout || '') === l.key ? ' selected' : '') + '>' + E(l.label) + '</option>').join('') + '</select>' +
+          '<span class="field-hint">“Según el rubro” usa boutique para uñas y clásico para los demás.</span></div>' +
+      '</div>' +
+      this.cePanelSections() +
+      '<fieldset class="ce-fieldset"><legend>Portada</legend>' +
+      '<p class="ce-hint">Vacío usa los textos e imagen por defecto.</p>' +
       '<div class="form-stack">' +
         '<div><label class="field-lbl" for="ce-site-title">Título de portada</label><input type="text" id="ce-site-title" class="input-dark" maxlength="80" value="' + E(s.heroTitle) + '" oninput="Reservalope.ceSetSite(\'heroTitle\', this.value)" /><span class="field-hint">Hasta 80 caracteres.</span></div>' +
         '<div><label class="field-lbl" for="ce-site-sub">Subtítulo</label><textarea id="ce-site-sub" class="input-dark" rows="2" maxlength="200" oninput="Reservalope.ceSetSite(\'heroSubtitle\', this.value)">' + E(s.heroSubtitle) + '</textarea><span class="field-hint">Hasta 200 caracteres.</span></div>' +
@@ -1127,9 +1136,103 @@ Object.assign(Reservalope, {
           (s.heroImage ? '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.ceClearHero()">' + ic('trash') + 'Quitar imagen</button>' : '') + '</div></div>' +
       '</div>' +
       '<span class="card-kicker" style="display:block;margin-top:16px;">Así se verá la portada</span>' +
-      '<div class="ce-hero" id="ce-hero"></div>';
+      '<div class="ce-hero" id="ce-hero"></div></fieldset>';
   },
   ceSetSite(k, v) { this.ce.cfg.site[k] = v; this.ceHero(); },
+
+  /* ---------- Web: secciones del menú (nombre, orden, visibles) ---------- */
+  ceSecType(k) { return CrmConfig.SECTION_TYPES.find(x => x.key === k) || {}; },
+  cePanelSections() {
+    const list = this.ce.cfg.site.sections;
+    const E = UI.esc;
+    const head = '<fieldset class="ce-fieldset" id="ce-sections"><legend>Secciones del menú</legend>';
+    if (!list) {
+      const def = CrmConfig.defaultSections(s => this.ceV(s)).map(x => x.label).join(' · ');
+      return head + '<p class="ce-hint">Usa las de siempre: ' + E(def) + '.</p>' +
+        '<button type="button" class="btn-dark btn-xs" id="ce-sec-custom" onclick="Reservalope.ceSecCustomize()">' + ic('edit') + 'Personalizar secciones</button></fieldset>';
+    }
+    const used = {};
+    list.forEach(x => { used[x.type] = (used[x.type] || 0) + 1; });
+    const addable = CrmConfig.SECTION_TYPES.filter(t => (used[t.key] || 0) < t.max);
+    return head +
+      '<p class="ce-hint">Cambia el nombre, el orden y lo que se ve. El tipo dice qué muestra cada sección; los datos salen del CRM (' + E(this.ceV('{servicePlural}')) + ', equipo y fotos de trabajos). Inicio y Reservar siempre van; Reservar es el botón del menú.</p>' +
+      '<ol class="ce-cf-list ce-sec-list" id="ce-sec-list">' + list.map((x, i) => {
+        const t = this.ceSecType(x.type);
+        const id = 'ce-sec-' + i;
+        return '<li class="ce-cf-item ce-sec' + (x.show ? '' : ' is-off') + '">' +
+          '<div class="ce-sec-main">' +
+            '<label class="sr-only" for="' + id + '-label">Nombre de la sección ' + (i + 1) + '</label>' +
+            '<input type="text" id="' + id + '-label" class="input-dark" maxlength="30" value="' + E(x.label) + '" oninput="Reservalope.ceSecSet(' + i + ', \'label\', this.value)" />' +
+            '<small>' + E(this.ceV(t.label)) + ' · ' + E(this.ceV(t.hint)) + '</small>' +
+            (x.type === 'servicios'
+              ? '<label class="ce-sec-cat"><span>Solo la categoría</span><input type="text" id="' + id + '-cat" class="input-dark" maxlength="40" value="' + E(x.cat || '') + '" placeholder="Todas" oninput="Reservalope.ceSecSet(' + i + ', \'cat\', this.value)" /></label>'
+              : '') +
+          '</div>' +
+          '<span class="ce-cf-acts">' +
+            (t.fixed ? '' : '<label class="ce-check ce-sec-show"><input type="checkbox" id="' + id + '-show"' + (x.show ? ' checked' : '') + ' onchange="Reservalope.ceSecSet(' + i + ', \'show\', this.checked)" /> <span>Visible</span></label>') +
+            '<button type="button" class="btn-dark btn-xs" aria-label="Subir ' + E(x.label) + '" onclick="Reservalope.ceSecMove(' + i + ', -1)"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button type="button" class="btn-dark btn-xs" aria-label="Bajar ' + E(x.label) + '" onclick="Reservalope.ceSecMove(' + i + ', 1)"' + (i === list.length - 1 ? ' disabled' : '') + '>↓</button>' +
+            (t.fixed ? '' : '<button type="button" class="btn-danger btn-xs" aria-label="Quitar ' + E(x.label) + '" onclick="Reservalope.ceSecRemove(' + i + ')">' + ic('trash') + '</button>') +
+          '</span></li>';
+      }).join('') + '</ol>' +
+      '<div class="row-actions">' +
+        (list.length < CrmConfig.MAX_SECTIONS && addable.length
+          ? '<label class="sr-only" for="ce-sec-add">Tipo de sección a agregar</label><select id="ce-sec-add" class="input-dark ce-sec-add">' +
+              addable.map(t => '<option value="' + t.key + '">' + E(this.ceV(t.label)) + '</option>').join('') + '</select>' +
+            '<button type="button" class="btn-golden btn-xs" onclick="Reservalope.ceSecAdd(document.getElementById(\'ce-sec-add\').value)">' + ic('plus') + 'Agregar sección</button>'
+          : '') +
+        '<button type="button" class="btn-dark btn-xs" onclick="Reservalope.ceSecDefault()">' + ic('refresh') + 'Volver a las de siempre</button>' +
+      '</div>' +
+      '<span class="card-kicker" style="display:block;margin-top:12px;">Así se verá el menú</span>' +
+      '<div class="ce-sec-preview" id="ce-sec-preview"></div>' +
+      '</fieldset>';
+  },
+  ceSecPreview() {
+    const el = document.getElementById('ce-sec-preview');
+    const list = this.ce && this.ce.cfg.site.sections;
+    if (!el || !list) return;
+    const pal = TenantBrand.paletteOf(this.ceT());
+    el.style.setProperty('--h-bg', pal.primary); el.style.setProperty('--h-fg', pal.tertiary); el.style.setProperty('--h-ac', pal.secondary);
+    const vis = list.filter(x => x.show);
+    const res = vis.find(x => x.type === 'reservar');
+    el.innerHTML = vis.filter(x => x.type !== 'reservar').map(x => '<span>' + UI.esc(x.label || '…') + '</span>').join('') +
+      (res ? '<em>' + UI.esc(res.label || '…') + '</em>' : '');
+  },
+  ceSecRender() {
+    const box = document.getElementById('ce-sections');
+    if (!box) return;
+    box.outerHTML = this.cePanelSections();
+    this.ceSecPreview();
+  },
+  ceSecCustomize() {
+    this.ce.cfg.site.sections = CrmConfig.defaultSections(s => this.ceV(s));
+    this.ceSecRender();
+  },
+  ceSecDefault() { this.ce.cfg.site.sections = null; this.ceSecRender(); },
+  ceSecSet(i, k, v) {
+    const x = this.ce.cfg.site.sections[i];
+    if (!x) return;
+    if (k === 'show') { x.show = !!v; this.ceSecRender(); return; }
+    if (k === 'cat') { if (String(v).trim()) x.cat = String(v); else delete x.cat; return; }
+    x[k] = v;
+    this.ceSecPreview();
+  },
+  ceSecMove(i, d) {
+    const l = this.ce.cfg.site.sections, j = i + d;
+    if (j < 0 || j >= l.length) return;
+    [l[i], l[j]] = [l[j], l[i]];
+    this.ceSecRender();
+  },
+  ceSecRemove(i) { this.ce.cfg.site.sections.splice(i, 1); this.ceSecRender(); },
+  ceSecAdd(type) {
+    const t = this.ceSecType(type);
+    const l = this.ce.cfg.site.sections;
+    if (!t.key || l.length >= CrmConfig.MAX_SECTIONS) return;
+    // Antes de Reservar, para que el botón quede al final
+    const at = l.findIndex(x => x.type === 'reservar');
+    l.splice(at < 0 ? l.length : at, 0, { type: t.key, label: this.ceV(t.name), show: true });
+    this.ceSecRender();
+  },
   ceHero() {
     const el = document.getElementById('ce-hero');
     if (!el || !this.ce) return;
@@ -1227,6 +1330,10 @@ Object.assign(Reservalope, {
     const err = document.getElementById('ce-error');
     const s = this.ce.cfg.site;
     ['heroTitle', 'heroSubtitle', 'heroImage'].forEach(k => { s[k] = String(s[k] || '').trim(); });
+    (s.sections || []).forEach(x => {
+      x.label = String(x.label || '').trim();
+      if (x.cat != null) { x.cat = String(x.cat).trim(); if (!x.cat) delete x.cat; }
+    });
     const errs = CrmConfig.validate(this.ce.cfg);
     if (errs.length) { err.textContent = errs[0]; return false; }
     const out = CrmConfig.compact(this.ce.cfg);

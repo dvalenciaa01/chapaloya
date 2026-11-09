@@ -264,10 +264,102 @@ const TenantBrand = {
      entrada = diseño clásico. "boutique": portada con título grande con serifa,
      tarjetas con imagen, galería y franja de invitación (pensado para uñas). */
   LAYOUTS: { unas: 'boutique' },
-  applyLayout() {
+  // El superadmin puede elegir otro en la consola (crm_config.site.layout)
+  applyLayout(t) {
     const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
-    const layout = (type && this.LAYOUTS[type]) || 'clasico';
+    const chosen = t && t.site && t.site.layout;
+    const layout = chosen || (type && this.LAYOUTS[type]) || 'clasico';
     document.documentElement.setAttribute('data-layout', layout);
+  },
+
+  /* ---------------- Secciones de la web (crm_config.site.sections) ----------------
+     Menú propio de cada negocio: nombre, orden y si se ve cada sección. El tipo dice
+     qué página abre. Sin configuración la web queda como siempre (el HTML de fábrica).
+     Solo cambia la web pública: el CRM no usa nada de esto. */
+  SECTION_PAGES: { inicio: 'index.html', servicios: 'servicios.html', equipo: 'barberos.html', galeria: 'galeria.html', 'mi-cita': 'consultar-cita.html', reservar: 'reservar.html' },
+  SECTION_DATA_PAGE: { inicio: 'inicio', servicios: 'servicios', equipo: 'barberos', galeria: 'galeria', 'mi-cita': 'mi-cita', reservar: 'reservar' },
+  sections() {
+    const t = typeof DB !== 'undefined' ? DB.tenant : null;
+    return (t && t.site && Array.isArray(t.site.sections)) ? t.site.sections : null;
+  },
+  // ¿Se ve alguna sección de este tipo? (sin configuración, todas las de siempre sí)
+  sectionShown(type) {
+    const secs = this.sections();
+    if (!secs) return type !== 'galeria';
+    return secs.some(x => x.type === type && x.show);
+  },
+  sectionHref(sec) {
+    return this.SECTION_PAGES[sec.type] + (sec.cat ? '?cat=' + encodeURIComponent(sec.cat) : '');
+  },
+  // Sección de la página abierta (en servicios, la de su categoría ?cat=)
+  currentSection() {
+    const secs = this.sections();
+    if (!secs) return null;
+    const page = document.body.getAttribute('data-page');
+    const cat = (new URLSearchParams(location.search).get('cat') || '').trim().toLowerCase();
+    return secs.find(x => this.SECTION_DATA_PAGE[x.type] === page &&
+      (x.type !== 'servicios' || String(x.cat || '').toLowerCase() === cat)) || null;
+  },
+  applySections() {
+    const secs = this.sections();
+    if (!secs) return;
+    const esc = (v) => UIx.esc(v);
+    const cur = this.currentSection();
+    const visible = secs.filter(x => x.show);
+    const reservar = secs.find(x => x.type === 'reservar');
+
+    // Menú principal (Reservar va como botón, aparte)
+    const nav = document.getElementById('site-nav');
+    if (nav) {
+      nav.querySelectorAll('a.pub-nav-btn').forEach(a => a.remove());
+      const extra = nav.querySelector('.nav-mobile-extra');
+      visible.filter(x => x.type !== 'reservar').forEach(x => {
+        const a = document.createElement('a');
+        a.className = 'pub-nav-btn' + (x === cur ? ' active' : '');
+        a.setAttribute('data-pub', this.SECTION_DATA_PAGE[x.type]);
+        a.setAttribute('href', this.sectionHref(x));
+        if (x === cur) a.setAttribute('aria-current', 'page');
+        a.textContent = x.label;
+        nav.insertBefore(a, extra);
+      });
+    }
+    // Botón Reservar: en pantallas chicas se ve solo la primera palabra (como antes "Reservar")
+    if (reservar) {
+      const words = reservar.label.split(/\s+/);
+      document.querySelectorAll('.header-cta').forEach(b => {
+        b.innerHTML = '<span>' + esc(words[0]) + (words.length > 1 ? '<span class="cta-long"> ' + esc(words.slice(1).join(' ')) + '</span>' : '') + '</span>';
+      });
+      document.querySelectorAll('.nav-mobile-extra a').forEach(b => {
+        const sp = b.querySelector('span');
+        if (sp) sp.textContent = reservar.label;
+      });
+    }
+    // Pie de página: las mismas secciones + Privacidad
+    const list = document.querySelector('.site-footer nav .footer-list');
+    if (list) {
+      const priv = list.querySelector('a[href^="privacidad"]');
+      const privLi = priv ? priv.closest('li') : null;
+      list.innerHTML = visible.map(x => '<li><a href="' + esc(this.sectionHref(x)) + '">' + esc(x.label) + '</a></li>').join('');
+      if (privLi) list.appendChild(privLi);
+    }
+    // Enlaces del contenido a secciones ocultas (p. ej. "Consultar mi cita")
+    ['equipo', 'galeria', 'mi-cita'].forEach(type => {
+      if (this.sectionShown(type)) return;
+      const page = this.SECTION_PAGES[type];
+      document.querySelectorAll('main a[href^="' + page + '"]').forEach(a => { a.hidden = true; });
+    });
+    // Página abierta: su nombre en la ruta, el título de la pestaña y el encabezado
+    const inicio = secs.find(x => x.type === 'inicio');
+    document.querySelectorAll('.breadcrumb a[href^="index.html"]').forEach(a => { a.textContent = inicio.label; });
+    if (!cur || cur.type === 'inicio') return;
+    const crumb = document.querySelector('.breadcrumb [aria-current]');
+    if (crumb) crumb.textContent = cur.label;
+    const parts = document.title.split('|');
+    document.title = cur.label + (parts.length > 1 ? ' |' + parts.slice(1).join('|') : '');
+    if (['servicios', 'equipo', 'galeria'].includes(cur.type)) {
+      const h1 = document.querySelector('.page-hero h1');
+      if (h1) { h1.removeAttribute('data-v-fmt'); h1.textContent = cur.label; }
+    }
   },
 
   /* Logo, nombre y colores para la pantalla de carga de la próxima visita
@@ -286,7 +378,8 @@ const TenantBrand = {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
     const fonts = this.applyRubroFonts();
-    this.applyLayout();
+    this.applyLayout(t);
+    this.applySections();
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);

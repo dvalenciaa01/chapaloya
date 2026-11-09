@@ -43,6 +43,8 @@
 /:slug/servicios               /servicios           200
 /:slug/barberos.html           /:slug/barberos      301
 /:slug/barberos                /barberos            200
+/:slug/galeria.html            /:slug/galeria       301
+/:slug/galeria                 /galeria             200
 /:slug/reservar.html           /:slug/reservar      301
 /:slug/reservar                /reservar            200
 /:slug/consultar-cita.html     /:slug/consultar-cita 301

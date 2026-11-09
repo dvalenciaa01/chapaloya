@@ -12,6 +12,10 @@
      lists         { appointments: { columns: ['client', …, 'x:clave'] } }
      theme         { mode, primary, accent, font, density, radius, logoInNav }
      site          { heroTitle, heroSubtitle, heroImage } portada de la web
+                   layout   'clasico' | 'boutique' (sin dato = según el rubro)
+                   sections [{ type, label, show, cat? }] menú de la web, en orden
+                            (sin dato = las de siempre). El CRM nunca lee "site":
+                            solo lo usa la web pública (js/core/tenant-brand.js).
    API: CrmConfig.of(tenant) · field(entity, key) · module(key) · custom(entity)
         apptColumns() · validate(cfg) · normalize(cfg) · compact(cfg)
         themeVars(tenant, cfg) · applyTheme(tenant) · applyThemeTo(el, tenant, cfg)
@@ -108,6 +112,32 @@
     system: { label: 'Del sistema', display: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", body: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }
   };
 
+  /* Web pública: diseños y tipos de sección. El nombre de cada sección es libre;
+     el tipo dice qué página abre y de dónde salen sus datos (servicios, equipo y
+     fotos de trabajos que ya están en el CRM). "inicio" y "reservar" siempre van. */
+  const SITE_LAYOUTS = [
+    { key: '', label: 'Según el rubro' },
+    { key: 'clasico', label: 'Clásico' },
+    { key: 'boutique', label: 'Boutique (portada grande con serifa)' }
+  ];
+  const SECTION_TYPES = [
+    { key: 'inicio', label: 'Inicio', name: 'Inicio', max: 1, fixed: true, hint: 'Página principal' },
+    { key: 'servicios', label: '{ServicePlural}', name: '{ServicePlural}', max: 4, hint: 'Lista de {servicePlural}; puede mostrar solo una categoría' },
+    { key: 'equipo', label: '{StaffPlural}', name: 'Equipo', max: 1, hint: 'Perfiles del equipo con sus trabajos' },
+    { key: 'galeria', label: 'Galería', name: 'Galería', max: 1, hint: 'Todas las fotos de trabajos del equipo' },
+    { key: 'mi-cita', label: 'Mi {appointment}', name: 'Mi {appointment}', max: 1, hint: 'Consultar una reserva con su código' },
+    { key: 'reservar', label: 'Reservar {appointment}', name: 'Reservar {appointment}', max: 1, fixed: true, hint: 'Botón principal del menú' }
+  ];
+  const MAX_SECTIONS = 10;
+  // Las de siempre (vf = formateador del vocabulario del negocio, p. ej. UI.vFor)
+  function defaultSections(vf) {
+    const f = typeof vf === 'function' ? vf : (x) => x;
+    return ['inicio', 'servicios', 'equipo', 'mi-cita', 'reservar'].map(k => {
+      const t = SECTION_TYPES.find(x => x.key === k);
+      return { type: k, label: f(t.name), show: true };
+    });
+  }
+
   const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
   const clone = (v) => JSON.parse(JSON.stringify(v));
   const badText = (s) => /[<>"]/.test(s);
@@ -146,7 +176,35 @@
       FIELDS[e].forEach(f => { fields[e][f.key] = f.canRequire ? { show: f.show, required: !!f.required } : { show: f.show }; });
     });
     return { modules, fields, customFields: { customers: [], appointments: [] }, lists: { appointments: { columns: null } },
-      theme: Object.assign({}, THEME_DEFAULT), site: { heroTitle: '', heroSubtitle: '', heroImage: '' } };
+      theme: Object.assign({}, THEME_DEFAULT), site: { heroTitle: '', heroSubtitle: '', heroImage: '', layout: '', sections: null } };
+  }
+
+  /* Secciones de la web: lo inválido se descarta; si falta Inicio o Reservar,
+     o no queda nada, vuelve a las de siempre (null). */
+  function normSections(list) {
+    if (!Array.isArray(list)) return null;
+    const out = [];
+    const count = {};
+    const cats = new Set();
+    list.forEach(x => {
+      if (!isObj(x) || out.length >= MAX_SECTIONS) return;
+      const t = SECTION_TYPES.find(y => y.key === x.type);
+      const label = String(x.label == null ? '' : x.label).trim();
+      if (!t || !label || label.length > 30 || badText(label)) return;
+      if ((count[t.key] || 0) >= t.max) return;
+      const sec = { type: t.key, label, show: t.fixed ? true : x.show !== false };
+      if (t.key === 'servicios') {
+        const cat = String(x.cat == null ? '' : x.cat).trim();
+        if (cat.length > 40 || badText(cat)) return;
+        if (cats.has(cat.toLowerCase())) return;
+        cats.add(cat.toLowerCase());
+        if (cat) sec.cat = cat;
+      }
+      count[t.key] = (count[t.key] || 0) + 1;
+      out.push(sec);
+    });
+    if (!count.inicio || !count.reservar) return null;
+    return out;
   }
 
   function normCustom(list, entity) {
@@ -212,6 +270,8 @@
       if (typeof s.heroTitle === 'string' && s.heroTitle.trim().length <= 80) d.site.heroTitle = s.heroTitle.trim();
       if (typeof s.heroSubtitle === 'string' && s.heroSubtitle.trim().length <= 200) d.site.heroSubtitle = s.heroSubtitle.trim();
       if (typeof s.heroImage === 'string' && /^https:\/\/[^\s"'<>]+$/.test(s.heroImage.trim()) && s.heroImage.trim().length <= 500) d.site.heroImage = s.heroImage.trim();
+      if (SITE_LAYOUTS.some(l => l.key && l.key === s.layout)) d.site.layout = s.layout;
+      d.site.sections = normSections(s.sections);
     }
     return d;
   }
@@ -245,7 +305,8 @@
     Object.keys(THEME_DEFAULT).forEach(k => { if (n.theme[k] !== THEME_DEFAULT[k]) th[k] = n.theme[k]; });
     if (Object.keys(th).length) out.theme = th;
     const site = {};
-    ['heroTitle', 'heroSubtitle', 'heroImage'].forEach(k => { if (n.site[k]) site[k] = n.site[k]; });
+    ['heroTitle', 'heroSubtitle', 'heroImage', 'layout'].forEach(k => { if (n.site[k]) site[k] = n.site[k]; });
+    if (n.site.sections) site.sections = n.site.sections;
     if (Object.keys(site).length) out.site = site;
     return out;
   }
@@ -301,7 +362,40 @@
       if (s.heroTitle != null && String(s.heroTitle).length > 80) errs.push('Web: el título de portada admite hasta 80 caracteres.');
       if (s.heroSubtitle != null && String(s.heroSubtitle).length > 200) errs.push('Web: el subtítulo admite hasta 200 caracteres.');
       if (s.heroImage && !(/^https:\/\/[^\s"'<>]+$/.test(String(s.heroImage)) && String(s.heroImage).length <= 500)) errs.push('Web: la imagen debe ser un enlace https:// (hasta 500 caracteres).');
+      if (s.layout && !SITE_LAYOUTS.some(l => l.key === s.layout)) errs.push('Web: diseño no válido.');
+      if (s.sections != null) sectionErrors(s.sections).forEach(e => errs.push(e));
     }
+    return errs;
+  }
+
+  function sectionErrors(list) {
+    const errs = [];
+    if (!Array.isArray(list)) return ['Web: las secciones deben ser una lista.'];
+    if (list.length > MAX_SECTIONS) errs.push('Web: máximo ' + MAX_SECTIONS + ' secciones.');
+    const count = {};
+    const cats = new Set();
+    list.forEach((x, i) => {
+      const t = isObj(x) ? SECTION_TYPES.find(y => y.key === x.type) : null;
+      if (!t) { errs.push('Web: la sección ' + (i + 1) + ' no tiene un tipo válido.'); return; }
+      count[t.key] = (count[t.key] || 0) + 1;
+      const label = String(x.label == null ? '' : x.label).trim();
+      if (!label || label.length > 30 || badText(label)) errs.push('Web: el nombre de la sección ' + (i + 1) + ' debe tener de 1 a 30 caracteres, sin < > ".');
+      if (t.fixed && x.show === false) errs.push('Web: “' + label + '” no se puede ocultar.');
+      if (x.cat != null && x.cat !== '') {
+        const cat = String(x.cat).trim();
+        if (t.key !== 'servicios') errs.push('Web: solo las secciones de servicios llevan categoría.');
+        else if (cat.length > 40 || badText(cat)) errs.push('Web: la categoría de “' + label + '” debe tener hasta 40 caracteres, sin < > ".');
+      }
+      if (t.key === 'servicios') {
+        const c = String(x.cat == null ? '' : x.cat).trim().toLowerCase();
+        if (cats.has(c)) errs.push('Web: hay dos secciones de servicios con ' + (c ? 'la misma categoría' : 'todos los servicios') + '.');
+        cats.add(c);
+      }
+    });
+    SECTION_TYPES.forEach(t => {
+      if ((count[t.key] || 0) > t.max) errs.push('Web: solo puede haber ' + (t.max === 1 ? 'una sección' : t.max + ' secciones') + ' de tipo “' + t.name.replace(/\{[^}]+\}/g, '').trim() + '”.');
+      if (t.fixed && !count[t.key]) errs.push('Web: falta la sección “' + t.name.replace(/\{[^}]+\}/g, '').trim() + '”.');
+    });
     return errs;
   }
 
@@ -403,6 +497,7 @@
   }
 
   const CrmConfig = {
+    SITE_LAYOUTS, SECTION_TYPES, MAX_SECTIONS, defaultSections,
     MODULES, FIELDS, TYPES, APPT_COLUMNS, DEFAULT_COLUMNS, MAX_COLUMNS, MAX_CUSTOM, FONTS, THEME_DEFAULT, ENTITY_LABEL, KEY_RE,
     contrast, mix, lum,
     defaults, normalize, compact, validate, themeVars, applyThemeTo, loadFont,
