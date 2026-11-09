@@ -159,6 +159,42 @@ strong { font-weight: 600; }
 .brand-pending [data-v],
 .brand-pending [data-v-fmt],
 .brand-pending [data-v-icon] { visibility: hidden; }
+/* Hasta saber el negocio y tener su tipografía la página queda en blanco:
+   sin esto se ve un instante la plantilla genérica (barra oscura, letra
+   Urbanist, textos a medias) y luego cambia. Máximo ~1,5 s después de los
+   datos (TenantBrand.applyPublic). */
+.brand-pending body > *:not(.page-loader) { visibility: hidden; }
+
+/* Pantalla de carga (js/core/preloader.js): logo o nombre del negocio y una
+   barra animada; se desvanece al quitar brand-pending. */
+.page-loader {
+  position: fixed; inset: 0; z-index: 6000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: var(--loader-bg, #FFFFFF); color: var(--loader-fg, #111418);
+  transition: opacity 300ms ease, visibility 0s linear 300ms;
+}
+html:not(.brand-pending) .page-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+.page-loader-logo { max-width: min(220px, 60vw); max-height: 88px; object-fit: contain; animation: loader-pulse 1.6s ease-in-out infinite; }
+.page-loader-name {
+  max-width: 80vw; text-align: center; font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.6rem, 5vw, 2.2rem); line-height: 1.1; letter-spacing: -0.01em;
+  animation: loader-pulse 1.6s ease-in-out infinite;
+}
+.page-loader-bar {
+  position: relative; width: 120px; height: 3px; border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--loader-fg, #111418) 12%, transparent);
+}
+.page-loader-bar::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: inherit;
+  background: var(--loader-accent, var(--loader-fg, #111418));
+  animation: loader-slide 1.1s ease-in-out infinite;
+}
+@keyframes loader-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes loader-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) {
+  .page-loader-logo, .page-loader-name, .page-loader-bar::after { animation: none; }
+  .page-loader-bar::after { width: 100%; }
+}
 
 /* ---------------- Botones ---------------- */
 .btn {

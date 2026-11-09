@@ -240,14 +240,24 @@ const TenantBrand = {
   /* Estilo por rubro (css/pages/rubros.css usa html[data-rubro]): cada rubro
      tiene su propia tipografía y solo se descarga la del negocio activo. */
   RUBRO_FONTS: ['barberia', 'salon', 'spa', 'unas', 'consultorio', 'dental', 'psicologia', 'veterinaria', 'tatuajes', 'fitness'],
+  // Devuelve una promesa que se cumple cuando la tipografía del rubro ya está
+  // lista para pintar (o a los 1,5 s como máximo, para no bloquear la página).
   applyRubroFonts() {
     const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
-    if (!type || !this.RUBRO_FONTS.includes(type) || document.getElementById('rubro-fonts')) return;
-    const link = document.createElement('link');
+    if (!type || !this.RUBRO_FONTS.includes(type)) return Promise.resolve();
+    let link = document.getElementById('rubro-fonts');
+    if (link) return this._fontsReady || Promise.resolve();
+    link = document.createElement('link');
     link.id = 'rubro-fonts';
     link.rel = 'stylesheet';
     link.href = 'css/fonts/rubro-' + type + '.css';
+    const loaded = new Promise(resolve => {
+      link.onload = resolve;
+      link.onerror = resolve;
+    }).then(() => (document.fonts && document.fonts.ready) ? document.fonts.ready : null);
     document.head.appendChild(link);
+    this._fontsReady = Promise.race([loaded, new Promise(r => setTimeout(r, 1500))]).catch(() => {});
+    return this._fontsReady;
   },
 
   /* Diseño de la web por rubro (html[data-layout], css/pages/boutique.css). Sin
@@ -260,17 +270,31 @@ const TenantBrand = {
     document.documentElement.setAttribute('data-layout', layout);
   },
 
+  /* Logo, nombre y colores para la pantalla de carga de la próxima visita
+     (js/core/preloader.js). Solo datos públicos del negocio. */
+  rememberBrand(t) {
+    try {
+      const p = this.paletteOf(t);
+      localStorage.setItem('RL_MARCA_' + t.slug, JSON.stringify({
+        name: t.name || '', logo: t.logo || '', primary: p.primary, accent: p.secondary, tertiary: p.tertiary
+      }));
+    } catch (e) { /* sin almacenamiento */ }
+  },
+
   /* ---------------- Aplicación ---------------- */
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
-    this.applyRubroFonts();
+    const fonts = this.applyRubroFonts();
     this.applyLayout();
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);
     this.rewriteLinks(t.slug);
-    this.brandReady();
+    // La página se muestra cuando ya tiene la tipografía del rubro: sin esto se
+    // ve un instante con la letra genérica (Urbanist) y luego cambia.
+    fonts.then(() => this.brandReady());
+    this.rememberBrand(t);
     const wspName = document.querySelector('.wsp-head-id strong');
     if (wspName) wspName.textContent = t.name;
     document.querySelectorAll('.brand-logo').forEach(a => a.setAttribute('aria-label', t.name + ', ir al inicio'));
