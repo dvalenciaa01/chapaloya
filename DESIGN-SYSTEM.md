@@ -38,7 +38,7 @@ Cada negocio define 3 colores (formato `#RRGGBB`, validado también en la base):
 | barberia | Cartel de taller clásico | Alfa Slab One / Work Sans | Esquinas rectas, barra de barbero, ticket troquelado, equipo en B/N |
 | salon | Revista de moda | Bodoni Moda cursiva / Jost | Índice numerado 01-02, marcos en arco, aros finos |
 | spa | Jardín zen | Cormorant Garamond / Figtree | Anillos de agua, borde ondulado, tarjeta en arco, hojas |
-| unas | Pop y brillo | Unbounded / DM Sans | Destellos, sticker 24/7, polaroids giradas |
+| unas | Boutique (diseño de inicio `boutique`) | DM Serif Display / DM Sans (+ Caveat en notas) | Cabecera y pie claros, tonos rubor, sellos de confianza, tarjetas con ilustración de uñas, galería, notas a mano |
 | consultorio | Ficha clínica | IBM Plex Sans / Plex Mono | Papel milimetrado, electrocardiograma, datos en mono |
 | dental | Fresco y redondeado | Outfit | Curva de sonrisa, burbujas, avatares con aro |
 | psicologia | Cuaderno cálido | Fraunces / Source Sans 3 | Subrayado a mano, trazo de lápiz, ritmo pausado |

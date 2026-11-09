@@ -306,6 +306,244 @@ const PublicBooking = {
     }
   },
 
+  /* ---------------- Portada "boutique" (html[data-layout="boutique"]) ----------------
+     Diseño de inicio con título grande, tarjetas con imagen, galería y franja de
+     invitación. Todo sale de los datos del negocio: título/subtítulo/foto de la
+     portada (consola), servicios, fotos del equipo y sus trabajos. Lo que no existe
+     se reemplaza por ilustraciones dibujadas con los colores del negocio (SVG
+     decorativo, aria-hidden); nunca se inventan reseñas ni promociones. */
+  _svgSeq: 0,
+  // Uña almendrada con la base en (0,0): 40 de ancho y 64 de alto
+  NAIL_PATH: 'M0,-64C14,-64 20,-40 20,-18L20,-6Q20,0 14,0L-14,0Q-20,0 -20,-6L-20,-18C-20,-40 -14,-64 0,-64Z',
+  // 6 acabados: [base, detalle, tipo]
+  NAIL_STYLES: [
+    ['var(--bq-c1)', '', 'solid'],
+    ['var(--bq-nude)', 'var(--bq-c1)', 'french'],
+    ['var(--bq-c3)', '#FFFFFF', 'dots'],
+    ['var(--bq-c2)', '#FFFFFF', 'flower'],
+    ['var(--bq-c1)', 'var(--bq-c2)', 'ombre'],
+    ['var(--bq-c4)', '', 'solid']
+  ],
+
+  nailSVG(x, y, scale, rot, style, id, deco) {
+    const [base, detail, kind] = style;
+    const t = 'translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + scale + ')';
+    let fill = 'fill:' + base;
+    let defs = '';
+    let extra = '';
+    if (kind === 'ombre') {
+      defs = '<linearGradient id="' + id + 'g" x1="0" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:' + detail + '"/><stop offset="1" style="stop-color:' + base + '"/></linearGradient>';
+      fill = 'fill:url(#' + id + 'g)';
+    }
+    if (kind === 'french') {
+      defs = '<clipPath id="' + id + 'c"><path d="' + this.NAIL_PATH + '"/></clipPath>';
+      extra = '<path clip-path="url(#' + id + 'c)" d="M-24,-70H24V-34Q0,-44 -24,-34Z" style="fill:' + detail + '"/>';
+    }
+    if (kind === 'dots' && deco) {
+      extra = '<circle cx="-6" cy="-40" r="2.6" style="fill:' + detail + '"/><circle cx="5" cy="-28" r="2.6" style="fill:' + detail + '"/><circle cx="-4" cy="-16" r="2.6" style="fill:' + detail + '"/>';
+    }
+    if (kind === 'flower' && deco) {
+      extra = '<g transform="translate(0 -30)" style="fill:' + detail + '">' +
+        [0, 72, 144, 216, 288].map(a => '<ellipse cx="0" cy="-5" rx="3.4" ry="5" transform="rotate(' + a + ')"/>').join('') +
+        '<circle r="2.6" style="fill:var(--bq-c1)"/></g>';
+    }
+    return (defs ? '<defs>' + defs + '</defs>' : '') +
+      '<g transform="' + t + '"><path d="' + this.NAIL_PATH + '" style="' + fill + '"/>' + extra +
+      '<path d="M-10,-44C-8,-53 -4,-58 0,-59" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/></g>';
+  },
+
+  // Juego de 5 uñas en arco (como un set de press-on), centrado en (cx, by)
+  nailSetSVG(cx, by, scale, styleIdx) {
+    const id = 'bqn' + (++this._svgSeq);
+    const st = this.NAIL_STYLES[styleIdx % this.NAIL_STYLES.length];
+    const sizes = [0.78, 0.94, 1, 0.92, 0.72], rots = [-16, -7, 0, 7, 16], lift = [0, 12, 16, 12, 2];
+    return sizes.map((sz, i) => this.nailSVG(cx + (i - 2) * 44 * scale, by - lift[i] * scale, sz * scale, rots[i], st, id + '-' + i, i === 1 || i === 2 || i === 3)).join('');
+  },
+
+  bottleSVG(x, y, scale) {
+    return '<g transform="translate(' + x + ' ' + y + ') scale(' + scale + ')">' +
+      '<rect x="42" y="0" width="36" height="74" rx="9" style="fill:var(--bq-c3)"/>' +
+      '<rect x="48" y="8" width="6" height="56" rx="3" fill="#FFFFFF" fill-opacity="0.18"/>' +
+      '<rect x="34" y="70" width="52" height="14" rx="5" style="fill:var(--bq-c3)"/>' +
+      '<rect x="12" y="80" width="96" height="112" rx="28" style="fill:var(--bq-c1)"/>' +
+      '<rect x="24" y="96" width="11" height="74" rx="5.5" fill="#FFFFFF" fill-opacity="0.38"/>' +
+      '<path d="M60,148c-6-6-14-10-14-18a7,7 0 0 1 14-3a7,7 0 0 1 14,3c0,8-8,12-14,18Z" fill="#FFFFFF" fill-opacity="0.9"/>' +
+      '</g>';
+  },
+
+  sparkleSVG(x, y, r, color) {
+    return '<path transform="translate(' + x + ' ' + y + ')" d="M0,' + (-r) + 'Q' + (r * 0.16) + ',' + (-r * 0.16) + ' ' + r + ',0Q' + (r * 0.16) + ',' + (r * 0.16) + ' 0,' + r + 'Q' + (-r * 0.16) + ',' + (r * 0.16) + ' ' + (-r) + ',0Q' + (-r * 0.16) + ',' + (-r * 0.16) + ' 0,' + (-r) + 'Z" style="fill:' + (color || 'var(--bq-c1)') + '"/>';
+  },
+
+  artSVG(kind) {
+    const open = (vb) => '<svg class="bq-svg" viewBox="' + vb + '" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">';
+    if (kind === 'hero') {
+      return open('0 0 440 460') +
+        '<circle cx="250" cy="210" r="168" style="fill:var(--bq-blush-2)"/>' +
+        this.bottleSVG(232, 70, 1.25) +
+        this.nailSetSVG(178, 424, 1.3, 1) +
+        this.sparkleSVG(110, 120, 16) + this.sparkleSVG(400, 330, 11, 'var(--bq-c3)') + this.sparkleSVG(80, 250, 8, 'var(--bq-c2)') +
+        '</svg>';
+    }
+    if (kind === 'why') {
+      return open('0 0 520 420') +
+        '<circle cx="260" cy="210" r="150" style="fill:var(--bq-blush)"/>' +
+        this.nailSetSVG(260, 290, 2.1, 3) +
+        this.sparkleSVG(110, 110, 18) + this.sparkleSVG(430, 140, 12, 'var(--bq-c3)') + this.sparkleSVG(400, 350, 9, 'var(--bq-c2)') +
+        '</svg>';
+    }
+    if (kind === 'offer') {
+      return open('0 0 260 260') +
+        '<circle cx="130" cy="140" r="104" style="fill:var(--bq-blush-2)"/>' +
+        this.bottleSVG(70, 40, 1) +
+        this.sparkleSVG(46, 70, 12) + this.sparkleSVG(222, 196, 9, 'var(--bq-c3)') +
+        '</svg>';
+    }
+    // Tarjeta de servicio: un juego de uñas distinto por tarjeta
+    return open('0 0 240 150') + this.nailSetSVG(120, 132, 0.92, kind) + this.sparkleSVG(206, 34, 8, '#FFFFFF') + '</svg>';
+  },
+
+  boutiqueServiceCard(s, cur, i) {
+    return '<article class="bq-srv reveal">' +
+      '<div class="bq-srv-art bq-sw-' + (i % 6) + '">' + this.artSVG(i) + '</div>' +
+      '<div class="bq-srv-body">' +
+        '<span class="bq-srv-ic" aria-hidden="true">' + this.rubroIcon() + '</span>' +
+        '<h3 class="bq-srv-name">' + this.esc(s.name) + '</h3>' +
+        (s.desc ? '<p class="bq-srv-desc">' + this.esc(s.desc) + '</p>' : '') +
+        '<div class="bq-srv-foot">' +
+          '<span class="bq-srv-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +
+          (s.duration ? '<span class="bq-srv-dur">' + ic('clock') + this.esc(s.duration) + ' min</span>' : '') +
+        '</div>' +
+        '<button type="button" class="bq-srv-cta" data-pb-action="service" data-id="' + this.esc(s.id) + '">' +
+          '<span>Reservar <span class="sr-only">' + this.esc(s.name) + '</span></span>' + ic('arrowRight') +
+        '</button>' +
+      '</div>' +
+    '</article>';
+  },
+
+  /* Una sola profesional atiende (diseño boutique): "Equipo" daría a entender que
+     son varias, así que esa parte de la web pasa a ser "Galería". */
+  isSolo() {
+    return document.documentElement.getAttribute('data-layout') === 'boutique' && DB.state.barberProfiles.length === 1;
+  },
+
+  // Ideas de diseño ilustradas (cuando aún no hay fotos de trabajos)
+  IDEAS: ['Clásica', 'Francesa', 'Puntos', 'Floral', 'Ombré', 'Tono intenso'],
+  ideasHTML() {
+    return this.IDEAS.map((name, i) =>
+      '<a class="bq-idea reveal" href="' + this.esc(this.href('reservar.html')) + '">' +
+        '<span class="bq-idea-art bq-sw-' + i + '">' + this.artSVG(i) + '</span>' +
+        '<span class="bq-idea-name">' + this.esc(name) + '</span>' +
+      '</a>'
+    ).join('');
+  },
+
+  applySolo() {
+    if (!this.isSolo()) return;
+    // Menú y pie: "Equipo" → "Galería"
+    document.querySelectorAll('a[href*="barberos"]').forEach(a => {
+      if (a.textContent.trim() === 'Equipo') a.textContent = 'Galería';
+    });
+    // Inicio: la sección del equipo se reemplaza por la galería (renderBoutique)
+    document.querySelectorAll('.home-team').forEach(sec => { sec.hidden = true; });
+    // Página del equipo → Galería
+    const page = document.getElementById('pub-barberos');
+    if (!page) return;
+    const bp = DB.state.barberProfiles[0];
+    document.title = document.title.replace(/^Equipo/, 'Galería');
+    const crumb = page.querySelector('.breadcrumb [aria-current]');
+    if (crumb) crumb.textContent = 'Galería';
+    const eyebrow = page.querySelector('.page-hero .eyebrow');
+    if (eyebrow) eyebrow.textContent = 'Nuestros trabajos';
+    const h1 = page.querySelector('.page-hero h1');
+    if (h1) h1.textContent = 'Galería';
+    const lead = page.querySelector('.page-hero p');
+    if (lead) lead.textContent = 'Diseños y trabajos de ' + bp.name + '. Inspírate y reserva tu ' + this.v('appointment') + ' cuando quieras.';
+    const filter = document.getElementById('pub-barber-filter-bar');
+    if (filter) filter.hidden = true;
+    const list = document.getElementById('pub-barbers-showcase-list');
+    if (list && !bp.works.length && !list.querySelector('.bq-ideas-block')) {
+      list.insertAdjacentHTML('afterbegin',
+        '<div class="bq-ideas-block reveal"><div class="works-head"><h2>Ideas para tu próxima cita</h2></div>' +
+        '<div class="bq-gallery">' + this.ideasHTML() + '</div></div>');
+    }
+  },
+
+  renderBoutique(ordered, cur) {
+    const heroArt = document.getElementById('bq-hero-art');
+    if (!heroArt || document.documentElement.getAttribute('data-layout') !== 'boutique') return;
+    const site = (DB.tenant && DB.tenant.site) || {};
+
+    // Portada: título y subtítulo de la consola; si no, los textos por defecto del HTML
+    const title = document.getElementById('bq-title');
+    if (title && site.heroTitle) title.textContent = site.heroTitle;
+    const lead = document.querySelector('.bq-lead');
+    if (lead && site.heroSubtitle) { lead.removeAttribute('data-v-fmt'); lead.textContent = site.heroSubtitle; }
+    // Con foto: ocupa todo el ancho de la portada (el texto va sobre su lado claro);
+    // sin foto: ilustración a la derecha.
+    const hero = heroArt.closest('.bq-hero');
+    const note = heroArt.querySelector('.bq-note');
+    let bg = hero.querySelector('img.bq-hero-bg');
+    if (site.heroImage) {
+      if (!bg) {
+        bg = document.createElement('img');
+        bg.className = 'bq-hero-bg';
+        bg.alt = '';
+        bg.decoding = 'async';
+        bg.setAttribute('fetchpriority', 'high');
+        hero.insertBefore(bg, hero.firstChild);
+      }
+      if (bg.getAttribute('src') !== site.heroImage) bg.src = site.heroImage;
+      heroArt.innerHTML = '';
+    } else {
+      if (bg) bg.remove();
+      heroArt.innerHTML = '<div class="bq-hero-illus">' + this.artSVG('hero') + '</div>';
+    }
+    hero.classList.toggle('has-photo', !!site.heroImage);
+    if (note) heroArt.appendChild(note);
+
+    // Servicios: hasta 6 en fila
+    const srv = document.getElementById('bq-services');
+    if (srv) {
+      srv.innerHTML = ordered.slice(0, 6).map((s, i) => this.boutiqueServiceCard(s, cur, i)).join('');
+      srv.closest('section').hidden = !ordered.length;
+    }
+
+    // "Por qué elegirnos": foto del equipo si hay; si no, ilustración
+    const why = document.getElementById('bq-why-art');
+    if (why) {
+      const withPhoto = DB.state.barberProfiles.find(b => b.photo);
+      why.innerHTML = withPhoto
+        ? '<img src="' + this.esc(withPhoto.photo) + '" alt="' + this.esc(withPhoto.name) + '" loading="lazy" decoding="async" />'
+        : '<div class="bq-why-illus">' + this.artSVG('why') + '</div>';
+      why.classList.toggle('has-photo', !!withPhoto);
+    }
+
+    // Galería: trabajos del equipo (hasta 6). Sin fotos, la sección solo se muestra
+    // cuando atiende una sola persona (reemplaza a "Equipo"): ideas de diseño ilustradas.
+    const gal = document.getElementById('bq-gallery');
+    if (gal) {
+      const solo = this.isSolo();
+      const works = [];
+      DB.state.barberProfiles.forEach(b => b.works.forEach(w => works.push({ b, w })));
+      if (works.length) {
+        gal.innerHTML = works.slice(0, 6).map(({ b, w }) =>
+          '<button type="button" class="bq-shot reveal" data-pb-action="work" data-id="' + this.esc(b.id) + '" data-work="' + this.esc(w.id) + '">' +
+            '<img src="' + this.esc(w.image) + '" alt="' + this.esc(w.title || ('Trabajo de ' + b.name)) + '" loading="lazy" decoding="async" />' +
+          '</button>'
+        ).join('');
+      } else if (solo) {
+        gal.innerHTML = this.ideasHTML();
+        document.getElementById('bq-gal-eyebrow').textContent = 'Galería';
+        document.getElementById('bq-gal-title').textContent = 'Inspírate para tu próxima cita';
+      }
+      document.getElementById('bq-gallery-section').hidden = !works.length && !solo;
+    }
+
+    const offer = document.getElementById('bq-offer-art');
+    if (offer) offer.innerHTML = this.artSVG('offer');
+  },
+
   /* ---------------- Servicios ---------------- */
   serviceCard(s, cur) {
     const featured = s.featured;
@@ -342,8 +580,10 @@ const PublicBooking = {
     if (allServicesEl) allServicesEl.innerHTML = srvHTML;
 
     this.renderHero();
+    this.renderBoutique(ordered, cur);
     this.renderHomeBarbers();
     this.renderBarbersShowcase();
+    this.applySolo();
     this.renderBookingForm();
 
     if (typeof SiteUI !== 'undefined') SiteUI.observeReveal();

@@ -250,11 +250,22 @@ const TenantBrand = {
     document.head.appendChild(link);
   },
 
+  /* Diseño de la web por rubro (html[data-layout], css/pages/boutique.css). Sin
+     entrada = diseño clásico. "boutique": portada con título grande con serifa,
+     tarjetas con imagen, galería y franja de invitación (pensado para uñas). */
+  LAYOUTS: { unas: 'boutique' },
+  applyLayout() {
+    const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
+    const layout = (type && this.LAYOUTS[type]) || 'clasico';
+    document.documentElement.setAttribute('data-layout', layout);
+  },
+
   /* ---------------- Aplicación ---------------- */
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
     this.applyRubroFonts();
+    this.applyLayout();
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);

@@ -74,10 +74,10 @@
   unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
 }
 @font-face {
-  font-family: 'Unbounded';
+  font-family: 'DM Serif Display';
   font-style: normal;
-  font-weight: 700;
+  font-weight: 400;
   font-display: swap;
-  src: url(../../assets/fonts/unbounded-muestra-48f44318.woff2) format('woff2');
-  unicode-range: U+20, U+2f, U+41-5a, U+61-7a, U+c1, U+c3, U+c9, U+cd, U+d1, U+d3, U+d5, U+da, U+dd, U+e1, U+e3, U+e9, U+ed, U+f1, U+f3, U+f5, U+fa, U+fd, U+106-107, U+128-129, U+139-13a, U+143-144, U+154-155, U+15a-15b, U+168-169, U+179-17a, U+1f4-1f5, U+301, U+303, U+1e30-1e31, U+1e3e-1e3f, U+1e4c-1e4d, U+1e54-1e55, U+1e78-1e79, U+1e7c-1e7d, U+1e82-1e83, U+1ebc-1ebd, U+1ef8-1ef9;
+  src: url(../../assets/fonts/dm-serif-display-latin-fdf61e20.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
