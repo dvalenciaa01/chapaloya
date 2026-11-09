@@ -250,7 +250,7 @@ const TenantBrand = {
     link = document.createElement('link');
     link.id = 'rubro-fonts';
     link.rel = 'stylesheet';
-    link.href = 'css/fonts/rubro-' + type + '.css';
+    link.href = 'css/fonts/rubro-' + type + '.css?v=__RL_V__'; // el build pone la versión
     const loaded = new Promise(resolve => {
       link.onload = resolve;
       link.onerror = resolve;
