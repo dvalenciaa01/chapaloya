@@ -312,3 +312,8 @@ html[data-layout="boutique"] {
 .bq-ideas-block { margin-bottom: var(--s6); }
 .bq-ideas-block h2 { font-size: var(--fs-xl); }
 @media (prefers-reduced-motion: reduce) { .bq-idea, .bq-idea:hover { transition: none; transform: none; } }
+
+/* Logo del negocio en la cabecera clara: un poco más grande (los logos con
+   firma y lema se leen mal a 44 px) */
+[data-layout="boutique"] .site-header .brand-img { height: 54px; max-width: 200px; }
+@media (max-width: 480px) { [data-layout="boutique"] .site-header .brand-img { height: 46px; max-width: 160px; } }

@@ -270,6 +270,17 @@ const TenantBrand = {
     document.documentElement.setAttribute('data-layout', layout);
   },
 
+  /* Logo, nombre y colores para la pantalla de carga de la próxima visita
+     (js/core/preloader.js). Solo datos públicos del negocio. */
+  rememberBrand(t) {
+    try {
+      const p = this.paletteOf(t);
+      localStorage.setItem('RL_MARCA_' + t.slug, JSON.stringify({
+        name: t.name || '', logo: t.logo || '', primary: p.primary, accent: p.secondary, tertiary: p.tertiary
+      }));
+    } catch (e) { /* sin almacenamiento */ }
+  },
+
   /* ---------------- Aplicación ---------------- */
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
@@ -283,6 +294,7 @@ const TenantBrand = {
     // La página se muestra cuando ya tiene la tipografía del rubro: sin esto se
     // ve un instante con la letra genérica (Urbanist) y luego cambia.
     fonts.then(() => this.brandReady());
+    this.rememberBrand(t);
     const wspName = document.querySelector('.wsp-head-id strong');
     if (wspName) wspName.textContent = t.name;
     document.querySelectorAll('.brand-logo').forEach(a => a.setAttribute('aria-label', t.name + ', ir al inicio'));
