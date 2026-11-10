@@ -30,6 +30,12 @@ html[data-layout="boutique"] {
   --card: var(--white);
   --font-note: 'Caveat', 'Segoe Script', 'Bradley Hand', cursive;
 }
+/* Contenido a todo el ancho: sin el margen lateral grande en pantallas anchas */
+@media (min-width: 960px) {
+  html[data-layout="boutique"] { --container: 100%; --gutter: clamp(32px, 3.5vw, 72px); }
+  html[data-layout="boutique"] .cta-band-inner { width: calc(100% - 2 * var(--gutter)); }
+  html[data-layout="boutique"] .bq-why-copy { max-width: none; padding-right: var(--gutter); }
+}
 
 /* ---------------- Cabecera clara ---------------- */
 [data-layout="boutique"] .site-header {
