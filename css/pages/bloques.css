@@ -190,6 +190,17 @@
 .blk-zoom-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #FFFFFF; cursor: pointer; }
 .blk-zoom-x .ic { width: 20px; height: 20px; }
 
+/* ---------------- Cuadros de texto extra (b.extras) ---------------- */
+.blk-x { margin-top: var(--s3); color: var(--text-2); }
+.blk-x-titulo { margin-top: var(--s5); font-family: var(--font-display); font-size: var(--fs-xl, 1.5rem); line-height: 1.2; color: var(--text); }
+.blk-x-sub { margin-top: var(--s4); font-family: var(--font-display); font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+.blk-x-p { font-size: var(--fs-md); }
+.blk-bg-marca .blk-x { color: var(--on-brand-2); }
+.blk-bg-marca .blk-x-titulo, .blk-bg-marca .blk-x-sub { color: var(--on-brand); }
+.blk-portada.has-photo .blk-x { color: rgba(255, 255, 255, 0.86); }
+.blk-portada.has-photo .blk-x-titulo, .blk-portada.has-photo .blk-x-sub { color: #FFFFFF; }
+.blk-st-centrado .blk-x, .blk-st-solo-texto .blk-x, .blk-video-head .blk-x { margin-left: auto; margin-right: auto; }
+
 /* ---------------- Vista previa del editor ---------------- */
 .blk-preview .blk { cursor: pointer; }
 .blk-preview .blk:hover { outline: 2px dashed color-mix(in srgb, var(--accent) 70%, var(--black)); outline-offset: -6px; }
