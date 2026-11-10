@@ -455,6 +455,9 @@ html:not(.brand-pending) .page-loader { opacity: 0; visibility: hidden; pointer-
 }
 .service-card:hover { border-color: var(--line-strong); }
 .service-card.is-featured { border-color: var(--text); }
+/* Foto referencial del servicio: arriba de la tarjeta, de borde a borde */
+.service-photo { margin: calc(var(--s5) * -1) calc(var(--s5) * -1) 0; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--paper-2, #f4f4f4); }
+.service-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .service-card-top { display: flex; align-items: center; gap: var(--s3); }
 .service-icon { display: none; }
 .service-icon .ic { width: 22px; height: 22px; }

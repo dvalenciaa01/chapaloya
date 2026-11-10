@@ -339,9 +339,9 @@ const DB = {
     },
     services: {
       table: 'services', soft: true,
-      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured }; },
-      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured }; },
-      columns(l) {
+      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured, image: r.image_url || '' }; },
+      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured, image: s.image || '' }; },
+      columns(l, tid, insert) {
         const c = {};
         if ('name' in l) c.name = l.name;
         if ('category' in l) c.category = l.category;
@@ -349,6 +349,8 @@ const DB = {
         if ('duration' in l) c.duration_min = l.duration;
         if ('desc' in l) c.description = l.desc;
         if ('featured' in l) c.featured = l.featured;
+        // migración 20 (al crear sin foto no se envía: así funciona aunque falte la columna)
+        if ('image' in l && !(insert && !l.image)) c.image_url = l.image || null;
         return c;
       }
     },
@@ -648,7 +650,8 @@ const DB = {
     t.site = this.normSite(pick('site'));
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
-    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured }));
+    st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured,
+      image: /^https:\/\/[^\s"'<>()]+$/i.test(s.image_url || '') ? s.image_url : '' }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
       works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
@@ -888,6 +891,9 @@ const DB = {
         if (/^data:image\//.test(w.image || '')) w.image = await this.uploadImage(w.image, tid);
       }
     }
+    for (const sv of (st ? st.services : [])) {
+      if (/^data:image\//.test(sv.image || '')) sv.image = await this.uploadImage(sv.image, tid);
+    }
     const cur = this.collect(tid);
     const dels = this._deletes[tid] || {};
 
@@ -910,7 +916,7 @@ const DB = {
       if (inserts.length) {
         const rows = inserts.map(v => Object.assign(
           { id: v.rec.id, tenant_id: tid },
-          spec.columns(v.logical, tid),
+          spec.columns(v.logical, tid, true),
           spec.insertExtra ? spec.insertExtra(v.rec, tid) : {}
         ));
         if (k === 'appointments' && rows.some(r => !r.barber_id)) throw new Error(this.vt('Selecciona {un:staff} {staff} válid{o:staff} para la cita.'));

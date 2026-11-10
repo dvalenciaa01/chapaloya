@@ -698,6 +698,12 @@ body.auth-ok .crm-boot { display: none; }
 .service-admin-meta { display: flex; align-items: baseline; gap: var(--space-4); }
 .service-admin-meta strong { font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; letter-spacing: -0.02em; color: var(--white); line-height: 1; }
 .service-admin-meta span { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--on-dark-lo); }
+.service-admin-photo { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--radius); margin-bottom: var(--space-3); }
+/* Foto referencial en el formulario de servicio */
+.sv-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: 6px; }
+.sv-photo-row .upload-dropzone { flex: 1 1 200px; margin-top: 0; }
+.sv-photo-preview { width: 84px; height: 84px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--golden); }
+.sv-photo-preview[hidden] { display: none; }
 .service-admin-meta .ic { width: 14px; height: 14px; }
 
 /* Editor de paleta (crear/editar barbería) */
