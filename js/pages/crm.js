@@ -1037,6 +1037,7 @@ const CRM = {
       row(Vocab.T('client'), E(a.customerName)),
       this.fshow('appointments', 'phone') ? row('Celular', E(a.phone || '—')) : '',
       row(Vocab.T('service'), E(a.service)),
+      (a.options || []).length ? row('Opciones', a.options.map(o => E(o.group ? o.group + ': ' : '') + '<strong>' + E(o.item) + '</strong>' + (o.price ? ' (+' + E(this.cur()) + E(o.price) + ')' : '')).join('<br>')) : '',
       row(Vocab.T('staff'), E(a.barber)),
       row('Fecha y hora', E(a.date) + ' · ' + E(a.time)),
       this.fshow('appointments', 'price') ? row('Precio', this.cur() + E(a.price)) : '',
@@ -1405,8 +1406,9 @@ const CRM = {
           '<div class="service-admin-top"><span class="service-admin-cat">' + (F('category') ? UI.esc(s.category || 'General') : '') + '</span>' +
             (s.featured && F('featured') ? '<span class="crm-nav-new">Destacado</span>' : '') + '</div>' +
           '<h3 style="font-size:1.25rem; margin:6px 0 8px;">' + UI.esc(s.name) + '</h3>' +
-          '<div class="service-admin-meta"><strong>' + cur + ' ' + UI.esc(s.price) + '</strong>' + (F('duration') ? '<span>' + ic('clock') + UI.esc(s.duration) + ' min</span>' : '') + '</div>' +
+          '<div class="service-admin-meta"><strong>' + (s.priceFrom ? 'Desde ' : '') + cur + ' ' + UI.esc(s.price) + '</strong>' + (F('duration') ? '<span>' + ic('clock') + UI.esc(s.duration) + ' min</span>' : '') + '</div>' +
           (F('description') ? '<p style="font-size:0.85rem; line-height:1.5; margin-top:10px;">' + UI.esc(s.desc || 'Sin descripción') + '</p>' : '') +
+          ((s.options || []).length ? '<p class="service-admin-media">' + ic('sliders') + UI.esc(s.options.map(g => g.name).join(' · ')) + '</p>' : '') +
           ((s.media || []).length ? '<p class="service-admin-media">' + ic('image') + '+' + s.media.length + ' foto' + (s.media.length === 1 ? '' : 's') + ' o video' + (s.media.length === 1 ? '' : 's') + '</p>' : '') +
         '</div>' +
         '<div class="row-actions">' +
@@ -1430,11 +1432,17 @@ const CRM = {
           '<div style="grid-column:1/-1;"><label class="field-lbl" for="m-sv-name">' + this.vx('Nombre {del:service} {service}') + ' <span class="req">*</span></label><input type="text" id="m-sv-name" class="input-dark" value="' + v('name', '') + '" maxlength="60" required /></div>' +
           '<div' + hid('category') + '><label class="field-lbl" for="m-sv-cat">Categoría</label><input type="text" id="m-sv-cat" class="input-dark" list="m-sv-cats" value="' + v('category', Vocab.type() === 'barberia' ? 'Cortes' : 'General') + '" maxlength="30" />' +
             '<datalist id="m-sv-cats">' + cats.map(c => '<option value="' + UI.esc(c) + '"></option>').join('') + '</datalist></div>' +
-          '<div><label class="field-lbl" for="m-sv-price">Precio (' + this.cur() + ') <span class="req">*</span></label><input type="number" id="m-sv-price" class="input-dark" min="0" step="1" inputmode="numeric" value="' + v('price', '45') + '" required /></div>' +
+          '<div><label class="field-lbl" for="m-sv-price">Precio (' + this.cur() + ') <span class="req">*</span></label><input type="number" id="m-sv-price" class="input-dark" min="0" step="1" inputmode="numeric" value="' + v('price', '45') + '" required />' +
+            '<label class="check-inline" for="m-sv-from"><input type="checkbox" id="m-sv-from"' + (s && s.priceFrom ? ' checked' : '') + ' /><span>Mostrar como “Desde ' + UI.esc(this.cur()) + ' …” en la web</span></label></div>' +
           // Duración a mano, en minutos (la base acepta de 5 a 480)
           '<div' + hid('duration') + '><label class="field-lbl" for="m-sv-duration">Duración (minutos) <span class="req">*</span></label><input type="number" id="m-sv-duration" class="input-dark" min="5" max="480" step="1" inputmode="numeric" placeholder="Ej.: 40" value="' + v('duration', '') + '" required />' +
             '<span class="field-hint">De 5 a 480 minutos (8 horas).</span></div>' +
           '<div style="grid-column:1/-1;"' + hid('description') + '><label class="field-lbl" for="m-sv-desc">Descripción <span class="text-grey" style="font-weight:400;">(se muestra en la web)</span></label><textarea id="m-sv-desc" class="input-dark" maxlength="220">' + v('desc', '') + '</textarea></div>' +
+          // Opciones que suman al precio (migración 27): tamaño, extras…
+          '<div style="grid-column:1/-1;"><span class="field-lbl">Opciones que suman al precio <span class="text-grey" style="font-weight:400;">(opcional)</span></span>' +
+            '<span class="field-hint">Ej.: grupo “Tamaño” con Corto (+0), Medio (+15) y Largo (+30). Al reservar se elige y el total se actualiza solo.</span>' +
+            '<div id="m-sv-opts" class="sv-opts"></div>' +
+          '</div>' +
           // Foto referencial (migración 20): se sube al guardar, como las fotos de trabajos
           '<div style="grid-column:1/-1;"><span class="field-lbl">Foto referencial <span class="text-grey" style="font-weight:400;">(opcional, se muestra en la web)</span></span>' +
             '<div class="sv-photo-row">' +
@@ -1464,6 +1472,107 @@ const CRM = {
     this._svMedia = DB.normMedia(s && s.media);
     this._svUploading = 0;
     this.renderServiceMedia();
+    this._svOpts = JSON.parse(JSON.stringify(DB.normOptions(s && s.options)));
+    this.renderServiceOptions();
+  },
+
+  /* ---------- Opciones del servicio (grupos que suman al precio) ---------- */
+  renderServiceOptions(focus) {
+    const box = document.getElementById('m-sv-opts');
+    if (!box) return;
+    const E = (x) => UI.esc(x == null ? '' : x);
+    const cur = E(this.cur());
+    const groups = this._svOpts || [];
+    box.innerHTML = groups.map((g, gi) =>
+      '<div class="sv-opt-group">' +
+        '<div class="sv-opt-head">' +
+          '<input type="text" class="input-dark" data-opt="gname" data-g="' + gi + '" value="' + E(g.name) + '" maxlength="40" placeholder="Nombre del grupo (ej.: Tamaño)" aria-label="Nombre del grupo ' + (gi + 1) + '" />' +
+          '<button type="button" class="btn-dark btn-xs" onclick="CRM.svOptDelGroup(' + gi + ')" aria-label="Quitar el grupo ' + E(g.name || (gi + 1)) + '">' + ic('trash') + '</button>' +
+        '</div>' +
+        '<div class="sv-opt-flags">' +
+          '<label><input type="checkbox" data-opt="required" data-g="' + gi + '"' + (g.required ? ' checked' : '') + ' /><span>Obligatorio</span></label>' +
+          '<label><input type="checkbox" data-opt="multi" data-g="' + gi + '"' + (g.multi ? ' checked' : '') + ' /><span>Se pueden elegir varias</span></label>' +
+        '</div>' +
+        g.items.map((it, ii) =>
+          '<div class="sv-opt-item">' +
+            '<input type="text" class="input-dark" data-opt="iname" data-g="' + gi + '" data-i="' + ii + '" value="' + E(it.name) + '" maxlength="60" placeholder="Opción (ej.: Largo)" aria-label="Opción ' + (ii + 1) + ' de ' + E(g.name || 'el grupo') + '" />' +
+            '<span class="sv-opt-plus" aria-hidden="true">+ ' + cur + '</span>' +
+            '<input type="number" class="input-dark sv-opt-price" data-opt="iprice" data-g="' + gi + '" data-i="' + ii + '" value="' + E(it.price) + '" min="0" max="99999" step="0.5" inputmode="decimal" aria-label="Precio adicional de ' + E(it.name || 'la opción ' + (ii + 1)) + '" />' +
+            '<button type="button" class="btn-dark btn-xs" onclick="CRM.svOptDelItem(' + gi + ',' + ii + ')" aria-label="Quitar la opción ' + E(it.name || (ii + 1)) + '"' + (g.items.length <= 1 ? ' disabled' : '') + '>' + ic('x') + '</button>' +
+          '</div>').join('') +
+        (g.items.length < DB.MAX_OPT_ITEMS ? '<button type="button" class="btn-dark btn-xs sv-opt-add" onclick="CRM.svOptAddItem(' + gi + ')">' + ic('plus') + 'Añadir opción</button>' : '') +
+      '</div>').join('') +
+      (groups.length < DB.MAX_OPT_GROUPS ? '<button type="button" class="btn-dark btn-xs sv-opt-add" onclick="CRM.svOptAddGroup()">' + ic('plus') + (groups.length ? 'Añadir otro grupo' : 'Añadir grupo de opciones') + '</button>' : '');
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      const upd = (e) => {
+        const el = e.target;
+        const k = el && el.getAttribute('data-opt');
+        if (!k) return;
+        const g = (this._svOpts || [])[Number(el.getAttribute('data-g'))];
+        if (!g) return;
+        const it = g.items[Number(el.getAttribute('data-i'))];
+        if (k === 'gname') g.name = el.value;
+        else if (k === 'required') g.required = el.checked;
+        else if (k === 'multi') g.multi = el.checked;
+        else if (k === 'iname' && it) it.name = el.value;
+        else if (k === 'iprice' && it) it.price = el.value;
+      };
+      box.addEventListener('input', upd);
+      box.addEventListener('change', upd);
+    }
+    if (focus) { const el = box.querySelector(focus); if (el) el.focus(); }
+  },
+  svOptAddGroup() {
+    if ((this._svOpts || []).length >= DB.MAX_OPT_GROUPS) return;
+    this._svOpts.push({ id: DB.optId(), name: '', required: false, multi: false, items: [{ id: DB.optId(), name: '', price: 0 }] });
+    this.renderServiceOptions('[data-opt="gname"][data-g="' + (this._svOpts.length - 1) + '"]');
+  },
+  svOptDelGroup(gi) {
+    this._svOpts.splice(gi, 1);
+    this.renderServiceOptions();
+  },
+  svOptAddItem(gi) {
+    const g = this._svOpts[gi];
+    if (!g || g.items.length >= DB.MAX_OPT_ITEMS) return;
+    g.items.push({ id: DB.optId(), name: '', price: 0 });
+    this.renderServiceOptions('[data-opt="iname"][data-g="' + gi + '"][data-i="' + (g.items.length - 1) + '"]');
+  },
+  svOptDelItem(gi, ii) {
+    const g = this._svOpts[gi];
+    if (!g || g.items.length <= 1) return;
+    g.items.splice(ii, 1);
+    this.renderServiceOptions();
+  },
+  // Lee el editor → { options } o { error }
+  readServiceOptions() {
+    const out = [];
+    for (const g of (this._svOpts || [])) {
+      const name = String(g.name || '').trim();
+      const items = [];
+      for (const it of g.items) {
+        const n = String(it.name || '').trim();
+        const raw = String(it.price == null ? '' : it.price).trim();
+        if (!n && (raw === '' || Number(raw) === 0)) continue;           // fila vacía: se ignora
+        if (!n) return { error: 'Escribe el nombre de cada opción' + (name ? ' de “' + name + '”' : '') + '.' };
+        if (/[<>"]/.test(n)) return { error: 'El nombre “' + n + '” no puede llevar < > ni comillas dobles.' };
+        const price = raw === '' ? 0 : Number(raw);
+        if (!isFinite(price) || price < 0 || price > 99999) return { error: 'El precio de “' + n + '” debe ser un número entre 0 y 99999.' };
+        items.push({ id: it.id, name: n, price: Math.round(price * 100) / 100 });
+      }
+      if (!name && !items.length) continue;                                  // grupo vacío: se ignora
+      if (!name) return { error: 'Ponle nombre a cada grupo de opciones (ej.: Tamaño).' };
+      if (/[<>"]/.test(name)) return { error: 'El nombre del grupo “' + name + '” no puede llevar < > ni comillas dobles.' };
+      if (!items.length) return { error: 'Agrega al menos una opción en “' + name + '”.' };
+      if (new Set(items.map(x => x.name.toLowerCase())).size !== items.length) return { error: 'Hay opciones repetidas en “' + name + '”.' };
+      const o = { id: g.id, name, items };
+      if (g.multi) o.multi = true;
+      if (g.required) o.required = true;
+      out.push(o);
+    }
+    const norm = DB.normOptions(out);
+    if (norm.length !== out.length || norm.some((g, i) => g.items.length !== out[i].items.length)) return { error: 'Revisa las opciones: hay datos que no son válidos.' };
+    return { options: norm };
   },
 
   /* ---------- Más fotos y videos del servicio ---------- */
@@ -1565,6 +1674,11 @@ const CRM = {
     const pv = document.getElementById('m-sv-preview');
     const image = pv ? (pv.getAttribute('data-uploaded') || pv.getAttribute('data-current') || '') : '';
     const media = DB.normMedia(this._svMedia);
+    const fromEl = document.getElementById('m-sv-from');
+    const priceFrom = !!(fromEl && fromEl.checked);
+    const optRes = this.readServiceOptions();
+    if (optRes.error) { err.textContent = optRes.error; return false; }
+    const options = optRes.options;
     if (this._svUploading > 0) { err.textContent = 'Espera a que terminen de subirse las fotos o videos.'; return false; }
     if (!name) { err.textContent = UI.v('Escribe el nombre {del:service} {service}.'); return false; }
     if (!isFinite(price) || price < 0) { err.textContent = 'Escribe un precio válido (0 o más).'; return false; }
@@ -1580,17 +1694,18 @@ const CRM = {
       let updated = 0;
       DB.state.appointments.forEach(a => {
         if (a.serviceId === s.id && a.date >= today && this.isVigente(a)) {
-          a.service = name; a.price = price; updated++;
+          // Con opciones elegidas, el precio de la cita es el del servicio más lo elegido
+          a.service = name; a.price = price + (a.options || []).reduce((t, o) => t + (Number(o.price) || 0), 0); updated++;
         }
       });
-      Object.assign(s, { name, category, price, duration, desc, image, media });
+      Object.assign(s, { name, category, price, duration, desc, image, media, options, priceFrom });
       this.closeModal();
       const ok = await DB.save();
       this.renderAll();
       if (ok) UI.toast(UI.v('{Service} actualizad{o:service}') + (updated ? ' (' + updated + ' cita' + (updated === 1 ? '' : 's') + ' futura' + (updated === 1 ? '' : 's') + ' ajustada' + (updated === 1 ? '' : 's') + ').' : '.'));
       return ok;
     }
-    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '', image, media });
+    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '', image, media, options, priceFrom });
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();

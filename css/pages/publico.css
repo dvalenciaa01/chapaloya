@@ -909,3 +909,11 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; border-ra
 .ref-photo-add svg { width: 24px; height: 24px; }
 .ref-photo-add:hover { border-color: var(--black); color: var(--text); }
 .ref-photo-add:focus-within { border-color: var(--black); box-shadow: 0 0 0 3px color-mix(in srgb, var(--black) 18%, transparent); }
+
+/* ---------------- Precio "Desde" y opciones del servicio (migración 27) ---------------- */
+.price-from, .blk-srv-price small { font-size: .72em; font-weight: 600; letter-spacing: .02em; text-transform: lowercase; opacity: .8; }
+.price-from::first-letter, .blk-srv-price small::first-letter { text-transform: uppercase; }
+.svc-options { display: grid; gap: var(--s4); }
+.svc-options[hidden] { display: none; }
+.svc-opt-group .field-lbl .opt { font-weight: 400; }
+.booking-summary-row strong small { font-weight: 500; opacity: .75; white-space: nowrap; }

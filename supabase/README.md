@@ -44,6 +44,8 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
 3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08`, `…09`, `…10`, `…11`, `…12`, `…13` y `…14`, **en ese orden**.
 
+> **Opciones que suman al precio y precio “Desde” (`…27`).** Ejecuta el `…27` después del `…26` (es corto, se puede repetir y no toca datos) y vuelve a publicar la función `reservar` (paso 2). Las opciones se arman en **CRM → Servicios → Editar** (p. ej. “Tamaño”: Corto +0, Medio +15, Largo +30); en la web se eligen al reservar y la cita queda con el precio total. Mientras no se ejecute, guardar un servicio con opciones o con “Desde” avisa que falta la migración.
+
 > **Fotos de modelo al reservar (`…26`).** Ejecuta el `…26` (requiere el `…25`; es corto, se puede repetir y deja la opción apagada en todos los negocios) y **después** vuelve a publicar la función `reservar` (paso 2). Crea el bucket privado `reservas`: el público no puede ver ni subir nada ahí; las fotos las sube la función después del captcha y el equipo del negocio las ve en la ficha de la cita. El negocio activa la opción en **CRM → Configuración → Fotos de modelo al reservar**. Mientras no se ejecute, la casilla aparece desactivada y la web reserva como siempre.
 
 > **Si ya ejecutaste hasta el `…20`, solo falta el `…21`** (constructor visual de la web). Es corto, se puede repetir y no toca datos: todos los negocios quedan sin diseño por bloques (la web se ve igual que hoy) y con permiso para editar su web. Mientras no se ejecute, el botón **Diseñar web** avisa que falta la migración y la web sigue igual.
