@@ -448,7 +448,8 @@ const PublicBooking = {
     // Con secciones configuradas, los nombres los pone la consola (TenantBrand.applySections)
     const custom = typeof TenantBrand !== 'undefined' && !!TenantBrand.sections();
     // Menú y pie: "Equipo" → "Galería"
-    if (!custom) document.querySelectorAll('a[href*="barberos"]').forEach(a => {
+    // (el enlace puede llamarse ya "galeria": TenantBrand.prettyHref)
+    if (!custom) document.querySelectorAll('.site-nav a, .site-footer a, a[href*="barberos"]').forEach(a => {
       if (a.textContent.trim() === 'Equipo') a.textContent = 'Galería';
     });
     // Inicio: la sección del equipo se reemplaza por la galería (renderBoutique)

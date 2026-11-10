@@ -16,7 +16,12 @@ const AppRouter = {
     if (Object.keys(params).length > 0) {
       sessionStorage.setItem('GOLDEN_NAV_PARAMS', JSON.stringify(params));
     }
-    if (slug && !p.b) { window.location.href = Routes.web(slug, targetFile, p); return; }
+    if (slug && !p.b) {
+      // Con direcciones limpias, con el nombre de la sección (/<enlace>/reservar-cita?service=…)
+      const pretty = (Routes.pretty() && typeof TenantBrand !== 'undefined') ? TenantBrand.prettyHref(targetFile + Routes.query(p)) : null;
+      window.location.href = pretty ? '/' + slug + '/' + pretty : Routes.web(slug, targetFile, p);
+      return;
+    }
     const query = new URLSearchParams(p).toString();
     window.location.href = targetFile + (query ? '?' + query : '');
   },

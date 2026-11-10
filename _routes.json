@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/",
+    "/admin",
+    "/crm/*",
+    "/css/*",
+    "/js/*",
+    "/assets/*",
+    "/landing/*",
+    "/docs/*",
+    "/*.html",
+    "/robots.txt",
+    "/sitemap.xml"
+  ]
+}
