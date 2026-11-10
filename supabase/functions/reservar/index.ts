@@ -8,6 +8,8 @@
 // 3 imágenes como data URL (JPEG/PNG/WebP, ≤ 4 MB cada una). Se suben DESPUÉS
 // del captcha al bucket privado "reservas" y crear_reserva guarda las rutas.
 // Si la reserva falla, se borran.
+// Opciones del servicio (migración 27): "options" = { idGrupo: [idOpción, …] };
+// la base las valida y calcula el precio total.
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   TURNSTILE_SECRET_KEY  clave secreta de Turnstile (obligatoria en producción)
@@ -135,6 +137,11 @@ Deno.serve(async (req: Request) => {
     return json(400, { error: 'Revisa los datos de tu reserva e inténtalo de nuevo.' });
   }
 
+  const options = b.options == null ? {} : b.options;
+  if (typeof options !== 'object' || Array.isArray(options) || JSON.stringify(options).length > 2048) {
+    return json(400, { error: 'Revisa las opciones que elegiste e inténtalo de nuevo.' });
+  }
+
   // Fotos de modelo: forma y contenido antes de tocar nada
   const rawPhotos = b.photos == null ? [] : b.photos;
   if (!Array.isArray(rawPhotos) || rawPhotos.length > MAX_PHOTOS) {
@@ -188,6 +195,8 @@ Deno.serve(async (req: Request) => {
   };
   // Solo se envía con fotos: así la función sigue sirviendo con una base sin la migración 26
   if (paths.length) args.p_ref_photos = paths;
+  // Igual con las opciones (migración 27)
+  if (Object.keys(options).length) args.p_options = options;
   const { data, error } = await sb.rpc('crear_reserva', args);
   if (error) {
     await cleanup();

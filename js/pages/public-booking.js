@@ -489,7 +489,7 @@ const PublicBooking = {
         (s.desc ? '<p class="bq-srv-desc">' + this.esc(s.desc) + '</p>' : '') +
         this.serviceMediaBtn(s) +
         '<div class="bq-srv-foot">' +
-          '<span class="bq-srv-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +
+          '<span class="bq-srv-price">' + this.priceHTML(s, cur) + '</span>' +
           (s.duration ? '<span class="bq-srv-dur">' + ic('clock') + this.esc(s.duration) + ' min</span>' : '') +
         '</div>' +
         '<button type="button" class="bq-srv-cta" data-pb-action="service" data-id="' + this.esc(s.id) + '">' +
@@ -668,7 +668,7 @@ const PublicBooking = {
       this.serviceMediaBtn(s) +
       '<div class="service-foot">' +
         '<div class="service-meta">' +
-          '<span class="service-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +
+          '<span class="service-price">' + this.priceHTML(s, cur) + '</span>' +
           (s.duration ? '<span class="service-duration">' + ic('clock') + this.esc(s.duration) + ' min</span>' : '') +
         '</div>' +
         '<button type="button" class="btn btn-solid btn-sm service-cta" data-pb-action="service" data-id="' + this.esc(s.id) + '" aria-label="Reservar ' + this.esc(s.name) + '">' +
@@ -748,7 +748,7 @@ const PublicBooking = {
     const cur = DB.state.settings.currency;
     const currentSrvVal = srvSel.value;
     srvSel.innerHTML = DB.state.services.map(s =>
-      '<option value="' + this.esc(s.id) + '">' + this.esc(s.name) + ' — ' + this.esc(cur) + ' ' + this.esc(s.price) +
+      '<option value="' + this.esc(s.id) + '">' + this.esc(s.name) + ' — ' + (s.priceFrom ? 'desde ' : '') + this.esc(cur) + ' ' + this.esc(s.price) +
       (s.duration ? ' · ' + this.esc(s.duration) + ' min' : '') + '</option>'
     ).join('');
     if (currentSrvVal && DB.state.services.some(s => s.id === currentSrvVal)) srvSel.value = currentSrvVal;
@@ -878,6 +878,94 @@ const PublicBooking = {
       if (f.type === 'checkbox') el.checked = false; else el.value = '';
       this.setExtraError(el, '');
     });
+  },
+
+  /* ---------------- Precio "Desde" y opciones del servicio (migración 27) ----------------
+     Un servicio puede tener grupos (Tamaño, Extras…) cuyas opciones suman al precio.
+     Se eligen con chips debajo del servicio; el total del resumen se actualiza solo.
+     La base repite la validación y calcula el precio de la cita. */
+  priceHTML(s, cur) {
+    return (s.priceFrom ? '<small class="price-from">Desde</small> ' : '') + this.esc(cur) + ' ' + this.esc(s.price);
+  },
+  fmtMoney(n) {
+    const v = Math.round((Number(n) || 0) * 100) / 100;
+    return Number.isInteger(v) ? String(v) : v.toFixed(2);
+  },
+  optSel: {},            // { idGrupo: [idOpción, …] } del servicio elegido
+  optFor: '',            // id del servicio al que pertenece optSel
+
+  renderServiceOptions(s) {
+    const box = document.getElementById('pb-options');
+    if (!box) return;
+    const groups = (s && s.options) || [];
+    if (!s || this.optFor !== s.id) { this.optFor = s ? s.id : ''; this.optSel = {}; }
+    // Descarta lo que ya no existe (el servicio pudo cambiar al recargar)
+    Object.keys(this.optSel).forEach(gid => {
+      const g = groups.find(x => x.id === gid);
+      this.optSel[gid] = g ? this.optSel[gid].filter(id => g.items.some(it => it.id === id)) : [];
+      if (!this.optSel[gid].length) delete this.optSel[gid];
+    });
+    box.hidden = !groups.length;
+    if (!groups.length) { box.innerHTML = ''; return; }
+    const cur = DB.state.settings.currency;
+    const html = groups.map(g => {
+      const sel = this.optSel[g.id] || [];
+      const lid = 'pb-opt-' + g.id;
+      return '<div class="field svc-opt-group" role="group" aria-labelledby="' + lid + '" data-group="' + this.esc(g.id) + '">' +
+        '<span class="field-lbl" id="' + lid + '">' + this.esc(g.name) +
+          (g.required ? '<span class="req" aria-hidden="true">*</span>' : ' <span class="opt">(opcional)</span>') +
+          (g.multi ? ' <span class="opt">· puedes elegir varias</span>' : '') + '</span>' +
+        '<div class="pick-chips">' + g.items.map(it => {
+          const on = sel.includes(it.id);
+          return '<button type="button" class="pick svc-opt' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-opt-g="' + this.esc(g.id) + '" data-opt-i="' + this.esc(it.id) + '">' +
+            '<span class="pick-name">' + this.esc(it.name) + '</span>' +
+            '<span class="pick-meta">' + (it.price ? '+ ' + this.esc(cur) + ' ' + this.esc(this.fmtMoney(it.price)) : 'Sin costo extra') + '</span></button>';
+        }).join('') + '</div>' +
+        '<span class="field-error" id="' + lid + '-error">' + ic('alert') + '<span class="field-error-text">Elige una opción de ' + this.esc(g.name) + '.</span></span>' +
+      '</div>';
+    }).join('');
+    if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest ? e.target.closest('button[data-opt-g]') : null;
+        if (b) this.toggleOption(b.getAttribute('data-opt-g'), b.getAttribute('data-opt-i'));
+      });
+    }
+  },
+
+  toggleOption(gid, iid) {
+    const srv = DB.state.services.find(s => s.id === this.optFor);
+    const g = srv && (srv.options || []).find(x => x.id === gid);
+    if (!g || !g.items.some(it => it.id === iid)) return;
+    const sel = this.optSel[gid] || [];
+    let next;
+    if (sel.includes(iid)) next = (g.required && !g.multi) ? sel : sel.filter(x => x !== iid);
+    else next = g.multi ? sel.concat(iid) : [iid];
+    if (next.length) this.optSel[gid] = g.items.filter(it => next.includes(it.id)).map(it => it.id);
+    else delete this.optSel[gid];
+    const err = document.getElementById('pb-opt-' + gid + '-error');
+    if (err) err.classList.remove('is-visible');
+    this.updateSummary();
+    const again = document.querySelector('#pb-options button[data-opt-g="' + gid + '"][data-opt-i="' + iid + '"]');
+    if (again) again.focus();
+  },
+
+  // Lo elegido → [{ group, item, price }] en el orden del servicio
+  chosenOptions(s) {
+    if (!s || this.optFor !== s.id) return [];
+    const out = [];
+    (s.options || []).forEach(g => (g.items || []).forEach(it => {
+      if ((this.optSel[g.id] || []).includes(it.id)) out.push({ group: g.name, item: it.name, price: Number(it.price) || 0 });
+    }));
+    return out;
+  },
+
+  // Grupos obligatorios sin elegir (muestra el error debajo de cada uno)
+  missingOptions(s) {
+    const miss = ((s && s.options) || []).filter(g => g.required && !(this.optSel[g.id] || []).length);
+    miss.forEach(g => { const err = document.getElementById('pb-opt-' + g.id + '-error'); if (err) err.classList.add('is-visible'); });
+    return miss;
   },
 
   /* ---------------- Fotos de modelo (migración 26) ----------------
@@ -1119,9 +1207,13 @@ const PublicBooking = {
     set('pb-sum-bar', this.barberName(barSel.value) || '—');
     set('pb-sum-dt', this.fmtDate(dateInp.value) + (timeSel.value ? ' · ' + timeSel.value : ''));
     set('pb-sum-dur', srvObj && srvObj.duration ? srvObj.duration + ' min' : '—');
-    set('pb-sum-price', srvObj ? (cur + ' ' + srvObj.price) : (cur + ' 0'));
+    this.renderServiceOptions(srvObj);
+    const chosen = this.chosenOptions(srvObj);
+    set('pb-sum-price', srvObj ? (cur + ' ' + this.fmtMoney(srvObj.price + chosen.reduce((t, o) => t + o.price, 0))) : (cur + ' 0'));
     const sumExtra = document.getElementById('pb-sum-extra');
-    if (sumExtra) sumExtra.innerHTML = this.extraSummaryHTML() + (this.refPhotosOn() && this.refPhotos.length
+    if (sumExtra) sumExtra.innerHTML = chosen.map(o => '<div class="booking-summary-row"><span>' + this.esc(o.group) + '</span><strong>' + this.esc(o.item) +
+        (o.price ? ' <small>+' + this.esc(cur) + ' ' + this.esc(this.fmtMoney(o.price)) + '</small>' : '') + '</strong></div>').join('') +
+      this.extraSummaryHTML() + (this.refPhotosOn() && this.refPhotos.length
       ? '<div class="booking-summary-row"><span>Fotos de modelo</span><strong>' + this.refPhotos.length + '</strong></div>' : '');
     this.renderPickers();
   },
@@ -1165,7 +1257,7 @@ const PublicBooking = {
         let label = this.esc(o.textContent);
         if (id === 'pb-service') {
           const s = DB.state.services.find(x => x.id === o.value);
-          if (s) label = '<span class="pick-name">' + this.esc(s.name) + '</span><span class="pick-meta">' + this.esc(cur) + ' ' + this.esc(s.price) + (s.duration ? ' · ' + this.esc(s.duration) + ' min' : '') + '</span>';
+          if (s) label = '<span class="pick-name">' + this.esc(s.name) + '</span><span class="pick-meta">' + (s.priceFrom ? 'Desde ' : '') + this.esc(cur) + ' ' + this.esc(s.price) + (s.duration ? ' · ' + this.esc(s.duration) + ' min' : '') + '</span>';
         }
         return '<button type="button" class="pick' + (on ? ' is-on' : '') + '" data-val="' + this.esc(o.value) + '" aria-pressed="' + on + '"' + (o.disabled ? ' disabled' : '') + '>' + label + '</button>';
       }).join('');
@@ -1226,6 +1318,15 @@ const PublicBooking = {
     const srvObj = DB.state.services.find(s => s.id === serviceId);
     const barberObj = DB.barberOf(barberId);
     if (!srvObj || !barberObj) { showError(this.vf('Elige {service} y {staff}.')); return; }
+    const missing = this.missingOptions(srvObj);
+    if (missing.length) {
+      showError('Elige ' + missing.map(g => '“' + g.name + '”').join(' y ') + ' para continuar.');
+      const first = document.querySelector('#pb-options [data-group="' + missing[0].id + '"] button');
+      if (first) first.focus();
+      return;
+    }
+    const options = this.optFor === srvObj.id ? JSON.parse(JSON.stringify(this.optSel)) : {};
+    const total = srvObj.price + this.chosenOptions(srvObj).reduce((t, o) => t + o.price, 0);
 
     // Validación de horario en pantalla (el servidor la repite)
     const slotError = DB.validateBooking(date, time, barberObj.id, null, Number(srvObj.duration) || 0);
@@ -1240,7 +1341,7 @@ const PublicBooking = {
     if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
     let res;
     try {
-      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, extra, photos, captcha: this.captchaToken || '' });
+      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, extra, photos, options, captcha: this.captchaToken || '' });
     } catch (ex) {
       // El servidor ya devuelve el motivo en español (horario ocupado, límite de citas…)
       showError((ex && ex.message) || 'No se pudo registrar la reserva. Inténtalo de nuevo.');
@@ -1266,6 +1367,7 @@ const PublicBooking = {
           '<span class="booking-code-hint">Guárdalo o toma una captura de esta pantalla: lo necesitas junto con tu celular para consultar tu ' + this.esc(this.v('appointment')) + '.</span>'
         : '') +
       (waOptIn ? '<span style="display:block; margin-top:4px;">Te enviaremos la confirmación por WhatsApp.</span>' : '') +
+      (Object.keys(options).length ? '<span style="display:block; margin-top:4px;">Total: ' + this.esc(DB.state.settings.currency) + ' ' + this.esc(this.fmtMoney(res && res.price != null ? res.price : total)) + '.</span>' : '') +
       (photos.length ? '<span style="display:block; margin-top:4px;">Recibimos ' + (photos.length === 1 ? 'tu foto' : 'tus ' + photos.length + ' fotos') + ' de modelo.</span>' : '') +
       '<div class="alert-links">' +
         '<a href="' + this.esc(this.href('consultar-cita.html')) + '">Consultar mi ' + this.esc(this.v('appointment')) + ' ' + ic('arrowRight') + '</a>' +
@@ -1277,6 +1379,7 @@ const PublicBooking = {
     document.getElementById('pb-notes').value = '';
     this.resetExtra();
     this.refPhotos = [];
+    this.optSel = {};
     this.setRefError('');
     this.renderRefPhotos();
     if (waEl) waEl.checked = false;

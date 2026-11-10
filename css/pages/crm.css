@@ -1141,3 +1141,22 @@ a.appt-ref:hover, a.appt-ref:focus-visible { border-color: var(--yellow); }
 @media (prefers-reduced-motion: reduce) { .appt-ref.is-loading { animation: none; } }
 .appt-ref-badge { display: inline-flex; vertical-align: -2px; margin-left: 4px; color: var(--yellow); }
 .appt-ref-badge svg { width: 14px; height: 14px; }
+
+/* Opciones del servicio que suman al precio (migración 27) */
+.check-inline { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-sm); color: var(--on-dark-md); cursor: pointer; }
+.check-inline input { width: 18px; height: 18px; accent-color: var(--golden); flex: 0 0 auto; }
+.sv-opts { display: grid; gap: 10px; margin-top: 8px; }
+.sv-opt-group { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line-dark); border-radius: 12px; background: rgba(255,255,255,.03); }
+.sv-opt-head { display: flex; gap: 8px; align-items: center; }
+.sv-opt-head .input-dark { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.sv-opt-flags { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-sm); color: var(--on-dark-md); }
+.sv-opt-flags label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.sv-opt-flags input { width: 16px; height: 16px; accent-color: var(--golden); }
+.sv-opt-item { display: grid; grid-template-columns: minmax(0, 1fr) auto 96px auto; gap: 8px; align-items: center; }
+.sv-opt-plus { color: var(--on-dark-lo); font-size: var(--fs-sm); white-space: nowrap; }
+.sv-opt-price { text-align: right; }
+.sv-opt-add { justify-self: start; }
+@media (max-width: 480px) {
+  .sv-opt-item { grid-template-columns: minmax(0, 1fr) 84px auto; }
+  .sv-opt-plus { display: none; }
+}

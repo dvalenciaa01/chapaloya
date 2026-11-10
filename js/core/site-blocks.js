@@ -441,7 +441,7 @@
             (s.duration ? '<em>' + icon('clock') + esc(s.duration) + ' min</em>' : '') +
             (PB() ? PB().serviceMediaBtn(s, 'is-inline') : '') +
           '</div>' +
-          '<div class="blk-srv-side"><span class="blk-srv-price">' + esc(cur) + ' ' + esc(s.price) + '</span>' +
+          '<div class="blk-srv-side"><span class="blk-srv-price">' + (s.priceFrom ? '<small>Desde</small> ' : '') + esc(cur) + ' ' + esc(s.price) + '</span>' +
             '<button type="button" class="btn btn-solid btn-sm" data-pb-action="service" data-id="' + esc(s.id) + '">Reservar<span class="sr-only"> ' + esc(s.name) + '</span></button></div>' +
         '</li>').join('') + '</ul>';
     } else {

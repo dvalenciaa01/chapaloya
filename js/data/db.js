@@ -183,6 +183,7 @@ const DB = {
     if (/schedule_valid|ranges_check/i.test(m)) return 'El horario no es válido: revisa que cada tramo empiece antes de terminar.';
     if (/appointments_no_double_booking/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
     if (/duplicate key/i.test(m)) return 'Ese registro ya existe.';
+    if (/'options' column|'price_from' column|column "?(options|price_from)"?|services_options_valida/i.test(m)) return 'Para guardar opciones de precio o el precio “Desde” falta aplicar la migración 27 en Supabase.';
     if (/'media' column|column "?media"?|services_media_valida/i.test(m)) return 'Para guardar más fotos y videos por servicio falta aplicar la migración 25 en Supabase.';
     if (/mime type|invalid_mime_type/i.test(m) && /video/i.test(m)) return 'Aún no se pueden subir videos: falta aplicar la migración 22 en Supabase.';
     if (/exceeded the maximum allowed size|payload too large|entity too large/i.test(m)) return 'El archivo es demasiado grande (videos hasta 50 MB).';
@@ -351,8 +352,10 @@ const DB = {
     },
     services: {
       table: 'services', soft: true,
-      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured, image: r.image_url || '', media: DB.normMedia(r.media) }; },
-      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured, image: s.image || '', media: DB.normMedia(s.media) }; },
+      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured, image: r.image_url || '', media: DB.normMedia(r.media),
+        options: DB.normOptions(r.options), priceFrom: r.price_from === true }; },
+      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured, image: s.image || '', media: DB.normMedia(s.media),
+        options: DB.normOptions(s.options), priceFrom: !!s.priceFrom }; },
       columns(l, tid, insert) {
         const c = {};
         if ('name' in l) c.name = l.name;
@@ -365,6 +368,9 @@ const DB = {
         if ('image' in l && !(insert && !l.image)) c.image_url = l.image || null;
         // migración 25 (igual: sin fotos extra no se envía al crear)
         if ('media' in l && !(insert && !(l.media || []).length)) c.media = l.media || [];
+        // migración 27 (igual: sin opciones ni "Desde" no se envían al crear)
+        if ('options' in l && !(insert && !(l.options || []).length)) c.options = l.options || [];
+        if ('priceFrom' in l && !(insert && !l.priceFrom)) c.price_from = !!l.priceFrom;
         return c;
       }
     },
@@ -394,7 +400,9 @@ const DB = {
           durationMin: r.duration_min != null ? Number(r.duration_min) : undefined,
           extra: DB.normExtra(r.extra),
           // Fotos de modelo que adjuntó el cliente (migración 26): rutas del bucket privado "reservas"
-          refPhotos: Array.isArray(r.ref_photos) ? r.ref_photos.filter(x => typeof x === 'string').slice(0, 3) : [] };
+          refPhotos: Array.isArray(r.ref_photos) ? r.ref_photos.filter(x => typeof x === 'string').slice(0, 3) : [],
+          // Opciones elegidas al reservar (migración 27): [{ group, item, price }]
+          options: DB.normChosen(r.options) };
       },
       // Barbero y servicio se comparan y guardan por id (los nombres los pone el servidor)
       logical(a) {
@@ -671,7 +679,8 @@ const DB = {
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured,
-      image: /^https:\/\/[^\s"'<>()]+$/i.test(s.image_url || '') ? s.image_url : '', media: this.normMedia(s.media) }));
+      image: /^https:\/\/[^\s"'<>()]+$/i.test(s.image_url || '') ? s.image_url : '', media: this.normMedia(s.media),
+      options: this.normOptions(s.options), priceFrom: s.price_from === true }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
       works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
@@ -754,7 +763,8 @@ const DB = {
       body: { slug: this.tenant.slug, service_id: p.serviceId, barber_id: p.barberId, date: p.date, time: p.time,
         name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '',
         extra: (p.extra && typeof p.extra === 'object') ? p.extra : {},
-        ...(Array.isArray(p.photos) && p.photos.length ? { photos: p.photos.slice(0, 3) } : {}) }
+        ...(Array.isArray(p.photos) && p.photos.length ? { photos: p.photos.slice(0, 3) } : {}),
+        ...(p.options && typeof p.options === 'object' && Object.keys(p.options).length ? { options: p.options } : {}) }
     });
     if (error) throw new Error(await this.functionError(error));
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo registrar la reserva.');
@@ -1108,6 +1118,49 @@ const DB = {
     if (!Array.isArray(list)) return [];
     return list.filter(m => m && (m.type === 'image' || m.type === 'video') && typeof m.url === 'string' &&
       m.url.length <= 1000 && /^https:\/\/[^\s"'<>()\\]+$/.test(m.url)).slice(0, this.MAX_SERVICE_MEDIA).map(m => ({ type: m.type, url: m.url }));
+  },
+
+  /* Opciones del servicio (migración 27): grupos que suman al precio.
+     [{ id, name, multi, required, items: [{ id, name, price }] }] — misma forma que
+     private.servicio_opciones_valida; lo que no la cumpla se descarta. */
+  MAX_OPT_GROUPS: 6,
+  MAX_OPT_ITEMS: 12,
+  OPT_ID_RE: /^[a-z0-9]{4,16}$/,
+  optId() { return Math.random().toString(36).slice(2, 10).padEnd(8, '0'); },
+  normOptions(list) {
+    if (!Array.isArray(list)) return [];
+    const txt = (v, max) => typeof v === 'string' && v.trim() && v.length <= max && !/[<>"]/.test(v) ? v : '';
+    const gids = new Set();
+    const out = [];
+    list.forEach(g => {
+      if (!g || typeof g !== 'object' || out.length >= this.MAX_OPT_GROUPS) return;
+      const name = txt(g.name, 40);
+      if (!this.OPT_ID_RE.test(g.id || '') || gids.has(g.id) || !name || !Array.isArray(g.items)) return;
+      const iids = new Set();
+      const items = [];
+      g.items.forEach(it => {
+        if (!it || typeof it !== 'object' || items.length >= this.MAX_OPT_ITEMS) return;
+        const n = txt(it.name, 60);
+        const price = Number(it.price);
+        if (!this.OPT_ID_RE.test(it.id || '') || iids.has(it.id) || !n || typeof it.price !== 'number' ||
+            !isFinite(price) || price < 0 || price > 99999 || Math.abs(Math.round(price * 100) - price * 100) > 1e-6) return;
+        iids.add(it.id);
+        items.push({ id: it.id, name: n, price });
+      });
+      if (!items.length) return;
+      gids.add(g.id);
+      const o = { id: g.id, name, items };
+      if (g.multi === true) o.multi = true;
+      if (g.required === true) o.required = true;
+      out.push(o);
+    });
+    return out;
+  },
+  // Lo elegido en una cita: [{ group, item, price }]
+  normChosen(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter(x => x && typeof x.item === 'string').slice(0, 72)
+      .map(x => ({ group: typeof x.group === 'string' ? x.group : '', item: x.item, price: Number(x.price) || 0 }));
   },
 
   /* Sube un video (MP4/WebM, hasta 50 MB) tal cual al bucket media (migración 22) */
