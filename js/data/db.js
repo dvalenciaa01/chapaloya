@@ -1056,9 +1056,23 @@ const DB = {
   },
 
   /* ---------------- Fotos: se suben a Storage y se guarda el enlace ---------------- */
+  dataUrlToBlob(dataUrl) {
+    const i = dataUrl.indexOf(',');
+    const head = dataUrl.slice(5, i);                       // p. ej. "image/jpeg;base64"
+    const type = head.split(';')[0] || 'image/jpeg';
+    const body = dataUrl.slice(i + 1);
+    if (!/;base64$/i.test(head)) return new Blob([decodeURIComponent(body)], { type });
+    const bin = atob(body);
+    const bytes = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+    return new Blob([bytes], { type });
+  },
+
   async uploadImage(dataUrl, tenantId) {
     if (!dataUrl || !/^data:image\//.test(dataUrl)) return dataUrl;
-    const blob = await (await fetch(dataUrl)).blob();
+    // Sin fetch(): la CSP (connect-src en _headers) no permite data:, y fetch fallaría
+    // con "Failed to fetch" (se veía como "Sin conexión con el servidor").
+    const blob = this.dataUrlToBlob(dataUrl);
     const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
     const path = tenantId + '/' + this.uid() + '.' + ext;
     const { error } = await this.client().storage.from('media').upload(path, blob, { contentType: blob.type, upsert: false });
