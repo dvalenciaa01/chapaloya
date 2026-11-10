@@ -633,6 +633,11 @@ const PublicBooking = {
     this.renderBarbersShowcase();
     this.renderGalleryPage();
     this.applySolo();
+    // Inicio diseñado con el constructor visual (si el negocio tiene bloques)
+    if (typeof SiteBlocks !== 'undefined' && DB.tenant) {
+      SiteBlocks.render(DB.tenant.page, { preview: SiteBlocks.isPreview() });
+      SiteBlocks.initPreview();
+    }
     this.renderBookingForm();
 
     if (typeof SiteUI !== 'undefined') SiteUI.observeReveal();

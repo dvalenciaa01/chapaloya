@@ -253,6 +253,11 @@ const DB = {
     // Preferencias que elige el negocio (migración 15). Sin la columna, quedan en este navegador.
     t.hasCrmPrefs = 'crm_prefs' in r;
     t.crmPrefs = (r.crm_prefs && typeof r.crm_prefs === 'object' && !Array.isArray(r.crm_prefs)) ? r.crm_prefs : {};
+    // Diseño de la web por bloques (migración 21). Sin la columna, el editor avisa que falta.
+    // No va en tenantRow: lo guarda el editor (SiteBuilder.save), nunca save().
+    t.hasWebPage = 'web_page' in r;
+    t.webPage = (r.web_page && typeof r.web_page === 'object' && !Array.isArray(r.web_page)) ? r.web_page : null;
+    t.webEditor = r.web_editor !== false;
     return t;
   },
   tenantRow(t) {
@@ -648,6 +653,8 @@ const DB = {
     t.bookingFields = this.normBookingFields(pick('booking_fields'));
     // Portada personalizable (título, subtítulo, imagen); sin dato = diseño de siempre
     t.site = this.normSite(pick('site'));
+    // Inicio diseñado con el constructor visual (migración 21); null = el de siempre
+    t.page = typeof SiteBlocks !== 'undefined' ? SiteBlocks.normalize(pick('page')) : null;
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured,

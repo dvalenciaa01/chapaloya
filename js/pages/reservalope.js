@@ -512,6 +512,7 @@ const Reservalope = {
             '<a class="btn-dark btn-xs" href="' + UI.esc(Routes.web(t.slug)) + '" target="_blank" rel="noopener">' + ic('external') + 'Ver web</a>' +
             '<button type="button" class="btn-dark btn-xs" onclick="AdminUI.openTenantModal(\'' + t.id + '\')">' + ic('edit') + 'Editar</button>' +
             (this.ceIsSA() ? '<button type="button" class="btn-dark btn-xs" id="rl-crm-custom" onclick="Reservalope.openCrmEditor(\'' + t.id + '\')">' + ic('sliders') + 'Personalizar CRM</button>' : '') +
+            (this.ceIsSA() ? '<button type="button" class="btn-dark btn-xs" id="rl-site-builder" onclick="Reservalope.openSiteBuilder(\'' + t.id + '\')">' + ic('edit') + 'Diseñar web</button>' : '') +
             (active ? '<button type="button" class="btn-danger btn-xs" onclick="AdminUI.toggleTenant(\'' + t.id + '\')">Suspender</button>'
                     : '<button type="button" class="btn-golden btn-xs" onclick="AdminUI.toggleTenant(\'' + t.id + '\')">Reactivar</button>') +
           '</div>' +
@@ -796,6 +797,15 @@ Object.assign(Reservalope, {
   CE_TABS: [['modules', 'Módulos'], ['fields', 'Campos'], ['custom', 'Campos propios'], ['theme', 'Apariencia'], ['site', 'Web']],
 
   ceIsSA() { return !!(Auth.user && Auth.user.role === 'SUPERADMIN'); },
+
+  // Constructor visual de la web (js/components/site-builder.js)
+  openSiteBuilder(id) {
+    if (!this.ceIsSA()) return Guard.deny('Solo el superadministrador puede diseñar la web desde la consola.');
+    const t = DB.tenantById(id);
+    if (!t) return;
+    if (!t.hasWebPage) return UI.toast('Falta aplicar la migración 21 en Supabase (constructor de la web). Mira supabase/README.md.', 'error');
+    SiteBuilder.open(t);
+  },
 
   openCrmEditor(id) {
     if (!this.ceIsSA()) return Guard.deny('Solo el superadministrador puede personalizar el CRM.');
