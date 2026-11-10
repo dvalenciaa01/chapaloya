@@ -410,7 +410,9 @@ const PublicBooking = {
 
   boutiqueServiceCard(s, cur, i) {
     return '<article class="bq-srv reveal">' +
-      '<div class="bq-srv-art bq-sw-' + (i % 6) + '">' + this.artSVG(i) + '</div>' +
+      (s.image
+        ? '<div class="bq-srv-art has-photo"><img src="' + this.esc(s.image) + '" alt="' + this.esc(s.name) + '" loading="lazy" decoding="async" /></div>'
+        : '<div class="bq-srv-art bq-sw-' + (i % 6) + '">' + this.artSVG(i) + '</div>') +
       '<div class="bq-srv-body">' +
         '<span class="bq-srv-ic" aria-hidden="true">' + this.rubroIcon() + '</span>' +
         '<h3 class="bq-srv-name">' + this.esc(s.name) + '</h3>' +
@@ -582,7 +584,9 @@ const PublicBooking = {
   /* ---------------- Servicios ---------------- */
   serviceCard(s, cur) {
     const featured = s.featured;
-    return '<article class="service-card' + (featured ? ' is-featured' : '') + ' reveal">' +
+    return '<article class="service-card' + (featured ? ' is-featured' : '') + (s.image ? ' has-photo' : '') + ' reveal">' +
+      // Foto referencial del servicio (se sube en el CRM → Servicios)
+      (s.image ? '<div class="service-photo"><img src="' + this.esc(s.image) + '" alt="' + this.esc(s.name) + '" loading="lazy" decoding="async" /></div>' : '') +
       '<div class="service-card-top">' +
         '<span class="service-icon">' + this.rubroIcon() + '</span>' +
         '<span class="service-cat">' + this.esc(s.category || this.V('service')) + '</span>' +

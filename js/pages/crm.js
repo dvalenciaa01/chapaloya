@@ -1375,6 +1375,7 @@ const CRM = {
     srvGrid.innerHTML = DB.state.services.map(s =>
       '<div class="crm-item-card service-admin-card">' +
         '<div>' +
+          (s.image ? '<img class="service-admin-photo" src="' + UI.esc(s.image) + '" alt="" loading="lazy" />' : '') +
           '<div class="service-admin-top"><span class="service-admin-cat">' + (F('category') ? UI.esc(s.category || 'General') : '') + '</span>' +
             (s.featured && F('featured') ? '<span class="crm-nav-new">Destacado</span>' : '') + '</div>' +
           '<h3 style="font-size:1.25rem; margin:6px 0 8px;">' + UI.esc(s.name) + '</h3>' +
@@ -1407,12 +1408,42 @@ const CRM = {
           '<div' + hid('duration') + '><label class="field-lbl" for="m-sv-duration">Duración (minutos) <span class="req">*</span></label><input type="number" id="m-sv-duration" class="input-dark" min="5" max="480" step="1" inputmode="numeric" placeholder="Ej.: 40" value="' + v('duration', '') + '" required />' +
             '<span class="field-hint">De 5 a 480 minutos (8 horas).</span></div>' +
           '<div style="grid-column:1/-1;"' + hid('description') + '><label class="field-lbl" for="m-sv-desc">Descripción <span class="text-grey" style="font-weight:400;">(se muestra en la web)</span></label><textarea id="m-sv-desc" class="input-dark" maxlength="220">' + v('desc', '') + '</textarea></div>' +
+          // Foto referencial (migración 20): se sube al guardar, como las fotos de trabajos
+          '<div style="grid-column:1/-1;"><span class="field-lbl">Foto referencial <span class="text-grey" style="font-weight:400;">(opcional, se muestra en la web)</span></span>' +
+            '<div class="sv-photo-row">' +
+              '<img id="m-sv-preview" class="sv-photo-preview" src="' + this.photo(s && s.image) + '" data-current="' + v('image', '') + '" alt="Foto referencial"' + (s && s.image ? '' : ' hidden') + ' />' +
+              '<div class="upload-dropzone sv-photo-drop" onclick="document.getElementById(\'m-sv-file\').click()">' +
+                '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.82rem;">' + ic('upload') + ' ' + (s && s.image ? 'Cambiar foto' : 'Subir foto') + '</span>' +
+                '<input type="file" id="m-sv-file" accept="image/*" style="display:none;" onchange="CRM.previewServicePhoto(this)" />' +
+              '</div>' +
+              '<button type="button" class="btn-dark btn-xs" id="m-sv-photo-del" onclick="CRM.removeServicePhoto()"' + (s && s.image ? '' : ' hidden') + '>' + ic('trash') + 'Quitar foto</button>' +
+            '</div></div>' +
         '</div>' +
         (s ? '<p class="form-note">' + ic('alert') + 'Si cambias el nombre o el precio, se actualizarán las citas futuras pendientes. Las citas pasadas conservan sus datos originales.</p>' : '') +
         '<div class="form-error" id="m-sv-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (s ? 'Guardar cambios' : this.vx('Agregar {service}')) + '</button></div>' +
       '</form>'
     );
+  },
+
+  async previewServicePhoto(input) {
+    await this.previewUploadedImage(input, 'm-sv-preview');
+    const pv = document.getElementById('m-sv-preview');
+    if (pv && pv.getAttribute('data-uploaded')) {
+      pv.hidden = false;
+      document.getElementById('m-sv-photo-del').hidden = false;
+    }
+  },
+
+  removeServicePhoto() {
+    const pv = document.getElementById('m-sv-preview');
+    if (!pv) return;
+    pv.removeAttribute('data-uploaded');
+    pv.setAttribute('data-current', '');
+    pv.hidden = true;
+    document.getElementById('m-sv-photo-del').hidden = true;
+    const f = document.getElementById('m-sv-file');
+    if (f) f.value = '';
   },
 
   async saveServiceModal(e, editId) {
@@ -1426,6 +1457,8 @@ const CRM = {
     const prevDur = editId ? Number((DB.state.services.find(x => x.id === editId) || {}).duration) || 30 : 30;
     const duration = this.fshow('services', 'duration') ? Number(durRaw) : prevDur;
     const desc = document.getElementById('m-sv-desc').value.trim();
+    const pv = document.getElementById('m-sv-preview');
+    const image = pv ? (pv.getAttribute('data-uploaded') || pv.getAttribute('data-current') || '') : '';
     if (!name) { err.textContent = UI.v('Escribe el nombre {del:service} {service}.'); return false; }
     if (!isFinite(price) || price < 0) { err.textContent = 'Escribe un precio válido (0 o más).'; return false; }
     if (!durRaw && this.fshow('services', 'duration')) { err.textContent = UI.v('Escribe cuántos minutos dura {el:service} {service}.'); return false; }
@@ -1443,14 +1476,14 @@ const CRM = {
           a.service = name; a.price = price; updated++;
         }
       });
-      Object.assign(s, { name, category, price, duration, desc });
+      Object.assign(s, { name, category, price, duration, desc, image });
       this.closeModal();
       const ok = await DB.save();
       this.renderAll();
       if (ok) UI.toast(UI.v('{Service} actualizad{o:service}') + (updated ? ' (' + updated + ' cita' + (updated === 1 ? '' : 's') + ' futura' + (updated === 1 ? '' : 's') + ' ajustada' + (updated === 1 ? '' : 's') + ').' : '.'));
       return ok;
     }
-    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '' });
+    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '', image });
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();
