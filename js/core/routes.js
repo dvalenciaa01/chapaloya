@@ -16,8 +16,15 @@ const Routes = {
 
   // Primeros tramos que usa el sitio: ningún negocio puede llamarse así
   // (la base de datos también lo impide: migración 13)
-  RESERVED: ['admin', 'api', 'assets', 'barberos', 'bot', 'consultar-cita', 'crm', 'css', 'docs', 'index',
+  RESERVED: ['admin', 'api', 'assets', 'barberos', 'bot', 'consultar-cita', 'crm', 'css', 'docs', 'galeria', 'index',
     'ingresar', 'js', 'landing', 'login', 'privacidad', 'reservalope', 'reservar', 'servicios', 'supabase', 'www'],
+
+  /* Dirección de una sección de la web según su nombre: "Mi cita" → mi-cita,
+     "Galería" → galeria (ver TenantBrand.applyAddress) */
+  sectionSlug(label) {
+    return String(label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  },
 
   pretty() {
     const h = location.hostname, hp = location.host;

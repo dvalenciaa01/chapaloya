@@ -264,10 +264,179 @@ const TenantBrand = {
      entrada = diseño clásico. "boutique": portada con título grande con serifa,
      tarjetas con imagen, galería y franja de invitación (pensado para uñas). */
   LAYOUTS: { unas: 'boutique' },
-  applyLayout() {
+  // El superadmin puede elegir otro en la consola (crm_config.site.layout)
+  applyLayout(t) {
     const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
-    const layout = (type && this.LAYOUTS[type]) || 'clasico';
+    const chosen = t && t.site && t.site.layout;
+    const layout = chosen || (type && this.LAYOUTS[type]) || 'clasico';
     document.documentElement.setAttribute('data-layout', layout);
+  },
+
+  /* ---------------- Secciones de la web (crm_config.site.sections) ----------------
+     Menú propio de cada negocio: nombre, orden y si se ve cada sección. El tipo dice
+     qué página abre. Sin configuración la web queda como siempre (el HTML de fábrica).
+     Solo cambia la web pública: el CRM no usa nada de esto. */
+  SECTION_PAGES: { inicio: 'index.html', servicios: 'servicios.html', equipo: 'barberos.html', galeria: 'galeria.html', 'mi-cita': 'consultar-cita.html', reservar: 'reservar.html' },
+  SECTION_DATA_PAGE: { inicio: 'inicio', servicios: 'servicios', equipo: 'barberos', galeria: 'galeria', 'mi-cita': 'mi-cita', reservar: 'reservar' },
+  sections() {
+    const t = typeof DB !== 'undefined' ? DB.tenant : null;
+    return (t && t.site && Array.isArray(t.site.sections)) ? t.site.sections : null;
+  },
+  // ¿Se ve alguna sección de este tipo? (sin configuración, todas las de siempre sí)
+  sectionShown(type) {
+    const secs = this.sections();
+    if (!secs) return type !== 'galeria';
+    return secs.some(x => x.type === type && x.show);
+  },
+  // Página real de la sección (servicios.html?cat=Modelos…)
+  sectionPage(sec) {
+    return this.SECTION_PAGES[sec.type] + (sec.type === 'servicios' && sec.cat ? '?cat=' + encodeURIComponent(sec.cat) : '');
+  },
+  // Con direcciones limpias, el nombre de la sección ("modelos", "mi-cita"); si no, la página real
+  sectionHref(sec) {
+    if (typeof Routes === 'undefined' || !Routes.pretty()) return this.sectionPage(sec);
+    return sec.type === 'inicio' ? './' : this.sectionSlug(sec);
+  },
+  sectionSlug(sec) {
+    return Routes.sectionSlug(sec.label) || this.SECTION_PAGES[sec.type].replace(/\.html$/, '');
+  },
+  // Las configuradas o, sin configuración, las de siempre con sus nombres de siempre
+  effectiveSections() {
+    const secs = this.sections();
+    if (secs) return secs;
+    const V = (k, d) => (typeof Vocab !== 'undefined' ? Vocab.fmt(k) : d);
+    const solo = document.documentElement.getAttribute('data-layout') === 'boutique' &&
+      typeof DB !== 'undefined' && DB.state && (DB.state.barberProfiles || []).length === 1;
+    return [
+      { type: 'inicio', label: 'Inicio', show: true },
+      { type: 'servicios', label: V('{ServicePlural}', 'Servicios'), show: true },
+      { type: 'equipo', label: solo ? 'Galería' : 'Equipo', show: true },
+      { type: 'mi-cita', label: V('Mi {appointment}', 'Mi cita'), show: true },
+      { type: 'reservar', label: V('Reservar {appointment}', 'Reservar cita'), show: true }
+    ];
+  },
+  // Categoría de la página de servicios (se guarda antes de limpiar la dirección)
+  pageCat() {
+    if (this._pageCat == null) this._pageCat = (new URLSearchParams(location.search).get('cat') || '').trim();
+    return this._pageCat;
+  },
+  // Sección de la página abierta (en servicios, la de su categoría ?cat=)
+  currentSection(all) {
+    const secs = all ? this.effectiveSections() : this.sections();
+    if (!secs) return null;
+    const page = document.body.getAttribute('data-page');
+    const cat = this.pageCat().toLowerCase();
+    return secs.find(x => this.SECTION_DATA_PAGE[x.type] === page &&
+      (x.type !== 'servicios' || String(x.cat || '').toLowerCase() === cat)) || null;
+  },
+
+  /* Dirección con el nombre de la sección (solo con direcciones limpias):
+     /ale-sanchez/barberos se muestra como /ale-sanchez/galeria si así se llama.
+     Si la dirección trae el nombre de otra sección (/ale-sanchez/modelos llega a
+     index.html porque no es una página del sitio, o /galeria es de otro tipo),
+     se abre la página de esa sección. Devuelve true si la página va a cambiar. */
+  applyAddress(t) {
+    if (typeof Routes === 'undefined' || !Routes.pretty() || Routes.pathSlug() !== t.slug) return false;
+    const secs = this.effectiveSections();
+    try { sessionStorage.setItem('RL_SECCIONES_' + t.slug, JSON.stringify(secs)); } catch (e) { /* sin almacenamiento */ }
+    const seg = location.pathname.split('/').filter(Boolean);
+    const name = (seg[1] || '').replace(/\.html$/, '');
+    const base = '/' + t.slug + '/';
+    const page = document.body.getAttribute('data-page');
+    // Con ?cat= la página ya dice qué sección es (servicios?cat=Modelos no es la sección "Servicios")
+    const hasCat = new URLSearchParams(location.search).has('cat');
+    const named = name && !hasCat ? secs.find(x => x.type !== 'inicio' && this.sectionSlug(x) === name) : null;
+    if (named) {
+      const here = this.currentSection(true);
+      if (here !== named) {
+        const target = Routes.clean(this.sectionPage(named));
+        const q = new URLSearchParams(location.search);
+        q.delete('cat');
+        const tq = new URLSearchParams(target.split('?')[1] || '');
+        q.forEach((v, k) => tq.set(k, v));
+        const qs = tq.toString();
+        location.replace(base + target.split('?')[0] + (qs ? '?' + qs : '') + location.hash);
+        return true;
+      }
+    }
+    const cur = this.currentSection(true);
+    let want;
+    if (cur) want = base + (cur.type === 'inicio' ? '' : this.sectionSlug(cur));
+    else if (page === 'inicio') want = base;     // /<enlace>/<nombre que no existe> → inicio
+    else return false;                           // privacidad y páginas sin sección
+    if (location.pathname !== want) {
+      this.pageCat();
+      const q = new URLSearchParams(location.search);
+      q.delete('cat');
+      const qs = q.toString();
+      try { history.replaceState(history.state, '', want + (qs ? '?' + qs : '') + location.hash); } catch (e) { /* sin historial */ }
+    }
+    return false;
+  },
+  applySections() {
+    const secs = this.sections();
+    if (!secs) return;
+    const esc = (v) => UIx.esc(v);
+    const cur = this.currentSection();
+    const visible = secs.filter(x => x.show);
+    const reservar = secs.find(x => x.type === 'reservar');
+
+    // Menú principal (Reservar va como botón, aparte)
+    const nav = document.getElementById('site-nav');
+    if (nav) {
+      nav.querySelectorAll('a.pub-nav-btn').forEach(a => a.remove());
+      const extra = nav.querySelector('.nav-mobile-extra');
+      visible.filter(x => x.type !== 'reservar').forEach(x => {
+        const a = document.createElement('a');
+        a.className = 'pub-nav-btn' + (x === cur ? ' active' : '');
+        a.setAttribute('data-pub', this.SECTION_DATA_PAGE[x.type]);
+        a.setAttribute('href', this.sectionHref(x));
+        if (x === cur) a.setAttribute('aria-current', 'page');
+        a.textContent = x.label;
+        nav.insertBefore(a, extra);
+      });
+    }
+    // Botón Reservar: en pantallas chicas se ve solo la primera palabra (como antes "Reservar")
+    if (reservar) {
+      const words = reservar.label.split(/\s+/);
+      document.querySelectorAll('.header-cta').forEach(b => {
+        b.innerHTML = '<span>' + esc(words[0]) + (words.length > 1 ? '<span class="cta-long"> ' + esc(words.slice(1).join(' ')) + '</span>' : '') + '</span>';
+      });
+      document.querySelectorAll('.nav-mobile-extra a').forEach(b => {
+        const sp = b.querySelector('span');
+        if (sp) sp.textContent = reservar.label;
+      });
+    }
+    // Pie de página: las mismas secciones + Privacidad
+    const list = document.querySelector('.site-footer nav .footer-list');
+    if (list) {
+      const priv = list.querySelector('a[href^="privacidad"]');
+      const privLi = priv ? priv.closest('li') : null;
+      list.innerHTML = visible.map(x => '<li><a href="' + esc(this.sectionHref(x)) + '">' + esc(x.label) + '</a></li>').join('');
+      if (privLi) list.appendChild(privLi);
+    }
+    // "Ver galería" del inicio boutique: a la página Galería si está en el menú
+    if (this.sectionShown('galeria')) {
+      document.querySelectorAll('#bq-gallery-section a[href^="barberos.html"]').forEach(a => a.setAttribute('href', 'galeria.html'));
+    }
+    // Enlaces del contenido a secciones ocultas (p. ej. "Consultar mi cita")
+    ['equipo', 'galeria', 'mi-cita'].forEach(type => {
+      if (this.sectionShown(type)) return;
+      const page = this.SECTION_PAGES[type];
+      document.querySelectorAll('main a[href^="' + page + '"]').forEach(a => { a.hidden = true; });
+    });
+    // Página abierta: su nombre en la ruta, el título de la pestaña y el encabezado
+    const inicio = secs.find(x => x.type === 'inicio');
+    document.querySelectorAll('.breadcrumb a[href^="index.html"]').forEach(a => { a.textContent = inicio.label; });
+    if (!cur || cur.type === 'inicio') return;
+    const crumb = document.querySelector('.breadcrumb [aria-current]');
+    if (crumb) crumb.textContent = cur.label;
+    const parts = document.title.split('|');
+    document.title = cur.label + (parts.length > 1 ? ' |' + parts.slice(1).join('|') : '');
+    if (['servicios', 'equipo', 'galeria'].includes(cur.type)) {
+      const h1 = document.querySelector('.page-hero h1');
+      if (h1) { h1.removeAttribute('data-v-fmt'); h1.textContent = cur.label; }
+    }
   },
 
   /* Logo, nombre y colores para la pantalla de carga de la próxima visita
@@ -286,7 +455,9 @@ const TenantBrand = {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
     const fonts = this.applyRubroFonts();
-    this.applyLayout();
+    this.applyLayout(t);
+    if (this.applyAddress(t)) return;     // se abre la página de otra sección
+    this.applySections();
     this.swapLogos(t);
     this.fillTexts(t);
     this.applyWhatsApp(t);

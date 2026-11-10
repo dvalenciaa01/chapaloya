@@ -3,6 +3,7 @@ const AppRouter = {
     'inicio': 'index.html',
     'servicios': 'servicios.html',
     'barberos': 'barberos.html',
+    'galeria': 'galeria.html',
     'reservar': 'reservar.html',
     'mi-cita': 'consultar-cita.html'
   },

@@ -552,6 +552,7 @@ html:not(.brand-pending) .page-loader { opacity: 0; visibility: hidden; pointer-
   background: rgba(0, 0, 0, 0.55); color: #FFFFFF;
 }
 .work-photo-caption { display: block; padding: var(--s2) 2px 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.work-photo-by { display: block; font-size: var(--fs-xs, 0.8rem); color: var(--text-3, var(--text-2)); }
 
 .empty-state {
   display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center;

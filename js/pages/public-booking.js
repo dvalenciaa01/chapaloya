@@ -43,6 +43,11 @@ const PublicBooking = {
     return (typeof TenantBrand !== 'undefined' && slug) ? TenantBrand.withSlug(page, slug) : page;
   },
 
+  // Sección apagada por el superadmin (crm_config.site.sections). Sin configuración, ninguna.
+  secOff(type) {
+    return typeof TenantBrand !== 'undefined' && !!TenantBrand.sections() && !TenantBrand.sectionShown(type);
+  },
+
   fmtDate(iso) {
     if (!iso) return '—';
     const d = new Date(iso + 'T12:00:00');
@@ -227,7 +232,7 @@ const PublicBooking = {
     const el = document.getElementById('pub-home-barbers');
     if (!el) return;
     const section = el.closest('section');
-    if (section) section.hidden = !DB.state.barberProfiles.length;
+    if (section) section.hidden = !DB.state.barberProfiles.length || this.secOff('equipo');
     el.innerHTML = DB.state.barberProfiles.slice(0, 4).map(bp =>
       '<article class="team-card reveal">' +
         '<div class="team-photo">' + this.photoHTML(bp) + '</div>' +
@@ -440,8 +445,10 @@ const PublicBooking = {
 
   applySolo() {
     if (!this.isSolo()) return;
+    // Con secciones configuradas, los nombres los pone la consola (TenantBrand.applySections)
+    const custom = typeof TenantBrand !== 'undefined' && !!TenantBrand.sections();
     // Menú y pie: "Equipo" → "Galería"
-    document.querySelectorAll('a[href*="barberos"]').forEach(a => {
+    if (!custom) document.querySelectorAll('a[href*="barberos"]').forEach(a => {
       if (a.textContent.trim() === 'Equipo') a.textContent = 'Galería';
     });
     // Inicio: la sección del equipo se reemplaza por la galería (renderBoutique)
@@ -450,13 +457,15 @@ const PublicBooking = {
     const page = document.getElementById('pub-barberos');
     if (!page) return;
     const bp = DB.state.barberProfiles[0];
-    document.title = document.title.replace(/^Equipo/, 'Galería');
-    const crumb = page.querySelector('.breadcrumb [aria-current]');
-    if (crumb) crumb.textContent = 'Galería';
+    if (!custom) {
+      document.title = document.title.replace(/^Equipo/, 'Galería');
+      const crumb = page.querySelector('.breadcrumb [aria-current]');
+      if (crumb) crumb.textContent = 'Galería';
+      const h1 = page.querySelector('.page-hero h1');
+      if (h1) h1.textContent = 'Galería';
+    }
     const eyebrow = page.querySelector('.page-hero .eyebrow');
     if (eyebrow) eyebrow.textContent = 'Nuestros trabajos';
-    const h1 = page.querySelector('.page-hero h1');
-    if (h1) h1.textContent = 'Galería';
     const lead = page.querySelector('.page-hero p');
     if (lead) lead.textContent = 'Diseños y trabajos de ' + bp.name + '. Inspírate y reserva tu ' + this.v('appointment') + ' cuando quieras.';
     const filter = document.getElementById('pub-barber-filter-bar');
@@ -466,6 +475,31 @@ const PublicBooking = {
       list.insertAdjacentHTML('afterbegin',
         '<div class="bq-ideas-block reveal"><div class="works-head"><h2>Ideas para tu próxima cita</h2></div>' +
         '<div class="bq-gallery">' + this.ideasHTML() + '</div></div>');
+    }
+  },
+
+  /* Página Galería (galeria.html): todas las fotos de trabajos del equipo, de la
+     sección Profesionales y portafolio del CRM. Sin fotos: ideas ilustradas en el
+     diseño boutique o un aviso. */
+  renderGalleryPage() {
+    const el = document.getElementById('pub-gallery-page');
+    if (!el) return;
+    const works = [];
+    DB.state.barberProfiles.forEach(b => b.works.forEach(w => works.push({ b, w })));
+    if (works.length) {
+      const many = DB.state.barberProfiles.filter(b => b.works.length).length > 1;
+      el.innerHTML = '<div class="works-gallery-grid">' + works.map(({ b, w }) =>
+        '<button type="button" class="work-photo-card reveal" data-pb-action="work" data-id="' + this.esc(b.id) + '" data-work="' + this.esc(w.id) + '" aria-label="Ampliar: ' + this.esc(w.title || ('Trabajo de ' + b.name)) + '">' +
+          '<span class="work-photo-img-box"><img src="' + this.esc(w.image) + '" alt="' + this.esc(w.title || ('Trabajo de ' + b.name)) + '" loading="lazy" decoding="async" /><span class="work-zoom">' + ic('zoom') + '</span></span>' +
+          '<span class="work-photo-caption"><span class="work-photo-title">' + this.esc(w.title || '') + '</span>' +
+            (many ? '<span class="work-photo-by">' + this.esc(b.name) + '</span>' : '') + '</span>' +
+        '</button>'
+      ).join('') + '</div>';
+    } else if (document.documentElement.getAttribute('data-layout') === 'boutique') {
+      el.innerHTML = '<div class="bq-ideas-block"><div class="works-head"><h2>Ideas para tu próxima ' + this.esc(this.v('appointment')) + '</h2></div>' +
+        '<div class="bq-gallery">' + this.ideasHTML() + '</div></div>';
+    } else {
+      el.innerHTML = '<div class="empty-state">' + ic('image') + '<strong>Pronto subiremos fotos de nuestros trabajos</strong>Mientras tanto, puedes reservar tu ' + this.esc(this.v('appointment')) + ' en línea.</div>';
     }
   },
 
@@ -506,7 +540,7 @@ const PublicBooking = {
     const srv = document.getElementById('bq-services');
     if (srv) {
       srv.innerHTML = ordered.slice(0, 6).map((s, i) => this.boutiqueServiceCard(s, cur, i)).join('');
-      srv.closest('section').hidden = !ordered.length;
+      srv.closest('section').hidden = !ordered.length || this.secOff('servicios');
     }
 
     // "Por qué elegirnos": foto del equipo si hay; si no, ilustración
@@ -537,7 +571,7 @@ const PublicBooking = {
         document.getElementById('bq-gal-eyebrow').textContent = 'Galería';
         document.getElementById('bq-gal-title').textContent = 'Inspírate para tu próxima cita';
       }
-      document.getElementById('bq-gallery-section').hidden = !works.length && !solo;
+      document.getElementById('bq-gallery-section').hidden = (!works.length && !solo) || (this.secOff('galeria') && this.secOff('equipo'));
     }
 
     const offer = document.getElementById('bq-offer-art');
@@ -576,13 +610,23 @@ const PublicBooking = {
     // En Inicio: destacado (2 columnas) + 4 servicios = 2 filas completas
     const homeServicesEl = document.getElementById('pub-home-services');
     if (homeServicesEl) homeServicesEl.innerHTML = ordered.slice(0, 5).map(s => this.serviceCard(s, cur)).join('');
+    if (homeServicesEl && this.secOff('servicios')) homeServicesEl.closest('section').hidden = true;
     const allServicesEl = document.getElementById('pub-all-services');
-    if (allServicesEl) allServicesEl.innerHTML = srvHTML;
+    if (allServicesEl) {
+      // Sección de una sola categoría (servicios.html?cat=Modelos), configurada en la consola
+      const cat = (typeof TenantBrand !== 'undefined' ? TenantBrand.pageCat() : (new URLSearchParams(location.search).get('cat') || '')).trim().toLowerCase();
+      const list = cat ? ordered.filter(s => String(s.category || '').trim().toLowerCase() === cat) : ordered;
+      allServicesEl.innerHTML = cat
+        ? (list.length ? list.map(s => this.serviceCard(s, cur)).join('')
+          : '<div class="empty-state">' + this.rubroIcon() + '<strong>Pronto verás novedades aquí</strong>Mientras tanto, puedes reservar cualquiera de nuestros ' + this.esc(this.v('servicePlural')) + '.</div>')
+        : srvHTML;
+    }
 
     this.renderHero();
     this.renderBoutique(ordered, cur);
     this.renderHomeBarbers();
     this.renderBarbersShowcase();
+    this.renderGalleryPage();
     this.applySolo();
     this.renderBookingForm();
 

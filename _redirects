@@ -43,9 +43,20 @@
 /:slug/servicios               /servicios           200
 /:slug/barberos.html           /:slug/barberos      301
 /:slug/barberos                /barberos            200
+/:slug/galeria.html            /:slug/galeria       301
+/:slug/galeria                 /galeria             200
 /:slug/reservar.html           /:slug/reservar      301
 /:slug/reservar                /reservar            200
 /:slug/consultar-cita.html     /:slug/consultar-cita 301
 /:slug/consultar-cita          /consultar-cita      200
 /:slug/privacidad.html         /:slug/privacidad    301
 /:slug/privacidad              /privacidad          200
+
+# --- Secciones con el nombre que les dio el negocio ------------------------
+# (consola → Personalizar CRM → Web). Los nombres de siempre van directo.
+# Cualquier otro (/<enlace>/modelos, /<enlace>/cortes…) no tiene regla: Pages
+# sirve index.html y TenantBrand.applyAddress abre la página de esa sección.
+# (Una regla /:slug/:page no sirve: también tomaría /css/main.css o /js/main.js.)
+/:slug/equipo                  /barberos            200
+/:slug/mi-cita                 /consultar-cita      200
+/:slug/reservar-cita           /reservar            200
