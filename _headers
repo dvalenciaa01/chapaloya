@@ -19,6 +19,9 @@
 #   connect-src  API y Realtime (wss) de Supabase, el envío de Web Analytics y
 #                el formulario de la landing (formsubmit.co, en segundo plano).
 #   form-action  el mismo formulario sin JavaScript (POST normal a formsubmit.co).
+#   media-src    videos subidos por el negocio (Supabase Storage) u otra web https:.
+#   frame-src    además de Turnstile, los videos de YouTube (youtube-nocookie.com)
+#                y Vimeo del bloque Video del constructor de la web.
 #   frame-ancestors 'self' (y X-Frame-Options SAMEORIGIN): solo el mismo sitio
 #                puede mostrar estas páginas dentro de un marco; lo usa la
 #                vista previa del editor de la web (js/components/site-builder.js).
@@ -31,7 +34,7 @@
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://cdsstbykktdkhhxtcsnx.supabase.co wss://cdsstbykktdkhhxtcsnx.supabase.co https://cloudflareinsights.com https://formsubmit.co; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://cdsstbykktdkhhxtcsnx.supabase.co wss://cdsstbykktdkhhxtcsnx.supabase.co https://cloudflareinsights.com https://formsubmit.co; frame-src 'self' https://challenges.cloudflare.com https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'self'; upgrade-insecure-requests
   Cache-Control: no-cache, no-store, must-revalidate
   ! Access-Control-Allow-Origin
 

@@ -254,3 +254,7 @@ html[data-rubro="fitness"] {
 @media (prefers-reduced-motion: reduce) {
   [data-rubro] .team-photo { transform: none !important; }
 }
+
+/* Letra de títulos elegida en el constructor de la web: sin la cursiva del rubro
+   (pensada para su propia letra) */
+html.blk-font-title h1, html.blk-font-title h3, html.blk-font-title .service-name, html.blk-font-title .hero-sub { font-style: normal; }

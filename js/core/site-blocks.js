@@ -30,7 +30,7 @@
     portada: {
       label: 'Portada', icon: 'image', desc: 'Título grande, texto, foto y botones para reservar.',
       styles: [['foto-fondo', 'Foto de fondo'], ['foto-lado', 'Foto al costado'], ['centrado', 'Centrado']],
-      fields: ['eyebrow', 'title', 'text', 'image', 'btn', 'btn2'],
+      fields: ['eyebrow', 'title', 'text', 'image', 'video', 'btn', 'btn2'],
       def: { eyebrow: '{Business}', title: '', text: 'Reserva tu {appointment} en línea, sin llamadas ni esperas.', btn: 'Reservar {appointment}', btn2: 'Ver {servicePlural}' }
     },
     servicios: {
@@ -74,11 +74,48 @@
       styles: [['foto-izquierda', 'Foto a la izquierda'], ['foto-derecha', 'Foto a la derecha'], ['solo-texto', 'Solo texto']],
       fields: ['eyebrow', 'title', 'text', 'image', 'btn'],
       def: { eyebrow: '', title: 'Sobre nosotros', text: '', btn: '' }
+    },
+    video: {
+      label: 'Video', icon: 'camera', desc: 'Un video que subes (MP4 o WebM) o un enlace de YouTube o Vimeo.',
+      styles: [['ancho', 'A todo el ancho'], ['con-texto', 'Con texto al lado']],
+      fields: ['eyebrow', 'title', 'text', 'video', 'poster', 'btn'],
+      def: { eyebrow: '', title: '', text: '', btn: '' }
+    },
+    fotos: {
+      label: 'Fotos', icon: 'image', desc: 'Tus propias fotos (hasta 12): el local, productos, promociones.',
+      styles: [['cuadricula', 'Cuadrícula'], ['mosaico', 'Mosaico'], ['carrusel', 'Carrusel']],
+      fields: ['eyebrow', 'title', 'text', 'images', 'btn'],
+      def: { eyebrow: '', title: '', text: '', btn: '' }
     }
   };
-  const ORDER = ['portada', 'servicios', 'equipo', 'galeria', 'ventajas', 'reservar', 'contacto', 'texto'];
-  const BGS = [['normal', 'Claro'], ['suave', 'Suave'], ['marca', 'Color de marca']];
-  // Límites (iguales a private.web_page_valida, migración 21)
+  const ORDER = ['portada', 'servicios', 'equipo', 'galeria', 'ventajas', 'reservar', 'contacto', 'texto', 'video', 'fotos'];
+  const BGS = [['normal', 'Claro'], ['suave', 'Suave'], ['marca', 'Color de marca'], ['color', 'Otro color']];
+  /* Tipos de letra (todas alojadas en el sitio, css/fonts/). file = hoja que las carga.
+     Iguales a la lista de private.web_page_valida (migración 22). */
+  const FONTS = {
+    urbanist: { label: 'Urbanist (moderna)', family: "'Urbanist', system-ui, sans-serif", file: 'urbanist' },
+    'dm-serif': { label: 'DM Serif Display (elegante)', family: "'DM Serif Display', Georgia, serif", file: 'rubro-unas', title: true },
+    bodoni: { label: 'Bodoni Moda (clásica de revista)', family: "'Bodoni Moda', Didot, Georgia, serif", file: 'rubro-salon', title: true },
+    cormorant: { label: 'Cormorant Garamond (fina)', family: "'Cormorant Garamond', Garamond, Georgia, serif", file: 'rubro-spa', title: true },
+    fraunces: { label: 'Fraunces (cálida)', family: "'Fraunces', Georgia, serif", file: 'rubro-psicologia', title: true },
+    'alfa-slab': { label: 'Alfa Slab One (gruesa)', family: "'Alfa Slab One', Rockwell, Georgia, serif", file: 'rubro-barberia', title: true },
+    'big-shoulders': { label: 'Big Shoulders (deportiva)', family: "'Big Shoulders Display', Impact, sans-serif", file: 'rubro-fitness', title: true },
+    pirata: { label: 'Pirata One (gótica)', family: "'Pirata One', Georgia, serif", file: 'rubro-tatuajes', title: true },
+    fredoka: { label: 'Fredoka (redondeada)', family: "'Fredoka', system-ui, sans-serif", file: 'rubro-veterinaria', title: true },
+    outfit: { label: 'Outfit (limpia)', family: "'Outfit', system-ui, sans-serif", file: 'rubro-dental' },
+    'plex-sans': { label: 'IBM Plex Sans (sobria)', family: "'IBM Plex Sans', system-ui, sans-serif", file: 'rubro-consultorio' },
+    'dm-sans': { label: 'DM Sans', family: "'DM Sans', system-ui, sans-serif", file: 'rubro-unas', body: true },
+    'work-sans': { label: 'Work Sans', family: "'Work Sans', system-ui, sans-serif", file: 'rubro-barberia', body: true },
+    jost: { label: 'Jost', family: "'Jost', system-ui, sans-serif", file: 'rubro-salon', body: true },
+    figtree: { label: 'Figtree', family: "'Figtree', system-ui, sans-serif", file: 'rubro-spa', body: true },
+    'source-sans': { label: 'Source Sans 3', family: "'Source Sans 3', system-ui, sans-serif", file: 'rubro-psicologia', body: true },
+    nunito: { label: 'Nunito (redondeada)', family: "'Nunito', system-ui, sans-serif", file: 'rubro-veterinaria', body: true },
+    'space-grotesk': { label: 'Space Grotesk', family: "'Space Grotesk', system-ui, sans-serif", file: 'rubro-tatuajes', body: true },
+    'inter-tight': { label: 'Inter Tight', family: "'Inter Tight', system-ui, sans-serif", file: 'rubro-fitness', body: true }
+  };
+  const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
+  const MAX_IMAGES = 12;
+  // Límites (iguales a private.web_page_valida, migraciones 21 y 22)
   const MAX = { eyebrow: 60, title: 120, text: 1500, btn: 30, btn2: 30, cat: 40, itemTitle: 60, itemText: 240 };
   const MAX_BLOCKS = 24;
   const IMG_RE = /^https:\/\/[^\s"'<>()\\]+$/;
@@ -116,6 +153,8 @@
       if (b.show === false) o.show = false;
       if (T.styles.some(s => s[0] === b.style)) o.style = b.style;
       if (BGS.some(s => s[0] === b.bg)) o.bg = b.bg;
+      if (typeof b.bgColor === 'string' && HEX_RE.test(b.bgColor)) o.bgColor = b.bgColor;
+      if (o.bg === 'color' && !o.bgColor) delete o.bg;
       ['eyebrow', 'title', 'text', 'cat'].forEach(k => {
         if (!T.fields.includes(k)) return;
         const v = str(b[k], MAX[k]);
@@ -128,6 +167,12 @@
         if (v != null) o[k] = v.trim() ? v : '';
       });
       if (T.fields.includes('image') && typeof b.image === 'string' && b.image.length <= 1000 && IMG_RE.test(b.image.trim())) o.image = b.image.trim();
+      ['video', 'poster'].forEach(k => {
+        if (T.fields.includes(k) && typeof b[k] === 'string' && b[k].length <= 1000 && IMG_RE.test(b[k].trim())) o[k] = b[k].trim();
+      });
+      if (T.fields.includes('images') && Array.isArray(b.images)) {
+        o.images = b.images.filter(u => typeof u === 'string' && u.length <= 1000 && IMG_RE.test(u)).slice(0, MAX_IMAGES);
+      }
       if (T.fields.includes('limit') && Number.isInteger(b.limit) && b.limit >= 1 && b.limit <= 24) o.limit = b.limit;
       if (T.fields.includes('map') && typeof b.map === 'boolean') o.map = b.map;
       if (T.fields.includes('items') && Array.isArray(b.items)) {
@@ -142,7 +187,42 @@
       }
       blocks.push(o);
     });
-    return { blocks };
+    const out = { blocks };
+    const th = normTheme(page.theme);
+    if (th) out.theme = th;
+    return out;
+  }
+
+  // Tipo de letra y colores de toda la web (sin dato = los del negocio)
+  function normTheme(t) {
+    if (!t || typeof t !== 'object') return null;
+    const o = {};
+    if (FONTS[t.fontTitle]) o.fontTitle = t.fontTitle;
+    if (FONTS[t.fontBody]) o.fontBody = t.fontBody;
+    if (typeof t.primary === 'string' && HEX_RE.test(t.primary)) o.primary = t.primary;
+    if (typeof t.accent === 'string' && HEX_RE.test(t.accent)) o.accent = t.accent;
+    return Object.keys(o).length ? o : null;
+  }
+
+  /* Video: archivo (MP4/WebM, se reproduce aquí) o YouTube/Vimeo (reproductor incrustado) */
+  function videoInfo(url) {
+    const u = String(url || '');
+    let m = u.match(/^https:\/\/(?:www\.|m\.)?youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)([A-Za-z0-9_-]{6,20})/) ||
+      u.match(/^https:\/\/youtu\.be\/([A-Za-z0-9_-]{6,20})/);
+    if (m) return { kind: 'embed', src: 'https://www.youtube-nocookie.com/embed/' + m[1] + '?rel=0' };
+    m = u.match(/^https:\/\/(?:www\.)?vimeo\.com\/(?:video\/)?(\d{4,12})/) || u.match(/^https:\/\/player\.vimeo\.com\/video\/(\d{4,12})/);
+    if (m) return { kind: 'embed', src: 'https://player.vimeo.com/video/' + m[1] };
+    if (IMG_RE.test(u) && /\.(mp4|webm)(\?|$)/i.test(u)) return { kind: 'file', src: u };
+    return null;
+  }
+
+  /* Color de texto que se lee sobre un fondo (#RRGGBB): claro u oscuro */
+  function isDark(hex) {
+    const n = parseInt(String(hex).slice(1), 16);
+    if (isNaN(n)) return false;
+    const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+    return L < 0.4;
   }
 
   /* Diseño inicial: el Inicio de siempre convertido en bloques (con la portada
@@ -223,7 +303,12 @@
           : '<div class="blk-hero-mark" aria-hidden="true">' + (PB() ? PB().rubroIcon() : '') + '</div>');
       return '<div class="container blk-hero-split">' + body + '<div class="blk-hero-media' + (img ? ' has-photo' : '') + '">' + art + '</div></div>';
     }
-    return (style === 'foto-fondo' && img ? '<img class="blk-hero-bg" src="' + esc(img) + '" alt="" decoding="async" fetchpriority="high" />' : '') +
+    // Video de fondo (solo archivo subido: se reproduce sin sonido y en bucle); la foto queda de respaldo
+    const vid = style === 'foto-fondo' ? videoInfo(b.video) : null;
+    const bgVideo = vid && vid.kind === 'file'
+      ? '<video class="blk-hero-bg" src="' + esc(vid.src) + '"' + (img ? ' poster="' + esc(img) + '"' : '') + ' autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>'
+      : '';
+    return (bgVideo || (style === 'foto-fondo' && img ? '<img class="blk-hero-bg" src="' + esc(img) + '" alt="" decoding="async" fetchpriority="high" />' : '')) +
       '<div class="container blk-hero-inner">' + body + '</div>';
   }
 
@@ -353,7 +438,62 @@
       (img ? '<div class="blk-text-media reveal"><img src="' + esc(img) + '" alt="" loading="lazy" decoding="async" /></div>' : '') + copy + '</div></div>';
   }
 
-  const RENDER = { portada: heroHTML, servicios: servicesHTML, equipo: teamHTML, galeria: galleryHTML, ventajas: perksHTML, reservar: ctaHTML, contacto: contactHTML, texto: textHTML };
+  function playerHTML(b) {
+    const v = videoInfo(b.video);
+    if (!v) return '';
+    if (v.kind === 'embed') {
+      return '<div class="blk-video-frame"><iframe src="' + esc(v.src) + '" title="' + esc(b.title || 'Video') + '" loading="lazy" ' +
+        'allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+    }
+    return '<div class="blk-video-frame"><video src="' + esc(v.src) + '"' + (b.poster ? ' poster="' + esc(b.poster) + '"' : '') +
+      ' controls playsinline preload="metadata"></video></div>';
+  }
+
+  function videoHTML(b) {
+    const player = playerHTML(b);
+    if (!player) return '';
+    const btn = txt(b, 'btn');
+    const eb = txt(b, 'eyebrow'), title = txt(b, 'title'), text = txt(b, 'text');
+    const copy = (eb || title || text || btn) ? '<div class="blk-text-copy reveal">' +
+      (eb ? '<span class="eyebrow">' + esc(eb) + '</span>' : '') +
+      (title ? '<h2>' + esc(title) + '</h2>' : '') + paras(text) +
+      (btn ? '<div class="blk-actions"><a class="btn btn-solid" href="' + esc(href('reservar.html')) + '"><span>' + esc(btn) + '</span>' + icon('arrowRight') + '</a></div>' : '') +
+    '</div>' : '';
+    if (b.style === 'con-texto' && copy) {
+      return '<div class="container"><div class="blk-text has-photo"><div class="blk-video-side reveal">' + player + '</div>' + copy + '</div></div>';
+    }
+    return '<div class="container">' + (copy ? '<div class="blk-video-head">' + copy + '</div>' : '') + '<div class="blk-video-wide reveal">' + player + '</div></div>';
+  }
+
+  function photosHTML(b) {
+    const imgs = Array.isArray(b.images) ? b.images : [];
+    if (!imgs.length) return '';
+    const btn = txt(b, 'btn');
+    const shots = imgs.map((u, i) =>
+      '<button type="button" class="blk-shot reveal" data-blk-zoom="' + esc(u) + '" aria-label="Ampliar foto ' + (i + 1) + '">' +
+        '<img src="' + esc(u) + '" alt="" loading="lazy" decoding="async" /></button>').join('');
+    return '<div class="container">' + head(b) +
+      '<div class="blk-gallery blk-photos">' + shots + '</div>' +
+      (btn ? '<div class="blk-actions"><a class="btn btn-solid" href="' + esc(href('reservar.html')) + '"><span>' + esc(btn) + '</span>' + icon('arrowRight') + '</a></div>' : '') +
+    '</div>';
+  }
+
+  /* Foto ampliada (bloque Fotos): ventana propia, sin depender de modal.js */
+  function zoom(src) {
+    let d = document.getElementById('blk-zoom');
+    if (!d) {
+      d = document.createElement('dialog');
+      d.id = 'blk-zoom';
+      d.className = 'blk-zoom';
+      d.innerHTML = '<button type="button" class="blk-zoom-x" aria-label="Cerrar">' + icon('x') + '</button><img alt="" />';
+      d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('.blk-zoom-x')) d.close(); });
+      document.body.appendChild(d);
+    }
+    d.querySelector('img').src = src;
+    if (typeof d.showModal === 'function') d.showModal(); else window.open(src, '_blank', 'noopener');
+  }
+
+  const RENDER = { video: videoHTML, fotos: photosHTML, portada: heroHTML, servicios: servicesHTML, equipo: teamHTML, galeria: galleryHTML, ventajas: perksHTML, reservar: ctaHTML, contacto: contactHTML, texto: textHTML };
 
   function blockHTML(b, t, preview) {
     let inner = '';
@@ -363,16 +503,53 @@
       if (!preview) return '';
       inner = '<div class="container"><p class="blk-empty-note">' + esc(TYPES[b.type].label) + ': aún no hay datos en el CRM para mostrar aquí. En la web este bloque no se verá hasta que los haya.</p></div>';
     }
-    const bg = b.type === 'portada' ? (b.style === 'foto-fondo' && b.image ? 'marca' : (b.bg || 'normal')) : (b.bg || (b.type === 'reservar' ? 'marca' : 'normal'));
+    const heroMedia = b.type === 'portada' && (b.style || 'foto-fondo') === 'foto-fondo' && (b.image || (videoInfo(b.video) || {}).kind === 'file');
+    let bg = heroMedia ? 'marca' : (b.bg || (b.type === 'reservar' ? 'marca' : 'normal'));
+    if (bg === 'color' && !HEX_RE.test(b.bgColor || '')) bg = 'normal';
     const cls = ['blk', 'blk-' + b.type, 'blk-st-' + (b.style || TYPES[b.type].styles[0][0]), 'blk-bg-' + bg];
     if (bg === 'marca') cls.push('on-brand');
-    if (b.type === 'portada' && b.image && (b.style || 'foto-fondo') === 'foto-fondo') cls.push('has-photo');
-    return '<section class="' + cls.join(' ') + '" data-blk="' + esc(b.id) + '">' + inner + '</section>';
+    let style = '';
+    if (bg === 'color') {
+      cls.push(isDark(b.bgColor) ? 'blk-dark' : 'blk-light');
+      style = ' style="--blk-bg:' + b.bgColor + '"';
+    }
+    if (heroMedia) cls.push('has-photo');
+    return '<section class="' + cls.join(' ') + '" data-blk="' + esc(b.id) + '"' + style + '>' + inner + '</section>';
   }
 
   const SiteBlocks = {
-    TYPES, ORDER, BGS, MAX, MAX_BLOCKS, ICON_CHOICES, IMG_RE,
-    DEFAULT_ITEMS, normalize, template, create, newId,
+    TYPES, ORDER, BGS, MAX, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES,
+    DEFAULT_ITEMS, normalize, normTheme, template, create, newId, videoInfo, isDark,
+
+    /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
+       Se aplica sobre los del negocio: TenantBrand ya pintó su paleta y la letra del rubro. */
+    applyTheme(page, tenant) {
+      const th = normTheme(page && page.theme) || {};
+      const root = document.documentElement.style;
+      const tb = TB();
+      if (tb && tenant) {
+        const base = tb.paletteOf(tenant);
+        tb.applyPalette(Object.assign({}, base, th.primary ? { primary: th.primary } : null, th.accent ? { secondary: th.accent } : null));
+      }
+      const waits = [];
+      [['--font-display', th.fontTitle], ['--font-body', th.fontBody]].forEach(([v, key]) => {
+        if (!key) { root.removeProperty(v); return; }
+        const f = FONTS[key];
+        root.setProperty(v, f.family);
+        const id = 'rl-font-' + f.file;
+        if (!document.getElementById(id)) {
+          const link = document.createElement('link');
+          link.id = id;
+          link.rel = 'stylesheet';
+          link.href = 'css/fonts/' + f.file + '.css?v=__RL_V__';    // el build pone la versión
+          waits.push(new Promise(r => { link.onload = r; link.onerror = r; }));
+          document.head.appendChild(link);
+        }
+      });
+      document.documentElement.classList.toggle('blk-font-title', !!th.fontTitle);
+      // Promesa para no mostrar la página con la letra equivocada (máx. 1,5 s)
+      return waits.length ? Promise.race([Promise.all(waits), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
+    },
 
     // ¿Tiene un diseño por bloques que dibujar?
     active(page) { return !!(page && Array.isArray(page.blocks) && page.blocks.length); },
@@ -394,6 +571,13 @@
           return b.show === false ? h.replace('<section class="', '<section class="blk-hidden ') : h;
         }).join('');
       if (TB() && t.slug) TB().rewriteLinks(t.slug, root);
+      if (!root._zoomBound) {
+        root._zoomBound = true;
+        root.addEventListener('click', (e) => {
+          const z = e.target.closest('[data-blk-zoom]');
+          if (z && !this._previewOn) zoom(z.getAttribute('data-blk-zoom'));
+        });
+      }
       if (SU() && SU().observeReveal) SU().observeReveal(root);
       return true;
     },
@@ -413,6 +597,7 @@
       global.addEventListener('message', (e) => {
         if (e.origin !== location.origin || !e.data || !e.data.rlBuilder) return;
         if (e.data.cmd === 'page') {
+          this.applyTheme(e.data.page, DB.tenant);
           this.render(normalize(e.data.page) || { blocks: [] }, { preview: true });
           this.select(e.data.selected, false);
         } else if (e.data.cmd === 'select') {
