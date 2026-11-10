@@ -23,6 +23,7 @@ Esta carpeta contiene la base de datos de producción de Reservalope. Reemplaza 
 | `migrations/20261103000018_configuracion_modulo.sql` | El superadministrador puede ocultar la pestaña **Configuración** del CRM de un negocio (Reservalope → Personalizar CRM → Módulos), como los demás módulos. Solo cambia la validación de `crm_config`; ningún dato cambia. Prueba local: `supabase/tests/configuracion_18.sql` |
 | `migrations/20261109000019_web_secciones.sql` | Web por negocio: en **Reservalope → Personalizar CRM → Web** el superadministrador elige el diseño (clásico o boutique) y las secciones del menú de la web (nombre, orden, visibles; p. ej. Inicio, Servicios, Modelos, Galería, Mi cita, Reservar cita). Se guarda en `crm_config.site`, que el CRM no usa. Agrega la página `galeria` como enlace reservado. Prueba local: `supabase/tests/web_secciones_19.sql` |
 | `migrations/20261110000020_foto_servicio.sql` | Foto referencial por servicio: columna `services.image_url` (solo enlaces https) y `web_barberia` la devuelve en cada servicio. La foto se sube desde **CRM → Servicios → Editar** (bucket `media`, como las fotos de trabajos) y la web la muestra en la tarjeta del servicio; sin foto, la web sigue igual. Prueba local: `supabase/tests/foto_servicio_20.sql` |
+| `migrations/20261110000021_constructor_web.sql` | Constructor visual de la web: el Inicio de cada negocio se arma con bloques (portada, servicios, equipo, galería, ventajas, llamado a reservar, contacto, texto con foto) desde **Reservalope → negocio → Diseñar web** o **CRM → Configuración → Diseño de la web**. Agrega `tenants.web_page` (el diseño; `null` = la web de siempre) y `tenants.web_editor` (si el negocio puede editarla; solo lo cambia el superadministrador). Los bloques no copian datos: la web los sigue leyendo del CRM. `web_barberia` devuelve `page`. Prueba local: `supabase/tests/constructor_web_21.sql` |
 | `tests/supabase_stub.sql`, `tests/qa_10.sql`, `tests/rubros_11.sql` y `tests/crm_12.sql` | Solo para probar en un PostgreSQL local (no se ejecutan en Supabase) |
 | `functions/admin-usuarios/` | Crear cuentas, restablecer contraseñas, editar y desactivar usuarios (solo superadmin, o admin con su personal) |
 | `functions/reservar/` | Recibe las reservas de la web: verifica el captcha y crea la cita |
@@ -38,6 +39,8 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 1. Entra a tu proyecto en supabase.com → **SQL Editor** → **New query**.
 2. Abre `20261018000001_esquema.sql`, copia todo, pégalo y pulsa **Run**. Debe decir *Success*.
 3. Repite con los archivos `…02`, `…03`, `…04`, `…05`, `…06`, `…07`, `…08`, `…09`, `…10`, `…11`, `…12`, `…13` y `…14`, **en ese orden**.
+
+> **Si ya ejecutaste hasta el `…20`, solo falta el `…21`** (constructor visual de la web). Es corto, se puede repetir y no toca datos: todos los negocios quedan sin diseño por bloques (la web se ve igual que hoy) y con permiso para editar su web. Mientras no se ejecute, el botón **Diseñar web** avisa que falta la migración y la web sigue igual.
 
 > **Si ya ejecutaste hasta el `…18`, solo falta el `…19`** (diseño y secciones de la web). Es corto, se puede repetir y no toca datos. Falla solo si algún negocio tiene el enlace `galeria` (cámbialo antes). Mientras no se ejecute, la web se ve como siempre y guardar secciones en la consola da un error.
 

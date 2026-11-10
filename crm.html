@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/pages/crm.css" />
   <link rel="stylesheet" href="css/pages/analytics.css" />
   <link rel="stylesheet" href="css/pages/reports.css" />
+  <link rel="stylesheet" href="css/pages/site-builder.css" />
   <script>
     /* Redirección inmediata si no hay sesión (la verificación completa la hace Auth) */
     (function () {
@@ -405,6 +406,12 @@
               <h1 class="crm-title">Configuración</h1>
               <p class="crm-lead">Datos públicos de <strong id="set-tenant-name">este negocio</strong>. Se muestran en su web: <a id="set-public-link" class="inline-link" href="index.html" target="_blank" rel="noopener">index.html</a></p>
             </div>
+          </div>
+          <!-- Constructor visual de la web (js/components/site-builder.js, migración 21) -->
+          <div class="crm-section-card set-web-design" id="set-web-design" hidden>
+            <div class="card-head"><h3>Diseño de la web</h3></div>
+            <p class="card-text" id="set-web-design-text">Arma el Inicio de tu web con bloques (portada, servicios, equipo, galería, contacto y más) y mira cómo queda antes de publicarlo. Los datos siguen saliendo del CRM.</p>
+            <div class="btn-row"><button type="button" class="btn-golden" id="set-web-design-btn" onclick="CRM.openSiteBuilder()"><i data-icon="edit"></i>Diseñar mi web</button></div>
           </div>
           <div class="crm-split-2">
             <div class="crm-section-card">
@@ -822,6 +829,8 @@
   <script src="js/core/reports.js"></script>
   <script src="js/core/report-export.js"></script>
   <script src="js/components/report-builder.js"></script>
+  <script src="js/core/site-blocks.js"></script>
+  <script src="js/components/site-builder.js"></script>
   <script src="js/pages/crm.js"></script>
   <script src="js/pages/admin.js"></script>
   <script src="js/core/guard.js"></script>

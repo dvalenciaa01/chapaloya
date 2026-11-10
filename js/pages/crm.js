@@ -1545,6 +1545,7 @@ const CRM = {
     if (nameEl) nameEl.textContent = t.name;
     const linkEl = document.getElementById('set-public-link');
     if (linkEl) { linkEl.href = Routes.web(t.slug); linkEl.textContent = Routes.display(Routes.web(t.slug)); }
+    this.renderWebDesign();
     this.renderRubro();
     this.renderApptViewSetting();
     this.renderDashSetting();
@@ -1552,6 +1553,33 @@ const CRM = {
     this.renderSchedule();
     this.renderExceptions();
     this.renderWhatsApp();
+  },
+
+  /* ---------- Diseño de la web (constructor visual, migración 21) ----------
+     El administrador con Configuración lo abre aquí si el superadministrador
+     lo permite (tenants.web_editor); el superadministrador, siempre. */
+  renderWebDesign() {
+    const card = document.getElementById('set-web-design');
+    const t = DB.tenant;
+    if (!card || !t || typeof SiteBuilder === 'undefined') return;
+    const sa = Auth.user && Auth.user.role === 'SUPERADMIN';
+    card.hidden = !(sa || (t.hasWebPage && SiteBuilder.canEdit(t)));
+    const txt = document.getElementById('set-web-design-text');
+    const btn = document.getElementById('set-web-design-btn');
+    if (!t.hasWebPage) {
+      if (txt) txt.textContent = 'El constructor de la web necesita la migración 21 en Supabase (ver supabase/README.md).';
+      if (btn) btn.disabled = true;
+      return;
+    }
+    if (btn) btn.disabled = false;
+    if (txt) txt.textContent = (t.webPage && Array.isArray(t.webPage.blocks) && t.webPage.blocks.length
+      ? 'Tu Inicio está armado con bloques. Cámbialos, ordénalos o agrega nuevos y mira cómo queda antes de publicar.'
+      : 'Arma el Inicio de tu web con bloques (portada, servicios, equipo, galería, contacto y más) y mira cómo queda antes de publicarlo.') +
+      ' Los datos siguen saliendo del CRM.' + (sa && t.webEditor === false ? ' (El negocio no puede editarla: lo cambias dentro del editor.)' : '');
+  },
+  openSiteBuilder() {
+    if (!DB.tenant || typeof SiteBuilder === 'undefined') return;
+    SiteBuilder.open(DB.tenant, { onSaved: () => this.renderWebDesign() });
   },
 
   /* ---------- Rubro del negocio y palabras personalizadas ----------
