@@ -14,11 +14,20 @@
    Solo se publica lo que está en PUBLIC: bot/, supabase/, docs/ y los .md
    quedan fuera (no tienen que poder descargarse desde el sitio).
 
+   Versión de los recursos (para que el navegador no use un CSS/JS viejo):
+     el HTML se sirve sin caché, pero css/ y js/ quedan con la caché del
+     navegador. Tras copiar todo, a cada <link href="…css"> y <script
+     src="…js"> propio del HTML se le agrega ?v=<huella del archivo>, así
+     cada cambio publicado es una dirección nueva. En el JS, el texto
+     __RL_V__ se cambia por la huella de css/fonts/ (fuentes del rubro que
+     se cargan desde tenant-brand.js).
+
    Uso: npm run build   (Cloudflare Pages: comando "npm run build", salida "dist")
    ========================================================================== */
 import { transform } from 'esbuild';
 import { readdir, readFile, writeFile, mkdir, copyFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -86,4 +95,34 @@ async function build(rel) {
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 for (const rel of PUBLIC) await build(rel);
-console.log('Sitio listo en dist/ (sin comentarios).');
+// --- Versión de los recursos -------------------------------------------------
+const hash = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 10);
+async function walk(dir) {
+  const out = [];
+  for (const e of await readdir(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) out.push(...await walk(p)); else out.push(p);
+  }
+  return out;
+}
+const files = await walk(OUT);
+const fontsV = hash((await Promise.all(files.filter((f) => f.startsWith(path.join(OUT, 'css', 'fonts') + path.sep)).sort()
+  .map(async (f) => path.relative(OUT, f) + (await readFile(f, 'utf8'))))).join('\n'));
+for (const f of files.filter((f) => f.endsWith('.js'))) {
+  const code = await readFile(f, 'utf8');
+  if (code.includes('__RL_V__')) await writeFile(f, code.replaceAll('__RL_V__', fontsV));
+}
+const versions = new Map();
+for (const f of files.filter((f) => /\.(css|js)$/.test(f))) versions.set(f, hash(await readFile(f)));
+let tagged = 0;
+for (const f of files.filter((f) => f.endsWith('.html'))) {
+  const html = await readFile(f, 'utf8');
+  const out = html.replace(/(<(?:link|script)\b[^>]*?\b(?:href|src)=")([^"?#:]+\.(?:css|js))(?:\?v=[^"]*)?(")/gi, (all, a, ref, b) => {
+    const v = versions.get(path.resolve(path.dirname(f), ref));
+    if (!v) return all;
+    tagged++;
+    return a + ref + '?v=' + v + b;
+  });
+  if (out !== html) await writeFile(f, out);
+}
+console.log(`Sitio listo en dist/ (sin comentarios, ${tagged} recursos con versión).`);
