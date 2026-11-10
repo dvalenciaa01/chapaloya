@@ -129,6 +129,13 @@
     { key: 'reservar', label: 'Reservar {appointment}', name: 'Reservar {appointment}', max: 1, fixed: true, hint: 'Botón principal del menú' }
   ];
   const MAX_SECTIONS = 10;
+  // Nombres que no pueden ser dirección de una sección (/<enlace>/<nombre>)
+  const SECTION_RESERVED = ['assets', 'css', 'js', 'index', 'privacidad'];
+  // Igual que Routes.sectionSlug: "Mi cita" → mi-cita
+  function sectionSlug(label) {
+    return String(label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
   // Las de siempre (vf = formateador del vocabulario del negocio, p. ej. UI.vFor)
   function defaultSections(vf) {
     const f = typeof vf === 'function' ? vf : (x) => x;
@@ -392,6 +399,18 @@
         cats.add(c);
       }
     });
+    // Cada sección se abre en /<enlace>/<nombre>: los nombres no pueden repetirse ni chocar con el sitio
+    const seen = {};
+    list.forEach((x, i) => {
+      if (!isObj(x) || x.type === 'inicio') return;
+      const label = String(x.label == null ? '' : x.label).trim();
+      if (!label) return;
+      const slug = sectionSlug(label);
+      if (!slug) errs.push('Web: el nombre “' + label + '” necesita al menos una letra o número (se usa en la dirección).');
+      else if (SECTION_RESERVED.includes(slug)) errs.push('Web: “' + label + '” no se puede usar como nombre de sección.');
+      else if (seen[slug]) errs.push('Web: “' + seen[slug] + '” y “' + label + '” tendrían la misma dirección (/' + slug + '). Cambia uno de los nombres.');
+      else seen[slug] = label;
+    });
     SECTION_TYPES.forEach(t => {
       if ((count[t.key] || 0) > t.max) errs.push('Web: solo puede haber ' + (t.max === 1 ? 'una sección' : t.max + ' secciones') + ' de tipo “' + t.name.replace(/\{[^}]+\}/g, '').trim() + '”.');
       if (t.fixed && !count[t.key]) errs.push('Web: falta la sección “' + t.name.replace(/\{[^}]+\}/g, '').trim() + '”.');
@@ -497,7 +516,7 @@
   }
 
   const CrmConfig = {
-    SITE_LAYOUTS, SECTION_TYPES, MAX_SECTIONS, defaultSections,
+    SITE_LAYOUTS, SECTION_TYPES, MAX_SECTIONS, defaultSections, sectionSlug,
     MODULES, FIELDS, TYPES, APPT_COLUMNS, DEFAULT_COLUMNS, MAX_COLUMNS, MAX_CUSTOM, FONTS, THEME_DEFAULT, ENTITY_LABEL, KEY_RE,
     contrast, mix, lum,
     defaults, normalize, compact, validate, themeVars, applyThemeTo, loadFont,

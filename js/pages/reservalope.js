@@ -1164,6 +1164,7 @@ Object.assign(Reservalope, {
             '<label class="sr-only" for="' + id + '-label">Nombre de la sección ' + (i + 1) + '</label>' +
             '<input type="text" id="' + id + '-label" class="input-dark" maxlength="30" value="' + E(x.label) + '" oninput="Reservalope.ceSecSet(' + i + ', \'label\', this.value)" />' +
             '<small>' + E(this.ceV(t.label)) + ' · ' + E(this.ceV(t.hint)) + '</small>' +
+            '<small class="ce-sec-url" id="' + id + '-url">' + E(this.ceSecUrl(x)) + '</small>' +
             (x.type === 'servicios'
               ? '<label class="ce-sec-cat"><span>Solo la categoría</span><input type="text" id="' + id + '-cat" class="input-dark" maxlength="40" value="' + E(x.cat || '') + '" placeholder="Todas" oninput="Reservalope.ceSecSet(' + i + ', \'cat\', this.value)" /></label>'
               : '') +
@@ -1198,6 +1199,12 @@ Object.assign(Reservalope, {
     el.innerHTML = vis.filter(x => x.type !== 'reservar').map(x => '<span>' + UI.esc(x.label || '…') + '</span>').join('') +
       (res ? '<em>' + UI.esc(res.label || '…') + '</em>' : '');
   },
+  // Dirección que tendrá la sección: reservalope.com/<enlace>/<nombre>
+  ceSecUrl(x) {
+    const t = this.ceT();
+    const slug = x.type === 'inicio' ? '' : (CrmConfig.sectionSlug(x.label) || '…');
+    return 'Dirección: /' + (t ? t.slug : '') + '/' + slug;
+  },
   ceSecRender() {
     const box = document.getElementById('ce-sections');
     if (!box) return;
@@ -1215,6 +1222,8 @@ Object.assign(Reservalope, {
     if (k === 'show') { x.show = !!v; this.ceSecRender(); return; }
     if (k === 'cat') { if (String(v).trim()) x.cat = String(v); else delete x.cat; return; }
     x[k] = v;
+    const u = document.getElementById('ce-sec-' + i + '-url');
+    if (u) u.textContent = this.ceSecUrl(x);
     this.ceSecPreview();
   },
   ceSecMove(i, d) {

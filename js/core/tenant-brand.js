@@ -288,17 +288,90 @@ const TenantBrand = {
     if (!secs) return type !== 'galeria';
     return secs.some(x => x.type === type && x.show);
   },
+  // Página real de la sección (servicios.html?cat=Modelos…)
+  sectionPage(sec) {
+    return this.SECTION_PAGES[sec.type] + (sec.type === 'servicios' && sec.cat ? '?cat=' + encodeURIComponent(sec.cat) : '');
+  },
+  // Con direcciones limpias, el nombre de la sección ("modelos", "mi-cita"); si no, la página real
   sectionHref(sec) {
-    return this.SECTION_PAGES[sec.type] + (sec.cat ? '?cat=' + encodeURIComponent(sec.cat) : '');
+    if (typeof Routes === 'undefined' || !Routes.pretty()) return this.sectionPage(sec);
+    return sec.type === 'inicio' ? './' : this.sectionSlug(sec);
+  },
+  sectionSlug(sec) {
+    return Routes.sectionSlug(sec.label) || this.SECTION_PAGES[sec.type].replace(/\.html$/, '');
+  },
+  // Las configuradas o, sin configuración, las de siempre con sus nombres de siempre
+  effectiveSections() {
+    const secs = this.sections();
+    if (secs) return secs;
+    const V = (k, d) => (typeof Vocab !== 'undefined' ? Vocab.fmt(k) : d);
+    const solo = document.documentElement.getAttribute('data-layout') === 'boutique' &&
+      typeof DB !== 'undefined' && DB.state && (DB.state.barberProfiles || []).length === 1;
+    return [
+      { type: 'inicio', label: 'Inicio', show: true },
+      { type: 'servicios', label: V('{ServicePlural}', 'Servicios'), show: true },
+      { type: 'equipo', label: solo ? 'Galería' : 'Equipo', show: true },
+      { type: 'mi-cita', label: V('Mi {appointment}', 'Mi cita'), show: true },
+      { type: 'reservar', label: V('Reservar {appointment}', 'Reservar cita'), show: true }
+    ];
+  },
+  // Categoría de la página de servicios (se guarda antes de limpiar la dirección)
+  pageCat() {
+    if (this._pageCat == null) this._pageCat = (new URLSearchParams(location.search).get('cat') || '').trim();
+    return this._pageCat;
   },
   // Sección de la página abierta (en servicios, la de su categoría ?cat=)
-  currentSection() {
-    const secs = this.sections();
+  currentSection(all) {
+    const secs = all ? this.effectiveSections() : this.sections();
     if (!secs) return null;
     const page = document.body.getAttribute('data-page');
-    const cat = (new URLSearchParams(location.search).get('cat') || '').trim().toLowerCase();
+    const cat = this.pageCat().toLowerCase();
     return secs.find(x => this.SECTION_DATA_PAGE[x.type] === page &&
       (x.type !== 'servicios' || String(x.cat || '').toLowerCase() === cat)) || null;
+  },
+
+  /* Dirección con el nombre de la sección (solo con direcciones limpias):
+     /ale-sanchez/barberos se muestra como /ale-sanchez/galeria si así se llama.
+     Si la dirección trae el nombre de otra sección (/ale-sanchez/modelos llega a
+     index.html porque no es una página del sitio, o /galeria es de otro tipo),
+     se abre la página de esa sección. Devuelve true si la página va a cambiar. */
+  applyAddress(t) {
+    if (typeof Routes === 'undefined' || !Routes.pretty() || Routes.pathSlug() !== t.slug) return false;
+    const secs = this.effectiveSections();
+    try { sessionStorage.setItem('RL_SECCIONES_' + t.slug, JSON.stringify(secs)); } catch (e) { /* sin almacenamiento */ }
+    const seg = location.pathname.split('/').filter(Boolean);
+    const name = (seg[1] || '').replace(/\.html$/, '');
+    const base = '/' + t.slug + '/';
+    const page = document.body.getAttribute('data-page');
+    // Con ?cat= la página ya dice qué sección es (servicios?cat=Modelos no es la sección "Servicios")
+    const hasCat = new URLSearchParams(location.search).has('cat');
+    const named = name && !hasCat ? secs.find(x => x.type !== 'inicio' && this.sectionSlug(x) === name) : null;
+    if (named) {
+      const here = this.currentSection(true);
+      if (here !== named) {
+        const target = Routes.clean(this.sectionPage(named));
+        const q = new URLSearchParams(location.search);
+        q.delete('cat');
+        const tq = new URLSearchParams(target.split('?')[1] || '');
+        q.forEach((v, k) => tq.set(k, v));
+        const qs = tq.toString();
+        location.replace(base + target.split('?')[0] + (qs ? '?' + qs : '') + location.hash);
+        return true;
+      }
+    }
+    const cur = this.currentSection(true);
+    let want;
+    if (cur) want = base + (cur.type === 'inicio' ? '' : this.sectionSlug(cur));
+    else if (page === 'inicio') want = base;     // /<enlace>/<nombre que no existe> → inicio
+    else return false;                           // privacidad y páginas sin sección
+    if (location.pathname !== want) {
+      this.pageCat();
+      const q = new URLSearchParams(location.search);
+      q.delete('cat');
+      const qs = q.toString();
+      try { history.replaceState(history.state, '', want + (qs ? '?' + qs : '') + location.hash); } catch (e) { /* sin historial */ }
+    }
+    return false;
   },
   applySections() {
     const secs = this.sections();
@@ -383,6 +456,7 @@ const TenantBrand = {
     this.applyVocab(t);
     const fonts = this.applyRubroFonts();
     this.applyLayout(t);
+    if (this.applyAddress(t)) return;     // se abre la página de otra sección
     this.applySections();
     this.swapLogos(t);
     this.fillTexts(t);

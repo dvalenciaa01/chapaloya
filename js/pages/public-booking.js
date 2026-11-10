@@ -614,7 +614,7 @@ const PublicBooking = {
     const allServicesEl = document.getElementById('pub-all-services');
     if (allServicesEl) {
       // Sección de una sola categoría (servicios.html?cat=Modelos), configurada en la consola
-      const cat = (new URLSearchParams(location.search).get('cat') || '').trim().toLowerCase();
+      const cat = (typeof TenantBrand !== 'undefined' ? TenantBrand.pageCat() : (new URLSearchParams(location.search).get('cat') || '')).trim().toLowerCase();
       const list = cat ? ordered.filter(s => String(s.category || '').trim().toLowerCase() === cat) : ordered;
       allServicesEl.innerHTML = cat
         ? (list.length ? list.map(s => this.serviceCard(s, cur)).join('')

@@ -234,3 +234,4 @@ body[data-page="reservalope"]:not(.auth-ok) .crm-header .header-actions { visibi
 .ce-sec-add { width: auto; min-width: 0; flex: 0 1 220px; }
 .ce-sec-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 12px 14px; margin-top: 6px; border-radius: var(--radius); background: var(--h-bg); color: var(--h-fg); border: 1px solid var(--line-dark); font-size: var(--fs-sm); }
 .ce-sec-preview em { margin-left: auto; font-style: normal; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: var(--h-ac); color: var(--h-bg); }
+.ce-sec-main .ce-sec-url { font-family: ui-monospace, Menlo, Consolas, monospace; opacity: 0.85; }
