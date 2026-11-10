@@ -90,6 +90,9 @@ const PublicBooking = {
           this.bookWithBarber(id);
           break;
         case 'service': this.preselectService(id); break;
+        case 'service-close': this.closeServiceMedia(); this.preselectService(id); break;
+        case 'media-close': this.closeServiceMedia(); break;
+        case 'media': this.openServiceMedia(id, Number(el.getAttribute('data-i')) || 0); break;
         case 'copy-code': this.copyCode(el); break;
         case 'close': if (typeof ModalComponent !== 'undefined') ModalComponent.close(); break;
       }
@@ -264,6 +267,72 @@ const PublicBooking = {
     if (w) this.openLightbox(w.image, w.title, bp);
   },
 
+  /* ---------------- Fotos y videos de un servicio (migración 25) ----------------
+     La foto principal (si hay) y las demás que el negocio subió en el CRM. */
+  serviceMediaList(s) {
+    const list = [];
+    if (s && s.image) list.push({ type: 'image', url: s.image });
+    return list.concat((s && s.media) || []);
+  },
+  // Botón "Ver fotos y videos (N)" para las tarjetas; vacío si no hay fotos extra
+  serviceMediaBtn(s, cls) {
+    const extra = (s.media || []).length;
+    if (!extra) return '';
+    const n = this.serviceMediaList(s).length;
+    const vids = (s.media || []).some(m => m.type === 'video');
+    return '<button type="button" class="service-media-btn' + (cls ? ' ' + cls : '') + '" data-pb-action="media" data-id="' + this.esc(s.id) + '">' +
+      ic(vids ? 'camera' : 'image') + '<span>' + (vids ? 'Ver fotos y videos' : 'Ver fotos') + ' (' + n + ')</span><span class="sr-only"> de ' + this.esc(s.name) + '</span></button>';
+  },
+  openServiceMedia(serviceId, idx) {
+    const s = DB.state.services.find(x => x.id === serviceId);
+    const list = this.serviceMediaList(s);
+    if (!s || !list.length) return;
+    const i = Math.max(0, Math.min(list.length - 1, idx || 0));
+    const m = list[i];
+    const main = m.type === 'video'
+      ? '<video src="' + this.esc(m.url) + '" controls playsinline preload="metadata" autoplay></video>'
+      : '<img src="' + this.esc(m.url) + '" alt="' + this.esc(s.name) + ' · foto ' + (i + 1) + '" />';
+    const nav = (d, label, icn) => {
+      const j = i + d;
+      return '<button type="button" class="btn btn-outline btn-icon smg-nav" data-pb-action="media" data-id="' + this.esc(s.id) + '" data-i="' + j + '" aria-label="' + label + '"' + (j < 0 || j >= list.length ? ' disabled' : '') + '>' + ic(icn) + '</button>';
+    };
+    const html = '<div class="smg-head">' +
+        '<div><span class="eyebrow">' + this.esc(s.category || this.V('service')) + '</span><h3 id="smg-title">' + this.esc(s.name) + '</h3></div>' +
+        '<button type="button" class="btn btn-outline btn-icon" data-pb-action="media-close" aria-label="Cerrar">' + ic('x') + '</button>' +
+      '</div>' +
+      '<div class="lightbox-frame smg-frame">' + main + '</div>' +
+      (list.length > 1
+        ? '<div class="smg-bar">' + nav(-1, 'Anterior', 'chevronLeft') +
+            '<div class="smg-thumbs">' + list.map((x, k) =>
+              '<button type="button" class="smg-thumb' + (k === i ? ' is-on' : '') + '" data-pb-action="media" data-id="' + this.esc(s.id) + '" data-i="' + k + '" aria-label="' + (x.type === 'video' ? 'Video ' : 'Foto ') + (k + 1) + '"' + (k === i ? ' aria-current="true"' : '') + '>' +
+                (x.type === 'video' ? '<video src="' + this.esc(x.url) + '" muted preload="metadata"></video><span class="smg-play" aria-hidden="true">▶</span>' : '<img src="' + this.esc(x.url) + '" alt="" loading="lazy" />') +
+              '</button>').join('') + '</div>' +
+            nav(1, 'Siguiente', 'chevronRight') + '</div>'
+        : '') +
+      '<div class="smg-actions">' +
+        '<button type="button" class="btn btn-solid" data-pb-action="service-close" data-id="' + this.esc(s.id) + '">' + ic('calendar') + 'Reservar ' + this.esc(s.name) + '</button>' +
+      '</div>';
+    // Ventana propia (<dialog>): las páginas públicas no cargan modal.js
+    let d = document.getElementById('srv-media');
+    if (!d) {
+      d = document.createElement('dialog');
+      d.id = 'srv-media';
+      d.className = 'smg';
+      d.setAttribute('aria-labelledby', 'smg-title');
+      d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+      d.addEventListener('close', () => { d.querySelectorAll('video').forEach(v => v.pause()); });
+      document.body.appendChild(d);
+    }
+    d.innerHTML = html;
+    if (!d.open) { if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', ''); }
+    const cur = d.querySelector('.smg-thumb.is-on');
+    if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+  },
+  closeServiceMedia() {
+    const d = document.getElementById('srv-media');
+    if (d && d.open) d.close();
+  },
+
   openLightbox(imgSrc, title, bp) {
     const html = '<div class="crm-modal-header">' +
         '<div>' +
@@ -417,6 +486,7 @@ const PublicBooking = {
         '<span class="bq-srv-ic" aria-hidden="true">' + this.rubroIcon() + '</span>' +
         '<h3 class="bq-srv-name">' + this.esc(s.name) + '</h3>' +
         (s.desc ? '<p class="bq-srv-desc">' + this.esc(s.desc) + '</p>' : '') +
+        this.serviceMediaBtn(s) +
         '<div class="bq-srv-foot">' +
           '<span class="bq-srv-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +
           (s.duration ? '<span class="bq-srv-dur">' + ic('clock') + this.esc(s.duration) + ' min</span>' : '') +
@@ -594,6 +664,7 @@ const PublicBooking = {
       '</div>' +
       '<h3 class="service-name">' + this.esc(s.name) + '</h3>' +
       (s.desc ? '<p class="service-desc">' + this.esc(s.desc) + '</p>' : '') +
+      this.serviceMediaBtn(s) +
       '<div class="service-foot">' +
         '<div class="service-meta">' +
           '<span class="service-price">' + this.esc(cur) + ' ' + this.esc(s.price) + '</span>' +

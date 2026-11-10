@@ -183,6 +183,9 @@ const DB = {
     if (/schedule_valid|ranges_check/i.test(m)) return 'El horario no es válido: revisa que cada tramo empiece antes de terminar.';
     if (/appointments_no_double_booking/i.test(m)) return 'Ese horario ya está ocupado. Elige otro.';
     if (/duplicate key/i.test(m)) return 'Ese registro ya existe.';
+    if (/'media' column|column "?media"?|services_media_valida/i.test(m)) return 'Para guardar más fotos y videos por servicio falta aplicar la migración 25 en Supabase.';
+    if (/mime type|invalid_mime_type/i.test(m) && /video/i.test(m)) return 'Aún no se pueden subir videos: falta aplicar la migración 22 en Supabase.';
+    if (/exceeded the maximum allowed size|payload too large|entity too large/i.test(m)) return 'El archivo es demasiado grande (videos hasta 50 MB).';
     if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
     if (/JWT|token|session/i.test(m)) return 'Tu sesión expiró. Vuelve a ingresar.';
     return m || 'No se pudo guardar el cambio.';
@@ -344,8 +347,8 @@ const DB = {
     },
     services: {
       table: 'services', soft: true,
-      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured, image: r.image_url || '' }; },
-      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured, image: s.image || '' }; },
+      from(r) { return { id: r.id, name: r.name, category: r.category || '', price: Number(r.price), duration: r.duration_min, desc: r.description || '', featured: !!r.featured, image: r.image_url || '', media: DB.normMedia(r.media) }; },
+      logical(s) { return { name: s.name, category: s.category || '', price: Number(s.price) || 0, duration: Number(s.duration) || 30, desc: s.desc || '', featured: !!s.featured, image: s.image || '', media: DB.normMedia(s.media) }; },
       columns(l, tid, insert) {
         const c = {};
         if ('name' in l) c.name = l.name;
@@ -356,6 +359,8 @@ const DB = {
         if ('featured' in l) c.featured = l.featured;
         // migración 20 (al crear sin foto no se envía: así funciona aunque falte la columna)
         if ('image' in l && !(insert && !l.image)) c.image_url = l.image || null;
+        // migración 25 (igual: sin fotos extra no se envía al crear)
+        if ('media' in l && !(insert && !(l.media || []).length)) c.media = l.media || [];
         return c;
       }
     },
@@ -658,7 +663,7 @@ const DB = {
     this.root = { tenants: [t], users: [], data: {}, audit: [] };
     const st = this.emptyState(t);
     st.services = (data.services || []).map(s => ({ id: s.id, name: s.name, category: s.category || '', price: Number(s.price), duration: Number(s.duration_min) || 0, desc: s.description || '', featured: !!s.featured,
-      image: /^https:\/\/[^\s"'<>()]+$/i.test(s.image_url || '') ? s.image_url : '' }));
+      image: /^https:\/\/[^\s"'<>()]+$/i.test(s.image_url || '') ? s.image_url : '', media: this.normMedia(s.media) }));
     st.barberProfiles = (data.barbers || []).map(b => ({
       id: b.id, name: b.name, role: b.role_title || '', photo: b.photo_url || '', specialties: b.specialties || [],
       works: (b.works || []).map(w => ({ id: w.id, title: w.title || '', image: w.image_url })), inChair: !!b.in_chair,
@@ -1073,6 +1078,23 @@ const DB = {
     const bytes = new Uint8Array(bin.length);
     for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
     return new Blob([bytes], { type });
+  },
+
+  /* Más fotos y videos de un servicio (migración 25): [{ type: image|video, url }] */
+  MAX_SERVICE_MEDIA: 12,
+  normMedia(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter(m => m && (m.type === 'image' || m.type === 'video') && typeof m.url === 'string' &&
+      m.url.length <= 1000 && /^https:\/\/[^\s"'<>()\\]+$/.test(m.url)).slice(0, this.MAX_SERVICE_MEDIA).map(m => ({ type: m.type, url: m.url }));
+  },
+
+  /* Sube un video (MP4/WebM, hasta 50 MB) tal cual al bucket media (migración 22) */
+  async uploadVideo(file, tenantId) {
+    const ext = file.type === 'video/webm' ? 'webm' : 'mp4';
+    const path = tenantId + '/' + this.uid() + '.' + ext;
+    const { error } = await this.client().storage.from('media').upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw new Error('No se pudo subir el video: ' + this.errorText(error));
+    return this.client().storage.from('media').getPublicUrl(path).data.publicUrl;
   },
 
   async uploadImage(dataUrl, tenantId) {

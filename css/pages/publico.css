@@ -860,3 +860,24 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; border-ra
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .js-reveal .reveal { opacity: 1; transform: none; }
 }
+
+/* ---------------- Fotos y videos de un servicio (migración 25) ---------------- */
+.service-media-btn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; justify-self: start; margin: var(--s2) 0 var(--s3); padding: 6px 12px; min-height: 36px; border: 1px solid var(--line-strong); border-radius: 999px; background: transparent; color: var(--text); font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.service-media-btn:hover { border-color: var(--text); }
+.service-media-btn .ic { width: 16px; height: 16px; }
+.service-media-btn.is-inline { margin: 4px 0 0; padding: 4px 10px; min-height: 32px; }
+.smg { width: min(94vw, 900px); max-height: 94vh; margin: auto; padding: var(--s5); border: 0; border-radius: var(--r-xl); background: var(--paper); color: var(--text); overflow: auto; }
+.smg::backdrop { background: rgba(0, 0, 0, 0.75); }
+.smg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s4); }
+.smg-head h3 { margin-top: 4px; }
+.smg-actions { display: flex; justify-content: flex-end; margin-top: var(--s4); }
+@media (max-width: 560px) { .smg { padding: var(--s4); } .smg-actions .btn { width: 100%; justify-content: center; } }
+.smg-frame { display: grid; place-items: center; background: #000000; border-radius: var(--r-lg); overflow: hidden; }
+.smg-frame img, .smg-frame video { display: block; width: 100%; max-height: 70vh; object-fit: contain; background: #000000; }
+.smg-bar { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s3); }
+.smg-thumbs { flex: 1; min-width: 0; display: flex; gap: var(--s2); overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+.smg-thumb { position: relative; flex: 0 0 64px; height: 64px; padding: 0; border: 2px solid transparent; border-radius: var(--r); overflow: hidden; background: var(--paper-2); cursor: pointer; }
+.smg-thumb.is-on { border-color: var(--text); }
+.smg-thumb img, .smg-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.smg-play { position: absolute; inset: 0; display: grid; place-items: center; color: #FFFFFF; font-size: 18px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+.smg-nav:disabled { opacity: 0.35; cursor: default; }
