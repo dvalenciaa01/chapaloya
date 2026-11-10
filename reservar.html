@@ -113,6 +113,13 @@
                   <label class="field-lbl" for="pb-notes">Notas o preferencias <span class="opt">(opcional)</span></label>
                   <input type="text" id="pb-notes" class="input" placeholder="Ej. Alguna preferencia o indicación" maxlength="300" />
                 </div>
+                <!-- Fotos de modelo (si el negocio lo activó en el CRM); se pintan desde public-booking.js -->
+                <div class="field ref-photos-field" id="pb-photos" hidden>
+                  <span class="field-lbl" id="pb-photos-lbl">Fotos de modelo <span class="opt">(opcional, hasta 3)</span></span>
+                  <span class="field-hint" id="pb-photos-hint">Muéstranos lo que quieres: un diseño, un corte, un color. Solo las ve el negocio.</span>
+                  <div class="ref-photos" id="pb-photos-list" role="list" aria-labelledby="pb-photos-lbl"></div>
+                  <span class="field-error" id="pb-photos-error" role="alert"><i data-icon="alert"></i><span class="field-error-text"></span></span>
+                </div>
               </fieldset>
 
               <label class="check-line" data-wa-only>
@@ -188,6 +195,7 @@
   </footer>
 
   <script src="js/utils/icons.js"></script>
+  <script src="js/utils/image-compressor.js"></script>
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/data/db.js"></script>
