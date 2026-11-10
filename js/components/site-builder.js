@@ -10,6 +10,8 @@
    portada. Fotos y videos se suben al bucket "media" de Supabase.
    Desde la 23: formato de cada texto (botón "Formato" junto a cada campo:
    letra, tamaño, grosor, cursiva, alineación, color y color del botón).
+   Desde la 24: quitar cualquier texto del bloque ("" = no se muestra) y
+   agregar cuadros de texto extra (b.extras) con su propio formato.
 
    Lo abren:
      - el superadministrador: consola → negocio → Diseñar web
@@ -251,7 +253,15 @@ const SiteBuilder = {
         ? '<textarea id="' + id + '" class="sb-input" rows="' + (o.rows || 3) + '" maxlength="' + M[k] + '" data-sb-field="' + k + '" placeholder="' + E(ph) + '">' + E(val) + '</textarea>'
         : '<input id="' + id + '" class="sb-input" type="text" maxlength="' + M[k] + '" data-sb-field="' + k + '" value="' + E(val) + '" placeholder="' + E(ph) + '" />';
       const fk = SiteBlocks.FMT_SLOTS[k] ? k : null;
-      return '<div class="sb-field"><div class="sb-lbl-row"><label class="sb-lbl" for="' + id + '">' + E(label) + '</label>' + (fk ? this.fmtBtn(b, fk, label) : '') + '</div>' +
+      const removable = ['eyebrow', 'title', 'text'].includes(k);
+      if (removable && b[k] === '') {
+        return '<div class="sb-field sb-field-off"><div class="sb-lbl-row"><span class="sb-lbl">' + E(label) + '</span>' +
+          '<button type="button" class="sb-fmt-btn" data-sb="txt-restore" data-k="' + k + '">' + ic('plus') + 'Volver a poner</button></div>' +
+          '<p class="sb-hint">Quitado: este texto no se muestra en la web.</p></div>';
+      }
+      return '<div class="sb-field"><div class="sb-lbl-row"><label class="sb-lbl" for="' + id + '">' + E(label) + '</label>' +
+        '<span class="sb-lbl-tools">' + (fk ? this.fmtBtn(b, fk, label) : '') +
+        (removable ? '<button type="button" class="sb-icon" data-sb="txt-remove" data-k="' + k + '" aria-label="Quitar ' + E(label.toLowerCase()) + '" title="Quitar este texto">' + ic('trash') + '</button>' : '') + '</span></div>' +
         (fk ? this.fmtPanel(b, fk, label) : '') + input + (o.hint ? '<p class="sb-hint">' + E(o.hint) + '</p>' : '') + '</div>';
     };
     const btnField = (k, label, dest) => {
@@ -277,6 +287,7 @@ const SiteBuilder = {
     if (T.fields.includes('eyebrow')) f.push(field('eyebrow', 'Texto pequeño sobre el título'));
     if (T.fields.includes('title')) f.push(field('title', 'Título', b.type === 'portada' ? { ph: this.st.tenant.name } : null));
     if (T.fields.includes('text')) f.push(field('text', b.type === 'texto' ? 'Texto' : 'Descripción', { area: true, rows: b.type === 'texto' ? 7 : 3, hint: b.type === 'texto' ? 'Deja una línea en blanco para separar párrafos.' : '' }));
+    if (T.fields.includes('text')) f.push(this.extrasHTML(b));
 
     if (T.fields.includes('video') && b.type === 'video') f.push(this.videoFieldHTML(b));
     if (T.fields.includes('poster') && (SiteBlocks.videoInfo(b.video) || {}).kind === 'file') {
@@ -327,14 +338,14 @@ const SiteBuilder = {
   FMT_SIZE_NAMES: [['xs', 'Más pequeño'], ['s', 'Pequeño'], ['', 'Normal'], ['l', 'Grande'], ['xl', 'Más grande'], ['xxl', 'Enorme']],
   fmtBtn(b, slot, what, text) {
     const E = this.esc.bind(this);
-    const open = this.st.fmtOpen === slot, set = !!(b.fmt && b.fmt[slot]);
+    const open = this.st.fmtOpen === slot, set = !!this.fmtGet(b, slot);
     return '<button type="button" class="sb-fmt-btn' + (open ? ' is-open' : '') + (set ? ' is-set' : '') + '" data-sb="fmt" data-slot="' + slot + '" aria-expanded="' + open + '" aria-label="Formato de ' + E(what) + '">' +
       '<span class="sb-fmt-aa" aria-hidden="true">Aa</span>' + E(text || 'Formato') + (set ? '<span class="sb-fmt-dot" aria-hidden="true"></span>' : '') + '</button>';
   },
   fmtPanel(b, slot, what) {
     if (this.st.fmtOpen !== slot) return '';
     const E = this.esc.bind(this), F = SiteBlocks.FONTS;
-    const f = (b.fmt && b.fmt[slot]) || {};
+    const f = this.fmtGet(b, slot) || {};
     const isBtn = slot === 'btn' || slot === 'btn2';
     const sel = (k, label, opts, cur) => '<label class="sb-fmt-f"><span>' + label + '</span><select class="sb-input" data-sb-fmt="' + slot + '" data-k="' + k + '">' +
       opts.map(([v, l]) => '<option value="' + E(v) + '"' + (v === cur ? ' selected' : '') + '>' + E(l) + '</option>').join('') + '</select></label>';
@@ -354,16 +365,54 @@ const SiteBuilder = {
       (Object.keys(f).length ? '<button type="button" class="sb-link-danger" data-sb="fmt-clear" data-slot="' + slot + '">' + ic('x') + 'Quitar todo el formato</button>' : '') +
     '</div>';
   },
-  setFmt(b, slot, k, v) {
-    if (!SiteBlocks.FMT_SLOTS[slot]) return;
+  // Formato de un texto del bloque (slot) o de un cuadro extra ("x:<id>")
+  extraOf(b, slot) { return /^x:/.test(slot) ? (b.extras || []).find(x => x.id === slot.slice(2)) || null : null; },
+  fmtGet(b, slot) {
+    if (/^x:/.test(slot)) { const x = this.extraOf(b, slot); return (x && x.fmt) || null; }
+    return (b.fmt && b.fmt[slot]) || null;
+  },
+  fmtPut(b, slot, f) {
+    const has = f && Object.keys(f).length;
+    if (/^x:/.test(slot)) {
+      const x = this.extraOf(b, slot);
+      if (x) { if (has) x.fmt = f; else delete x.fmt; }
+      return;
+    }
     const fm = Object.assign({}, b.fmt || {});
-    const f = Object.assign({}, fm[slot] || {});
+    if (has) fm[slot] = f; else delete fm[slot];
+    if (Object.keys(fm).length) b.fmt = fm; else delete b.fmt;
+  },
+  setFmt(b, slot, k, v) {
+    if (!SiteBlocks.FMT_SLOTS[slot] && !this.extraOf(b, slot)) return;
+    if (k === 'bg' && slot !== 'btn' && slot !== 'btn2') return;
+    const f = Object.assign({}, this.fmtGet(b, slot) || {});
     if (k === 'bold') { if (v === 'b') f.bold = true; else if (v === 'n') f.bold = false; else delete f.bold; }
     else if (k === 'italic') { if (v) f.italic = true; else delete f.italic; }
     else if (k === 'color' || k === 'bg') { if (SiteBlocks.HEX_RE.test(v || '')) f[k] = v.toUpperCase(); else delete f[k]; }
     else if (['font', 'size', 'align'].includes(k)) { if (v) f[k] = v; else delete f[k]; }
-    if (Object.keys(f).length) fm[slot] = f; else delete fm[slot];
-    if (Object.keys(fm).length) b.fmt = fm; else delete b.fmt;
+    this.fmtPut(b, slot, f);
+  },
+
+  /* ---------------- Cuadros de texto extra ---------------- */
+  extrasHTML(b) {
+    const E = this.esc.bind(this), list = b.extras || [];
+    const kinds = SiteBlocks.EXTRA_KINDS;
+    return '<div class="sb-field"><span class="sb-lbl">Cuadros de texto extra</span>' +
+      (list.length ? '<ol class="sb-items">' + list.map((x, i) => {
+        const slot = 'x:' + x.id, n = i + 1;
+        return '<li class="sb-item"><div class="sb-item-row">' +
+          '<select class="sb-input" data-sb-extra="' + i + '" data-k="kind" aria-label="Tipo del cuadro ' + n + '">' +
+            kinds.map(([k, l]) => '<option value="' + k + '"' + (k === x.kind ? ' selected' : '') + '>' + E(l) + '</option>').join('') + '</select>' +
+          this.fmtBtn(b, slot, 'el cuadro de texto ' + n, ' ') +
+          '<button type="button" class="sb-icon" data-sb="extra-move" data-i="' + i + '" data-d="-1" aria-label="Subir el cuadro ' + n + '"' + (i === 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + '</button>' +
+          '<button type="button" class="sb-icon" data-sb="extra-move" data-i="' + i + '" data-d="1" aria-label="Bajar el cuadro ' + n + '"' + (i === list.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + '</button>' +
+          '<button type="button" class="sb-icon" data-sb="extra-del" data-i="' + i + '" aria-label="Quitar el cuadro ' + n + '">' + ic('trash') + '</button>' +
+          '</div>' + this.fmtPanel(b, slot, 'el cuadro de texto ' + n) +
+          '<textarea class="sb-input" rows="' + (x.kind === 'parrafo' ? 4 : 2) + '" maxlength="' + SiteBlocks.MAX.text + '" data-sb-extra="' + i + '" data-k="text" placeholder="Escribe aquí…" aria-label="Texto del cuadro ' + n + '">' + E(x.text || '') + '</textarea>' +
+        '</li>';
+      }).join('') + '</ol>' : '<p class="sb-hint">Agrega títulos o párrafos debajo de los textos del bloque, cada uno con su propio formato.</p>') +
+      (list.length < SiteBlocks.MAX_EXTRAS ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="extra-add">' + ic('plus') + '<span>Agregar cuadro de texto</span></button>' : '') +
+    '</div>';
   },
 
   /* ---------------- Fotos y videos ---------------- */
@@ -551,7 +600,20 @@ const SiteBuilder = {
       case 'theme': st.view = 'theme'; this.renderPanel(); break;
       case 'fmt': { const sl = btn.getAttribute('data-slot'); st.fmtOpen = st.fmtOpen === sl ? null : sl; this.renderPanel(); break; }
       case 'fmt-unset': { const b = this.block(st.selected); if (b) { this.setFmt(b, btn.getAttribute('data-slot'), btn.getAttribute('data-k'), ''); this.touch(true); } break; }
-      case 'fmt-clear': { const b = this.block(st.selected), sl = btn.getAttribute('data-slot'); if (b && b.fmt) { delete b.fmt[sl]; if (!Object.keys(b.fmt).length) delete b.fmt; this.touch(true); } break; }
+      case 'fmt-clear': { const b = this.block(st.selected); if (b) { this.fmtPut(b, btn.getAttribute('data-slot'), null); this.touch(true); } break; }
+      case 'txt-remove': { const b = this.block(st.selected), k = btn.getAttribute('data-k'); if (b && ['eyebrow', 'title', 'text'].includes(k)) { b[k] = ''; if (st.fmtOpen === k) st.fmtOpen = null; this.touch(true); } break; }
+      case 'txt-restore': { const b = this.block(st.selected), k = btn.getAttribute('data-k'); if (b && ['eyebrow', 'title', 'text'].includes(k)) { delete b[k]; this.touch(true); } break; }
+      case 'extra-add': {
+        const b = this.block(st.selected);
+        if (b && (b.extras || []).length < SiteBlocks.MAX_EXTRAS) { b.extras = (b.extras || []).concat([{ id: SiteBlocks.newId(), kind: 'parrafo', text: '' }]); this.touch(true); }
+        break;
+      }
+      case 'extra-del': { const b = this.block(st.selected); if (b && b.extras) { b.extras.splice(Number(btn.getAttribute('data-i')), 1); if (!b.extras.length) delete b.extras; this.touch(true); } break; }
+      case 'extra-move': {
+        const b = this.block(st.selected), i = Number(btn.getAttribute('data-i')), j = i + Number(btn.getAttribute('data-d'));
+        if (b && b.extras && j >= 0 && j < b.extras.length) { b.extras.splice(j, 0, b.extras.splice(i, 1)[0]); this.touch(true); }
+        break;
+      }
       case 'theme-reset': this.setTheme(btn.getAttribute('data-k'), ''); this.touch(true); break;
       case 'items-custom': { const b = this.block(st.selected); if (b) { b.items = SiteBlocks.DEFAULT_ITEMS(!st.info || st.info.waEnabled).map(x => Object.assign({}, x, { text: this.fmt(x.text), title: this.fmt(x.title) })); this.touch(true); } break; }
       case 'item-add': { const b = this.block(st.selected); if (b && b.items && b.items.length < 6) { b.items.push({ icon: 'star', title: '', text: '' }); this.touch(true); } break; }
@@ -588,6 +650,13 @@ const SiteBuilder = {
       if ((el.tagName === 'SELECT' || el.type === 'checkbox') && e.type !== 'change') return;
       this.setFmt(b, el.getAttribute('data-sb-fmt'), k, el.type === 'checkbox' ? el.checked : el.value);
       this.touch(e.type === 'change');
+      return;
+    }
+    if (el.hasAttribute('data-sb-extra')) {
+      const x = (b.extras || [])[Number(el.getAttribute('data-sb-extra'))], k = el.getAttribute('data-k');
+      if (!x) return;
+      if (k === 'kind') { if (e.type !== 'change') return; x.kind = el.value; this.touch(true); return; }
+      if (k === 'text') { x.text = el.value; this.touch(false); }
       return;
     }
     if (el.hasAttribute('data-sb-bgcolor')) {

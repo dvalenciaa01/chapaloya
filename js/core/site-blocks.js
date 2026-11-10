@@ -119,6 +119,9 @@
      botones, su color. Sin dato = como lo dibuja la web. */
   const FMT_SIZES = { xs: 0.75, s: 0.88, l: 1.2, xl: 1.45, xxl: 1.8 };
   const FMT_ALIGN = ['left', 'center', 'right'];
+  // Cuadros de texto extra de un bloque (b.extras, migración 24)
+  const EXTRA_KINDS = [['titulo', 'Título'], ['subtitulo', 'Subtítulo'], ['parrafo', 'Párrafo']];
+  const MAX_EXTRAS = 8;
   // Textos que se pueden formatear y de qué campo dependen
   const FMT_SLOTS = { eyebrow: 'eyebrow', title: 'title', text: 'text', btn: 'btn', btn2: 'btn2', itemTitle: 'items', itemText: 'items' };
   const MAX_IMAGES = 12;
@@ -162,13 +165,13 @@
       if (BGS.some(s => s[0] === b.bg)) o.bg = b.bg;
       if (typeof b.bgColor === 'string' && HEX_RE.test(b.bgColor)) o.bgColor = b.bgColor;
       if (o.bg === 'color' && !o.bgColor) delete o.bg;
-      ['eyebrow', 'title', 'text', 'cat'].forEach(k => {
+      ['cat'].forEach(k => {
         if (!T.fields.includes(k)) return;
         const v = str(b[k], MAX[k]);
         if (v != null && v.trim()) o[k] = v;
       });
-      // Botones: "" = oculto (se guarda), sin dato = texto por defecto
-      ['btn', 'btn2'].forEach(k => {
+      // Textos y botones: "" = quitado (se guarda y no se muestra), sin dato = texto por defecto
+      ['eyebrow', 'title', 'text', 'btn', 'btn2'].forEach(k => {
         if (!T.fields.includes(k)) return;
         const v = str(b[k], MAX[k]);
         if (v != null) o[k] = v.trim() ? v : '';
@@ -182,6 +185,8 @@
       }
       const fm = normFmt(b.fmt, T);
       if (fm) o.fmt = fm;
+      const ex = normExtras(b.extras);
+      if (ex) o.extras = ex;
       if (T.fields.includes('limit') && Number.isInteger(b.limit) && b.limit >= 1 && b.limit <= 24) o.limit = b.limit;
       if (T.fields.includes('map') && typeof b.map === 'boolean') o.map = b.map;
       if (T.fields.includes('items') && Array.isArray(b.items)) {
@@ -219,6 +224,24 @@
       if (Object.keys(o).length) out[slot] = o;
     });
     return Object.keys(out).length ? out : null;
+  }
+
+  function normExtras(list) {
+    if (!Array.isArray(list)) return null;
+    const ids = new Set(), out = [];
+    list.forEach(x => {
+      if (!x || typeof x !== 'object' || out.length >= MAX_EXTRAS) return;
+      if (!EXTRA_KINDS.some(k => k[0] === x.kind)) return;
+      let id = typeof x.id === 'string' && /^[a-z0-9]{4,16}$/.test(x.id) ? x.id : newId();
+      while (ids.has(id)) id = newId();
+      ids.add(id);
+      const o = { id, kind: x.kind, text: str(x.text, MAX.text) || '' };
+      // Mismo formato que un texto del bloque, sin color de botón
+      const f = normFmt({ text: x.fmt }, { fields: ['text'] });
+      if (f) o.fmt = f.text;
+      out.push(o);
+    });
+    return out.length ? out : null;
   }
 
   // Tipo de letra y colores de toda la web (sin dato = los del negocio)
@@ -290,7 +313,7 @@
   const href = (page) => (PB() ? PB().href(page) : page);
   const secOff = (type) => !!(PB() && PB().secOff(type));
   // Texto del bloque o el de por defecto
-  const txt = (b, k) => (b[k] != null && (k === 'btn' || k === 'btn2' || String(b[k]).trim()) ? b[k] : fmt(TYPES[b.type].def[k] || ''));
+  const txt = (b, k) => (b[k] != null && (b[k] === '' || String(b[k]).trim()) ? b[k] : fmt(TYPES[b.type].def[k] || ''));
 
   /* ---- Formato por texto: todos los valores ya vienen validados (normFmt) ---- */
   const fmtOf = (b, slot) => (b.fmt && b.fmt[slot]) || null;
@@ -330,20 +353,35 @@
     return '<a class="btn ' + cls + '" href="' + esc(href(page)) + '"' + BS(b, slot) + '>' + (iconBefore ? icon(iconBefore) : '') +
       '<span>' + T(b, slot, label) + '</span>' + (iconAfter ? icon(iconAfter) : '') + '</a>';
   }
+  // Cuadros de texto extra, debajo de los textos del bloque
+  function EX(b) {
+    return (b.extras || []).filter(x => String(x.text || '').trim()).map(x => {
+      const css = x.fmt ? spanCss(x.fmt) : '';
+      const al = x.fmt && FMT_ALIGN.includes(x.fmt.align) ? ' style="text-align:' + x.fmt.align + '"' : '';
+      const inner = (p) => { const e = esc(p).replace(/\n/g, '<br>'); return css ? '<span class="blk-f" style="' + esc(css) + '">' + e + '</span>' : e; };
+      if (x.kind === 'titulo') return '<h3 class="blk-x blk-x-titulo"' + al + '>' + inner(x.text.trim()) + '</h3>';
+      if (x.kind === 'subtitulo') return '<p class="blk-x blk-x-sub"' + al + '>' + inner(x.text.trim()) + '</p>';
+      return String(x.text).split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map(p => '<p class="blk-x blk-x-p"' + al + '>' + inner(p) + '</p>').join('');
+    }).join('');
+  }
   // Fuentes que usan los formatos del diseño (para cargarlas)
   function fmtFonts(page) {
     const set = new Set();
-    ((page && page.blocks) || []).forEach(b => Object.keys(b.fmt || {}).forEach(k => { const f = b.fmt[k]; if (f && FONTS[f.font]) set.add(FONTS[f.font].file); }));
+    ((page && page.blocks) || []).forEach(b => {
+      Object.keys(b.fmt || {}).forEach(k => { const f = b.fmt[k]; if (f && FONTS[f.font]) set.add(FONTS[f.font].file); });
+      (b.extras || []).forEach(x => { if (x.fmt && FONTS[x.fmt.font]) set.add(FONTS[x.fmt.font].file); });
+    });
     return Array.from(set);
   }
 
   function head(b, link, linkLabel) {
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title'), text = txt(b, 'text');
-    if (!eb && !title && !text && !link) return '';
+    const ex = EX(b);
+    if (!eb && !title && !text && !ex && !(link && linkLabel)) return '';
     return '<div class="section-head blk-head reveal"><div>' +
       (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
       (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') +
-      (text ? P(b, 'text', text) : '') +
+      (text ? P(b, 'text', text) : '') + ex +
       '</div>' +
       (link && linkLabel ? BTN(b, 'btn', linkLabel, link, 'btn-outline', null, 'arrowRight') : '') +
     '</div>';
@@ -351,15 +389,15 @@
 
   function heroHTML(b, t) {
     const style = b.style || 'foto-fondo';
-    const title = (b.title && b.title.trim()) ? b.title : (t.name || '');
+    const title = b.title === '' ? '' : ((b.title && b.title.trim()) ? b.title : (t.name || ''));
     const img = b.image || '';
     const eb = txt(b, 'eyebrow');
     const btn = txt(b, 'btn'), btn2 = txt(b, 'btn2');
     const city = t.city ? ' · ' + t.city : '';
     const body = '<div class="blk-hero-copy reveal">' +
       (eb ? '<span class="blk-kicker">' + T(b, 'eyebrow', eb + city) + '</span>' : '') +
-      '<h1 class="blk-hero-title"' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h1>' +
-      P(b, 'text', txt(b, 'text'), 'blk-hero-lead') +
+      (title ? '<h1 class="blk-hero-title"' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h1>' : '') +
+      P(b, 'text', txt(b, 'text'), 'blk-hero-lead') + EX(b) +
       ((btn || (btn2 && !secOff('servicios'))) ? '<div class="blk-actions">' +
         (btn ? BTN(b, 'btn', btn, 'reservar.html', 'btn-accent btn-lg', 'calendar') : '') +
         (btn2 && !secOff('servicios') ? BTN(b, 'btn2', btn2, 'servicios.html', 'btn-outline btn-lg') : '') +
@@ -460,7 +498,7 @@
     const title = txt(b, 'title'), btn = txt(b, 'btn');
     const btn2 = secOff('mi-cita') ? '' : txt(b, 'btn2');
     return '<div class="container"><div class="blk-cta-inner reveal">' +
-      '<div>' + (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) + '</div>' +
+      '<div>' + (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) + EX(b) + '</div>' +
       ((btn || btn2) ? '<div class="blk-actions">' +
         (btn ? BTN(b, 'btn', btn, 'reservar.html', 'btn-accent btn-lg', 'calendar') : '') +
         (btn2 ? BTN(b, 'btn2', btn2, 'consultar-cita.html', 'btn-outline btn-lg') : '') +
@@ -501,7 +539,7 @@
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title');
     const copy = '<div class="blk-text-copy reveal">' +
       (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
-      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) +
+      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) + EX(b) +
       (btn ? '<div class="blk-actions">' + BTN(b, 'btn', btn, 'reservar.html', 'btn-solid', null, 'arrowRight') + '</div>' : '') +
     '</div>';
     return '<div class="container"><div class="blk-text' + (img ? ' has-photo' : '') + '">' +
@@ -524,9 +562,9 @@
     if (!player) return '';
     const btn = txt(b, 'btn');
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title'), text = txt(b, 'text');
-    const copy = (eb || title || text || btn) ? '<div class="blk-text-copy reveal">' +
+    const copy = (eb || title || text || btn || EX(b)) ? '<div class="blk-text-copy reveal">' +
       (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
-      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', text) +
+      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', text) + EX(b) +
       (btn ? '<div class="blk-actions">' + BTN(b, 'btn', btn, 'reservar.html', 'btn-solid', null, 'arrowRight') + '</div>' : '') +
     '</div>' : '';
     if (b.style === 'con-texto' && copy) {
@@ -601,7 +639,7 @@
   }
 
   const SiteBlocks = {
-    TYPES, ORDER, BGS, MAX, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
+    TYPES, ORDER, BGS, MAX, EXTRA_KINDS, MAX_EXTRAS, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
     DEFAULT_ITEMS, normalize, normTheme, normFmt, template, create, newId, videoInfo, isDark,
 
     /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
