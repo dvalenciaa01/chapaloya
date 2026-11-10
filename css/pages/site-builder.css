@@ -104,6 +104,24 @@ select.sb-input { cursor: pointer; }
 .sb-item + .sb-btn, .sb-items + .sb-btn { margin-top: 10px; }
 .sb-block-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--sb-line); }
 
+/* Letra y colores, color de fondo, fotos y videos */
+.sb-theme-btn { width: 100%; margin-top: 14px; }
+.sb-note-warn { background: rgba(248, 113, 113, 0.14); color: #FECACA; }
+.sb-color { display: flex; align-items: center; gap: 10px; margin-top: 8px; min-height: 44px; padding: 4px 12px 4px 4px; border: 1px solid var(--sb-line-2); border-radius: 12px; background: #0E0F11; cursor: pointer; font-size: 14px; color: var(--sb-tx-2); }
+.sb-seg + .sb-color { margin-top: 10px; }
+.sb-color input { width: 44px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; flex: none; }
+.sb-color input::-webkit-color-swatch-wrapper { padding: 0; }
+.sb-color input::-webkit-color-swatch { border: 1px solid var(--sb-line-2); border-radius: 8px; }
+.sb-color input::-moz-color-swatch { border: 1px solid var(--sb-line-2); border-radius: 8px; }
+.sb-color code { margin-left: auto; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: var(--sb-tx-3); }
+.sb-color + .sb-back { margin-top: 4px; font-size: 13.5px; }
+.sb-img video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000000; }
+.sb-thumbs { list-style: none; margin: 0 0 4px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sb-thumbs li { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--sb-line); background: #0E0F11; }
+.sb-thumbs img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.sb-thumb-tools { display: flex; justify-content: space-between; background: var(--sb-card); }
+.sb-thumb-tools .sb-icon { width: 30px; height: 30px; }
+
 /* ---------------- Vista previa ---------------- */
 .sb-stage { position: relative; min-width: 0; min-height: 0; display: grid; place-items: stretch; padding: 16px; background: #2A2D31; overflow: auto; }
 .sb-frame { position: relative; width: 100%; height: 100%; min-height: 480px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #FFFFFF; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); transition: width 0.25s ease; }

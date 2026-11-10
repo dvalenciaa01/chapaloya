@@ -485,7 +485,10 @@ const TenantBrand = {
   applyPublic(t) {
     this.applyPalette(this.paletteOf(t));
     this.applyVocab(t);
-    const fonts = this.applyRubroFonts();
+    const rubroFonts = this.applyRubroFonts();
+    // Letra y colores elegidos en el constructor de la web (encima de los del negocio)
+    const themeFonts = typeof SiteBlocks !== 'undefined' ? SiteBlocks.applyTheme(t.page, t) : null;
+    const fonts = themeFonts ? Promise.all([rubroFonts, themeFonts]) : rubroFonts;
     this.applyLayout(t);
     if (this.applyAddress(t)) return;     // se abre la página de otra sección
     this.applySections();

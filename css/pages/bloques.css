@@ -139,6 +139,57 @@
 .blk-st-solo-texto .blk-text-copy { margin: 0 auto; text-align: center; }
 .blk-st-solo-texto .blk-actions { justify-content: center; }
 
+/* ---------------- Fondo de otro color (elegido en el editor) ----------------
+   El bloque trae style="--blk-bg:#hex" y .blk-dark o .blk-light según qué tan
+   oscuro es: los textos, líneas y tarjetas cambian para que se lean. */
+.blk-bg-color { background: var(--blk-bg); }
+.blk-dark {
+  --text: #FFFFFF; --text-2: rgba(255, 255, 255, 0.84); --text-3: rgba(255, 255, 255, 0.66);
+  --line: rgba(255, 255, 255, 0.14); --line-strong: rgba(255, 255, 255, 0.26);
+  --card: rgba(255, 255, 255, 0.06); --paper-2: rgba(255, 255, 255, 0.08); --accent-tint: rgba(255, 255, 255, 0.12);
+  --focus: var(--accent);
+  color: var(--text);
+}
+.blk-dark h1, .blk-dark h2, .blk-dark h3, .blk-dark strong, .blk-dark .eyebrow { color: var(--text); }
+.blk-dark .btn-solid { --btn-bg: var(--accent); --btn-fg: var(--on-accent); --btn-line: var(--accent); }
+.blk-dark .btn-outline { --btn-fg: #FFFFFF; --btn-line: rgba(255, 255, 255, 0.4); --btn-bg: transparent; }
+.blk-dark .blk-perk-ic { color: var(--accent); }
+.blk-light {
+  --text: #111418; --text-2: #3B4046; --text-3: #5B6066;
+  --line: rgba(17, 20, 24, 0.12); --line-strong: rgba(17, 20, 24, 0.24);
+  --card: rgba(255, 255, 255, 0.7); --paper-2: rgba(17, 20, 24, 0.05); --accent-tint: rgba(17, 20, 24, 0.07);
+  color: var(--text);
+}
+.blk-light h1, .blk-light h2, .blk-light h3, .blk-light strong, .blk-light .eyebrow { color: var(--text); }
+.blk-light .btn-outline { --btn-fg: #111418; --btn-line: rgba(17, 20, 24, 0.3); --btn-bg: transparent; }
+.blk-reservar.blk-st-tarjeta.blk-bg-color { background: var(--blk-bg); }
+
+/* ---------------- Video ---------------- */
+.blk-video-frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-xl); overflow: hidden; background: #000000; }
+.blk-video-frame iframe, .blk-video-frame video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; object-fit: cover; background: #000000; }
+.blk-video-head { max-width: 760px; margin: 0 auto var(--s6); text-align: center; }
+.blk-video-head .blk-text-copy { margin: 0 auto; }
+.blk-video-head .blk-actions { justify-content: center; }
+.blk-video-wide { max-width: 1040px; margin: 0 auto; }
+.blk-portada video.blk-hero-bg { object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .blk-portada video.blk-hero-bg { display: none; } .blk-portada.has-photo { background-color: var(--brand); } }
+
+/* ---------------- Fotos subidas ---------------- */
+.blk-st-carrusel .blk-photos {
+  display: flex; gap: var(--s3); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--s3);
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.blk-st-carrusel .blk-photos .blk-shot { flex: 0 0 min(78%, 340px); aspect-ratio: 4 / 5; scroll-snap-align: start; }
+.blk-fotos.blk-st-mosaico .blk-photos { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; grid-auto-flow: dense; }
+@media (min-width: 760px) { .blk-fotos.blk-st-mosaico .blk-photos { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 200px; } }
+
+/* Foto ampliada */
+.blk-zoom { margin: auto; max-width: min(96vw, 1100px); max-height: 92vh; padding: 0; border: 0; border-radius: var(--r-lg); background: #000000; overflow: visible; }
+.blk-zoom::backdrop { background: rgba(0, 0, 0, 0.82); }
+.blk-zoom img { display: block; max-width: min(96vw, 1100px); max-height: 92vh; object-fit: contain; border-radius: var(--r-lg); }
+.blk-zoom-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #FFFFFF; cursor: pointer; }
+.blk-zoom-x .ic { width: 20px; height: 20px; }
+
 /* ---------------- Vista previa del editor ---------------- */
 .blk-preview .blk { cursor: pointer; }
 .blk-preview .blk:hover { outline: 2px dashed color-mix(in srgb, var(--accent) 70%, var(--black)); outline-offset: -6px; }

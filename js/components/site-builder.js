@@ -5,6 +5,9 @@
    derecha (index.html?preview=1 en un iframe del mismo sitio, en escritorio o
    celular). Los cambios se ven al instante en la vista previa y solo llegan a
    la web al pulsar "Guardar y publicar" (tenants.web_page, migración 21).
+   Desde la migración 22 también: letra y colores de toda la web (page.theme),
+   color de fondo por bloque, bloques de Video y Fotos, y video de fondo en la
+   portada. Fotos y videos se suben al bucket "media" de Supabase.
 
    Lo abren:
      - el superadministrador: consola → negocio → Diseñar web
@@ -167,8 +170,9 @@ const SiteBuilder = {
     const el = document.getElementById('sb-panel');
     if (!el || !this.st) return;
     const v = this.st.view;
-    el.innerHTML = v === 'add' ? this.addHTML() : (v === 'block' && this.block(this.st.selected) ? this.blockFormHTML(this.block(this.st.selected)) : this.listHTML());
-    if (v !== 'block' && v !== 'add') this.st.view = 'list';
+    el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML()
+      : (v === 'block' && this.block(this.st.selected) ? this.blockFormHTML(this.block(this.st.selected)) : this.listHTML());
+    if (v !== 'block' && v !== 'add' && v !== 'theme') this.st.view = 'list';
     this.bindDrag();
   },
 
@@ -201,6 +205,9 @@ const SiteBuilder = {
       '<p class="sb-hint">Toca un bloque para editarlo, o tócalo en la vista previa. Arrástralos o usa las flechas para ordenarlos. ' +
         E(this.fmt('Los {servicePlural}, el equipo, las fotos y los datos de contacto salen del CRM: si los cambias allí, la web se actualiza sola.')) + '</p>' +
       notes.map(n => '<p class="sb-note">' + n + '</p>').join('') +
+      '<button type="button" class="sb-type sb-theme-btn" data-sb="theme">' +
+        '<span class="sb-row-ic" aria-hidden="true">' + ic('sliders') + '</span><strong>Letra y colores</strong>' +
+        '<span>' + E(this.themeSummary()) + '</span></button>' +
       '<ol class="sb-list" id="sb-list">' + rows + '</ol>' +
       (st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-add" data-sb="add">' + ic('plus') + '<span>Agregar bloque</span></button>' : '') +
       '<div class="sb-foot">' +
@@ -244,7 +251,7 @@ const SiteBuilder = {
       return '<div class="sb-field"><label class="sb-lbl" for="' + id + '">' + E(label) + '</label>' + input + (o.hint ? '<p class="sb-hint">' + E(o.hint) + '</p>' : '') + '</div>';
     };
     const btnField = (k, label, dest) => {
-      const on = b[k] !== '';
+      const on = T.def[k] === '' ? !!(b[k] && b[k].trim()) : b[k] !== '';
       const id = 'sb-f-' + k;
       return '<div class="sb-field"><label class="sb-check"><input type="checkbox" data-sb-btn="' + k + '"' + (on ? ' checked' : '') + ' /><span>' + E(label) + '</span></label>' +
         (on ? '<input id="' + id + '" class="sb-input" type="text" maxlength="' + M[k] + '" data-sb-field="' + k + '" value="' + E(b[k] || '') + '" placeholder="' + E(def(k)) + '" aria-label="Texto del botón" />' +
@@ -253,20 +260,28 @@ const SiteBuilder = {
 
     f.push('<div class="sb-field"><span class="sb-lbl">Estilo</span>' + this.seg('style', T.styles, b.style || T.styles[0][0]) + '</div>');
     const heroPhotoBg = b.type === 'portada' && (b.style || 'foto-fondo') === 'foto-fondo' && b.image;
-    if (!heroPhotoBg) f.push('<div class="sb-field"><span class="sb-lbl">Fondo</span>' + this.seg('bg', SiteBlocks.BGS, b.bg || (b.type === 'reservar' ? 'marca' : 'normal')) + '</div>');
+    const heroVideoBg = b.type === 'portada' && (b.style || 'foto-fondo') === 'foto-fondo' && (SiteBlocks.videoInfo(b.video) || {}).kind === 'file';
+    if (!heroPhotoBg && !heroVideoBg) {
+      const bg = b.bg || (b.type === 'reservar' ? 'marca' : 'normal');
+      f.push('<div class="sb-field"><span class="sb-lbl">Fondo</span>' + this.seg('bg', SiteBlocks.BGS, bg) +
+        (bg === 'color' ? '<label class="sb-color"><input type="color" data-sb-bgcolor value="' + E(SiteBlocks.HEX_RE.test(b.bgColor || '') ? b.bgColor : '#F4EEE6') + '" /><span>Elegir el color</span><code>' + E((b.bgColor || '').toUpperCase()) + '</code></label>' +
+          '<p class="sb-hint">Los textos se ponen blancos u oscuros solos, según el color.</p>' : '') +
+      '</div>');
+    }
 
     if (T.fields.includes('eyebrow')) f.push(field('eyebrow', 'Texto pequeño sobre el título'));
     if (T.fields.includes('title')) f.push(field('title', 'Título', b.type === 'portada' ? { ph: this.st.tenant.name } : null));
     if (T.fields.includes('text')) f.push(field('text', b.type === 'texto' ? 'Texto' : 'Descripción', { area: true, rows: b.type === 'texto' ? 7 : 3, hint: b.type === 'texto' ? 'Deja una línea en blanco para separar párrafos.' : '' }));
 
-    if (T.fields.includes('image') && !(b.type === 'texto' && b.style === 'solo-texto') && !(b.type === 'portada' && b.style === 'centrado')) {
-      f.push('<div class="sb-field"><span class="sb-lbl">Foto</span>' +
-        (b.image ? '<div class="sb-img"><img src="' + E(b.image) + '" alt="" /></div>' : '<p class="sb-hint">' + (b.type === 'portada' ? 'Sin foto se usa el color o la ilustración del negocio.' : 'Sin foto, el texto ocupa todo el ancho.') + '</p>') +
-        '<div class="sb-img-actions">' +
-          '<label class="sb-btn sb-btn-ghost sb-file">' + ic('upload') + '<span>' + (b.image ? 'Cambiar foto' : 'Subir foto') + '</span><input type="file" accept="image/png,image/jpeg,image/webp" data-sb-upload class="sr-only" /></label>' +
-          (b.image ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="noimg">' + ic('trash') + '<span>Quitar</span></button>' : '') +
-        '</div><p class="sb-hint">JPG, PNG o WebP. Se ajusta sola al tamaño de la web.</p></div>');
+    if (T.fields.includes('video') && b.type === 'video') f.push(this.videoFieldHTML(b));
+    if (T.fields.includes('poster') && (SiteBlocks.videoInfo(b.video) || {}).kind === 'file') {
+      f.push(this.imageFieldHTML(b, 'poster', 'Imagen de portada del video', 'Se ve antes de darle play. Opcional.'));
     }
+    if (T.fields.includes('image') && !(b.type === 'texto' && b.style === 'solo-texto') && !(b.type === 'portada' && b.style === 'centrado')) {
+      f.push(this.imageFieldHTML(b, 'image', 'Foto', b.type === 'portada' ? 'Sin foto se usa el color o la ilustración del negocio.' : 'Sin foto, el texto ocupa todo el ancho.'));
+    }
+    if (b.type === 'portada' && (b.style || 'foto-fondo') === 'foto-fondo') f.push(this.heroVideoHTML(b));
+    if (T.fields.includes('images')) f.push(this.photosFieldHTML(b));
 
     if (T.fields.includes('cat')) {
       const cats = (this.st.info && this.st.info.categories) || [];
@@ -300,6 +315,110 @@ const SiteBuilder = {
         (b.type !== 'portada' && this.st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="dup" data-id="' + E(b.id) + '">' + ic('plus') + '<span>Duplicar</span></button>' : '') +
         '<button type="button" class="sb-btn sb-btn-danger" data-sb="del" data-id="' + E(b.id) + '">' + ic('trash') + '<span>Eliminar</span></button>' +
       '</div>' +
+    '</div>';
+  },
+
+  /* ---------------- Fotos y videos ---------------- */
+  imageFieldHTML(b, k, label, emptyHint) {
+    const E = this.esc.bind(this), v = b[k];
+    return '<div class="sb-field"><span class="sb-lbl">' + E(label) + '</span>' +
+      (v ? '<div class="sb-img"><img src="' + E(v) + '" alt="" /></div>' : '<p class="sb-hint">' + E(emptyHint) + '</p>') +
+      '<div class="sb-img-actions">' +
+        '<label class="sb-btn sb-btn-ghost sb-file">' + ic('upload') + '<span>' + (v ? 'Cambiar foto' : 'Subir foto') + '</span><input type="file" accept="image/png,image/jpeg,image/webp" data-sb-upload data-k="' + k + '" class="sr-only" /></label>' +
+        (v ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="nomedia" data-k="' + k + '">' + ic('trash') + '<span>Quitar</span></button>' : '') +
+      '</div><p class="sb-hint">JPG, PNG o WebP. Se ajusta sola al tamaño de la web.</p></div>';
+  },
+
+  videoUploadHTML(b, label) {
+    return '<label class="sb-btn sb-btn-ghost sb-file">' + ic('upload') + '<span>' + label + '</span>' +
+      '<input type="file" accept="video/mp4,video/webm" data-sb-upload data-k="video" class="sr-only" /></label>' +
+      (b.video ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="nomedia" data-k="video">' + ic('trash') + '<span>Quitar video</span></button>' : '');
+  },
+
+  videoFieldHTML(b) {
+    const E = this.esc.bind(this);
+    const info = SiteBlocks.videoInfo(b.video);
+    const file = info && info.kind === 'file';
+    let show = '';
+    if (file) show = '<div class="sb-img"><video src="' + E(info.src) + '" muted controls playsinline preload="metadata"></video></div>';
+    else if (info) show = '<p class="sb-note">Video de ' + (/vimeo/.test(info.src) ? 'Vimeo' : 'YouTube') + ' listo. Se ve en la vista previa.</p>';
+    else if (b.video) show = '<p class="sb-note sb-note-warn">Ese enlace no es de YouTube ni de Vimeo. Copia el enlace del video desde el botón "Compartir".</p>';
+    return '<div class="sb-field"><span class="sb-lbl">Video</span>' + show +
+      '<div class="sb-img-actions">' + this.videoUploadHTML(b, file ? 'Cambiar video' : 'Subir video') + '</div>' +
+      '<p class="sb-hint">MP4 o WebM de hasta 50 MB (unos 30 a 60 segundos en buena calidad).</p></div>' +
+      '<div class="sb-field"><label class="sb-lbl" for="sb-f-video">O pega un enlace de YouTube o Vimeo</label>' +
+      '<input id="sb-f-video" class="sb-input" type="url" inputmode="url" maxlength="1000" data-sb-field="video" value="' + E(file ? '' : (b.video || '')) + '" placeholder="https://www.youtube.com/watch?v=…" /></div>';
+  },
+
+  heroVideoHTML(b) {
+    const E = this.esc.bind(this);
+    const info = SiteBlocks.videoInfo(b.video);
+    const file = info && info.kind === 'file';
+    return '<div class="sb-field"><span class="sb-lbl">Video de fondo (opcional)</span>' +
+      (file ? '<div class="sb-img"><video src="' + E(info.src) + '" muted loop autoplay playsinline preload="metadata"></video></div>' : '') +
+      '<div class="sb-img-actions">' + this.videoUploadHTML(b, file ? 'Cambiar video' : 'Subir video') + '</div>' +
+      '<p class="sb-hint">Se reproduce sin sonido y en bucle detrás del título. Usa un video corto (MP4 o WebM, hasta 50 MB). La foto se ve mientras carga.</p></div>';
+  },
+
+  photosFieldHTML(b) {
+    const E = this.esc.bind(this);
+    const imgs = Array.isArray(b.images) ? b.images : [];
+    const max = SiteBlocks.MAX_IMAGES;
+    return '<div class="sb-field"><span class="sb-lbl">Fotos (' + imgs.length + ' de ' + max + ')</span>' +
+      (imgs.length ? '<ol class="sb-thumbs">' + imgs.map((u, i) =>
+        '<li><img src="' + E(u) + '" alt="Foto ' + (i + 1) + '" />' +
+          '<span class="sb-thumb-tools">' +
+            '<button type="button" class="sb-icon" data-sb="img-move" data-i="' + i + '" data-d="-1" aria-label="Mover la foto ' + (i + 1) + ' antes"' + (i === 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + '</button>' +
+            '<button type="button" class="sb-icon" data-sb="img-del" data-i="' + i + '" aria-label="Quitar la foto ' + (i + 1) + '">' + ic('trash') + '</button>' +
+            '<button type="button" class="sb-icon" data-sb="img-move" data-i="' + i + '" data-d="1" aria-label="Mover la foto ' + (i + 1) + ' después"' + (i === imgs.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + '</button>' +
+          '</span></li>').join('') + '</ol>' : '<p class="sb-hint">Aún no hay fotos: sin fotos, este bloque no se ve en la web.</p>') +
+      (imgs.length < max ? '<div class="sb-img-actions"><label class="sb-btn sb-btn-ghost sb-file">' + ic('upload') + '<span>Subir fotos</span>' +
+        '<input type="file" accept="image/png,image/jpeg,image/webp" multiple data-sb-upload data-k="images" class="sr-only" /></label></div>' : '') +
+      '<p class="sb-hint">Puedes elegir varias a la vez. JPG, PNG o WebP; se ajustan solas al tamaño de la web.</p></div>';
+  },
+
+  /* ---------------- Letra y colores de toda la web ---------------- */
+  basePalette() {
+    const tb = typeof TenantBrand !== 'undefined' ? TenantBrand : null;
+    return tb ? tb.paletteOf(this.st.tenant) : { primary: '#111418', secondary: '#E4E7EB', tertiary: '#FFFFFF' };
+  },
+  // Paleta con los colores del constructor encima; null si no se puede revisar
+  themeCheck() {
+    const tb = typeof TenantBrand !== 'undefined' ? TenantBrand : null;
+    const th = this.st.page.theme || {};
+    if (!tb || (!th.primary && !th.accent)) return null;
+    const base = this.basePalette();
+    return tb.checkPalette({ primary: th.primary || base.primary, secondary: th.accent || base.secondary, tertiary: base.tertiary });
+  },
+  themeSummary() {
+    const th = this.st.page.theme || {}, F = SiteBlocks.FONTS;
+    const name = (k) => F[k].label.replace(/ \(.*\)$/, '');
+    const font = th.fontTitle || th.fontBody ? 'Letra: ' + [th.fontTitle ? name(th.fontTitle) : 'la del rubro', th.fontBody ? name(th.fontBody) : 'la del rubro'].join(' y ') : 'Letra del rubro';
+    return font + ' · ' + (th.primary || th.accent ? 'colores propios' : 'colores del negocio');
+  },
+
+  themeHTML() {
+    const E = this.esc.bind(this), F = SiteBlocks.FONTS;
+    const th = this.st.page.theme || {};
+    const base = this.basePalette();
+    const fontSel = (k, label, hint, filter) => '<div class="sb-field"><label class="sb-lbl" for="sb-t-' + k + '">' + label + '</label>' +
+      '<select id="sb-t-' + k + '" class="sb-input" data-sb-theme="' + k + '"><option value="">La del rubro (como está ahora)</option>' +
+      Object.keys(F).filter(filter).map(f => '<option value="' + f + '"' + (th[k] === f ? ' selected' : '') + ' style="font-family:' + E(F[f].family) + '">' + E(F[f].label) + '</option>').join('') +
+      '</select><p class="sb-hint">' + hint + '</p></div>';
+    const color = (k, label, hint, cur) => '<div class="sb-field"><span class="sb-lbl">' + label + '</span>' +
+      '<label class="sb-color"><input type="color" data-sb-theme="' + k + '" value="' + E(cur) + '" /><span>' + (th[k] ? 'Color elegido' : 'El del negocio') + '</span><code>' + E(cur.toUpperCase()) + '</code></label>' +
+      (th[k] ? '<button type="button" class="sb-back" data-sb="theme-reset" data-k="' + k + '">' + ic('refresh') + 'Usar el del negocio</button>' : '') +
+      '<p class="sb-hint">' + hint + '</p></div>';
+    const chk = this.themeCheck();
+    return '<div class="sb-pad">' +
+      '<button type="button" class="sb-back" data-sb="back">' + ic('arrowLeft') + 'Bloques</button>' +
+      '<h2 class="sb-h"><span class="sb-row-ic" aria-hidden="true">' + ic('sliders') + '</span>Letra y colores</h2>' +
+      '<p class="sb-hint">Cambia toda la web (Inicio, reservar, ' + E(this.fmt('{servicePlural}')) + ', galería y Mi ' + E(this.fmt('{appointment}')) + '). El CRM no cambia.</p>' +
+      fontSel('fontTitle', 'Letra de los títulos', 'Para los títulos grandes y los nombres.', f => !F[f].body) +
+      fontSel('fontBody', 'Letra de los textos', 'Para párrafos, botones y formularios. Mejor una sencilla.', f => !F[f].title) +
+      color('primary', 'Color principal', 'Se usa en el menú, las franjas de color de marca y los textos. Conviene uno oscuro.', th.primary || base.primary) +
+      color('accent', 'Color de los botones', 'Los botones para reservar y los detalles.', th.accent || base.secondary) +
+      (chk && !chk.ok ? '<p class="sb-note sb-note-warn" role="alert">' + E(chk.error) + ' Elige otro color para poder publicar.</p>' : '') +
     '</div>';
   },
 
@@ -371,7 +490,15 @@ const SiteBuilder = {
         this.touch(true);
       } break;
       case 'del': if (idx >= 0) this.remove(idx); break;
-      case 'noimg': { const b = this.block(st.selected); if (b) { delete b.image; this.touch(true); } break; }
+      case 'nomedia': { const b = this.block(st.selected), k = btn.getAttribute('data-k'); if (b && ['image', 'poster', 'video'].includes(k)) { delete b[k]; this.touch(true); } break; }
+      case 'img-del': { const b = this.block(st.selected); if (b && b.images) { b.images.splice(Number(btn.getAttribute('data-i')), 1); if (!b.images.length) delete b.images; this.touch(true); } break; }
+      case 'img-move': {
+        const b = this.block(st.selected), i = Number(btn.getAttribute('data-i')), j = i + Number(btn.getAttribute('data-d'));
+        if (b && b.images && j >= 0 && j < b.images.length) { b.images.splice(j, 0, b.images.splice(i, 1)[0]); this.touch(true); }
+        break;
+      }
+      case 'theme': st.view = 'theme'; this.renderPanel(); break;
+      case 'theme-reset': this.setTheme(btn.getAttribute('data-k'), ''); this.touch(true); break;
       case 'items-custom': { const b = this.block(st.selected); if (b) { b.items = SiteBlocks.DEFAULT_ITEMS(!st.info || st.info.waEnabled).map(x => Object.assign({}, x, { text: this.fmt(x.text), title: this.fmt(x.title) })); this.touch(true); } break; }
       case 'item-add': { const b = this.block(st.selected); if (b && b.items && b.items.length < 6) { b.items.push({ icon: 'star', title: '', text: '' }); this.touch(true); } break; }
       case 'item-del': { const b = this.block(st.selected); if (b && b.items) { b.items.splice(Number(btn.getAttribute('data-i')), 1); if (!b.items.length) delete b.items; this.touch(true); } break; }
@@ -394,12 +521,29 @@ const SiteBuilder = {
     const b = this.block(this.st.selected);
     if (el.hasAttribute('data-sb-editor')) { this.st.editor = el.checked; this.st.dirty = true; this.updateSave(); return; }
     if (el.hasAttribute('data-sb-upload')) { if (e.type === 'change') this.upload(el); return; }
+    if (el.hasAttribute('data-sb-theme')) {
+      // El selector de color manda "input" mientras se arrastra: el panel se redibuja al soltar
+      if (el.tagName === 'SELECT' && e.type !== 'change') return;
+      this.setTheme(el.getAttribute('data-sb-theme'), el.value);
+      this.touch(e.type === 'change');
+      return;
+    }
     if (!b) return;
+    if (el.hasAttribute('data-sb-bgcolor')) {
+      if (!SiteBlocks.HEX_RE.test(el.value)) return;
+      b.bgColor = el.value.toUpperCase();
+      this.touch(e.type === 'change');
+      return;
+    }
     if (el.hasAttribute('data-sb-field')) {
       const k = el.getAttribute('data-sb-field');
       if (el.type === 'radio') {
         if (!el.checked) return;
         b[k] = el.value;
+        if (k === 'bg') {
+          if (el.value === 'color') { if (!SiteBlocks.HEX_RE.test(b.bgColor || '')) b.bgColor = '#F4EEE6'; }
+          else delete b.bgColor;
+        }
         this.touch(true);           // cambia qué campos se ven (p. ej. foto)
         return;
       }
@@ -413,7 +557,10 @@ const SiteBuilder = {
     }
     if (el.hasAttribute('data-sb-btn')) {
       const k = el.getAttribute('data-sb-btn');
-      if (el.checked) delete b[k]; else b[k] = '';
+      if (SiteBlocks.TYPES[b.type].def[k] === '') {
+        // Bloques sin botón por defecto (Video, Fotos): al activarlo se propone un texto
+        if (el.checked) b[k] = this.fmt('Reservar {appointment}'); else delete b[k];
+      } else if (el.checked) delete b[k]; else b[k] = '';
       this.touch(true);
       return;
     }
@@ -467,31 +614,90 @@ const SiteBuilder = {
     });
   },
 
+  setTheme(k, v) {
+    if (!['fontTitle', 'fontBody', 'primary', 'accent'].includes(k)) return;
+    const th = Object.assign({}, this.st.page.theme || {});
+    if (!v) delete th[k];
+    else th[k] = (k === 'primary' || k === 'accent') ? String(v).toUpperCase() : v;
+    if (Object.keys(th).length) this.st.page.theme = th; else delete this.st.page.theme;
+  },
+
+  /* Sube fotos (comprimidas en el navegador) o un video (tal cual) al bucket "media" */
   async upload(input) {
-    const file = input.files && input.files[0];
+    const files = Array.from(input.files || []);
     const b = this.block(this.st.selected);
-    if (!file || !b) return;
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 12 * 1024 * 1024) { UI.toast('Usa una foto JPG, PNG o WebP de hasta 12 MB.', 'error'); return; }
-    this.status('Subiendo foto…');
+    const k = input.getAttribute('data-k') || 'image';
+    if (!files.length || !b) return;
+    const tenantId = this.st.tenant.id;
     try {
-      const big = b.type === 'portada';
-      const dataUrl = await readAndCompressImage(file, big ? 1920 : 1280, 0.84);
-      const url = await DB.uploadImage(dataUrl, this.st.tenant.id);
-      if (!SiteBlocks.IMG_RE.test(url || '') || url.length > 1000) throw new Error('El enlace de la foto no es válido.');
+      if (k === 'video') {
+        const file = files[0];
+        if (!/^video\/(mp4|webm)$/.test(file.type)) { UI.toast('Usa un video MP4 o WebM.', 'error'); return; }
+        if (file.size > this.MAX_VIDEO) { UI.toast('El video pesa ' + Math.round(file.size / 1048576) + ' MB: el máximo es 50 MB. Prueba con uno más corto o en menor calidad.', 'error'); return; }
+        this.status('Subiendo video… (puede tardar un poco)');
+        const url = await this.uploadFile(file, tenantId);
+        if (!this.st) return;
+        b.video = url;
+        this.touch(true);
+        this.status('Video listo. Recuerda guardar.');
+        return;
+      }
+      const ok = files.filter(f => /^image\/(png|jpeg|webp)$/.test(f.type) && f.size <= 12 * 1024 * 1024);
+      if (ok.length < files.length) UI.toast('Algunas fotos no se subieron: usa JPG, PNG o WebP de hasta 12 MB.', 'error');
+      if (k === 'images') {
+        const room = SiteBlocks.MAX_IMAGES - (b.images ? b.images.length : 0);
+        const list = ok.slice(0, Math.max(0, room));
+        if (ok.length > list.length) UI.toast('Caben ' + SiteBlocks.MAX_IMAGES + ' fotos por bloque: se suben las primeras ' + list.length + '.', 'info');
+        for (let i = 0; i < list.length; i++) {
+          this.status('Subiendo foto ' + (i + 1) + ' de ' + list.length + '…');
+          const url = await this.uploadPhoto(list[i], 1600, tenantId);
+          if (!this.st) return;
+          b.images = (b.images || []).concat([url]);
+          this.touch(true);
+        }
+        if (list.length) this.status(list.length === 1 ? 'Foto lista. Recuerda guardar.' : 'Fotos listas. Recuerda guardar.');
+        return;
+      }
+      if (!ok.length) return;
+      this.status('Subiendo foto…');
+      const url = await this.uploadPhoto(ok[0], b.type === 'portada' ? 1920 : 1280, tenantId);
       if (!this.st) return;
-      b.image = url;
+      b[k] = url;
       this.touch(true);
       this.status('Foto lista. Recuerda guardar.');
     } catch (err) {
       this.status('');
-      UI.toast(DB.errorText ? DB.errorText(err) : String(err.message || err), 'error');
+      UI.toast(this.errMsg(err), 'error');
     }
+  },
+  MAX_VIDEO: 50 * 1024 * 1024,
+
+  async uploadPhoto(file, maxW, tenantId) {
+    const dataUrl = await readAndCompressImage(file, maxW, 0.84);
+    const url = await DB.uploadImage(dataUrl, tenantId);
+    if (!SiteBlocks.IMG_RE.test(url || '') || url.length > 1000) throw new Error('El enlace de la foto no es válido.');
+    return url;
+  },
+
+  async uploadFile(file, tenantId) {
+    const ext = file.type === 'video/webm' ? 'webm' : 'mp4';
+    const path = tenantId + '/' + DB.uid() + '.' + ext;
+    const sto = DB.client().storage.from('media');
+    const { error } = await sto.upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw error;
+    const url = sto.getPublicUrl(path).data.publicUrl;
+    if (!SiteBlocks.IMG_RE.test(url || '') || url.length > 1000) throw new Error('El enlace del video no es válido.');
+    return url;
   },
 
   /* ---------------- Guardar ---------------- */
   errMsg(error) {
     const m = String((error && (error.message || error.details)) || error || '');
     if (/web_page|web_editor/.test(m) && /column|columna|schema cache/i.test(m)) return 'Falta aplicar la migración 21 en Supabase (constructor de la web). Pídele al superadministrador que la ejecute.';
+    // Letra, colores, Video, Fotos o color de fondo con la base aún en la migración 21
+    if (/tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta letra, colores, fotos ni videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
+    if (/mime type|invalid_mime_type|not supported/i.test(m) && /video/i.test(m)) return 'Aún no se pueden subir videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
+    if (/exceeded the maximum allowed size|payload too large|413|entity too large/i.test(m)) return 'El archivo es demasiado grande para subirlo. Prueba con uno más liviano (videos hasta 50 MB).';
     if (/42501|permiso|solo el superadministrador|El diseño de la web/i.test(m)) return m || 'No tienes permiso para guardar el diseño.';
     return typeof DB !== 'undefined' && DB.errorText ? DB.errorText(error) : m;
   },
@@ -508,6 +714,8 @@ const SiteBuilder = {
     if (!st || st.saving) return;
     const page = SiteBlocks.normalize(st.page) || { blocks: [] };
     if (!page.blocks.some(b => b.show !== false)) { UI.toast('Deja al menos un bloque visible, o usa "Volver al diseño de siempre".', 'error'); return; }
+    const chk = this.themeCheck();
+    if (chk && !chk.ok) { UI.toast('Los colores elegidos no se leen bien: ' + chk.error + ' Cámbialos en "Letra y colores".', 'error'); return; }
     st.saving = true; this.updateSave();
     try {
       const patch = { web_page: page };
