@@ -1381,6 +1381,7 @@ const CRM = {
           '<h3 style="font-size:1.25rem; margin:6px 0 8px;">' + UI.esc(s.name) + '</h3>' +
           '<div class="service-admin-meta"><strong>' + cur + ' ' + UI.esc(s.price) + '</strong>' + (F('duration') ? '<span>' + ic('clock') + UI.esc(s.duration) + ' min</span>' : '') + '</div>' +
           (F('description') ? '<p style="font-size:0.85rem; line-height:1.5; margin-top:10px;">' + UI.esc(s.desc || 'Sin descripción') + '</p>' : '') +
+          ((s.media || []).length ? '<p class="service-admin-media">' + ic('image') + '+' + s.media.length + ' foto' + (s.media.length === 1 ? '' : 's') + ' o video' + (s.media.length === 1 ? '' : 's') + '</p>' : '') +
         '</div>' +
         '<div class="row-actions">' +
           '<button type="button" class="btn-dark btn-xs" onclick="CRM.openServiceModal(\'' + UI.esc(s.id) + '\')">' + ic('edit') + 'Editar</button>' +
@@ -1418,12 +1419,90 @@ const CRM = {
               '</div>' +
               '<button type="button" class="btn-dark btn-xs" id="m-sv-photo-del" onclick="CRM.removeServicePhoto()"' + (s && s.image ? '' : ' hidden') + '>' + ic('trash') + 'Quitar foto</button>' +
             '</div></div>' +
+          // Más fotos y videos (migración 25): se suben al elegirlos y se guardan con el servicio
+          '<div style="grid-column:1/-1;"><span class="field-lbl">Más fotos y videos <span class="text-grey" style="font-weight:400;">(opcional, hasta ' + DB.MAX_SERVICE_MEDIA + ')</span></span>' +
+            '<div id="m-sv-media" class="sv-media"></div>' +
+            '<label class="upload-dropzone sv-media-drop" id="m-sv-media-drop">' +
+              '<span style="color:var(--golden); font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-size:0.82rem;">' + ic('upload') + ' Subir fotos o videos</span>' +
+              '<input type="file" id="m-sv-media-file" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" class="sr-only" onchange="CRM.addServiceMedia(this)" />' +
+            '</label>' +
+            '<span class="field-hint">Fotos JPG, PNG o WebP y videos MP4 o WebM de hasta 50 MB. En la web se ven con el botón “Ver fotos y videos”.</span>' +
+            '<p class="field-hint" id="m-sv-media-status" role="status" aria-live="polite"></p>' +
+          '</div>' +
         '</div>' +
         (s ? '<p class="form-note">' + ic('alert') + 'Si cambias el nombre o el precio, se actualizarán las citas futuras pendientes. Las citas pasadas conservan sus datos originales.</p>' : '') +
         '<div class="form-error" id="m-sv-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + (s ? 'Guardar cambios' : this.vx('Agregar {service}')) + '</button></div>' +
       '</form>'
     );
+    this._svMedia = DB.normMedia(s && s.media);
+    this._svUploading = 0;
+    this.renderServiceMedia();
+  },
+
+  /* ---------- Más fotos y videos del servicio ---------- */
+  renderServiceMedia() {
+    const box = document.getElementById('m-sv-media');
+    if (!box) return;
+    const list = this._svMedia || [];
+    box.innerHTML = list.map((m, i) =>
+      '<div class="sv-media-item">' +
+        (m.type === 'video'
+          ? '<video src="' + UI.esc(m.url) + '" muted playsinline preload="metadata"></video><span class="sv-media-tag">' + ic('camera') + 'Video</span>'
+          : '<img src="' + UI.esc(m.url) + '" alt="Foto ' + (i + 1) + '" loading="lazy" />') +
+        '<div class="sv-media-tools">' +
+          '<button type="button" class="btn-dark btn-xs" onclick="CRM.moveServiceMedia(' + i + ', -1)" aria-label="Mover antes"' + (i === 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + '</button>' +
+          '<button type="button" class="btn-danger btn-xs" onclick="CRM.removeServiceMedia(' + i + ')" aria-label="Quitar">' + ic('trash') + '</button>' +
+          '<button type="button" class="btn-dark btn-xs" onclick="CRM.moveServiceMedia(' + i + ', 1)" aria-label="Mover después"' + (i === list.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + '</button>' +
+        '</div>' +
+      '</div>').join('');
+    const drop = document.getElementById('m-sv-media-drop');
+    if (drop) drop.hidden = list.length >= DB.MAX_SERVICE_MEDIA;
+  },
+  moveServiceMedia(i, d) {
+    const list = this._svMedia || [], j = i + d;
+    if (j < 0 || j >= list.length) return;
+    list.splice(j, 0, list.splice(i, 1)[0]);
+    this.renderServiceMedia();
+  },
+  removeServiceMedia(i) {
+    (this._svMedia || []).splice(i, 1);
+    this.renderServiceMedia();
+  },
+  async addServiceMedia(input) {
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length || !DB.tenant) return;
+    const status = document.getElementById('m-sv-media-status');
+    const room = DB.MAX_SERVICE_MEDIA - (this._svMedia || []).length;
+    if (files.length > room) UI.toast('Caben ' + DB.MAX_SERVICE_MEDIA + ' fotos o videos por servicio: se suben ' + Math.max(0, room) + '.', 'info');
+    const list = files.slice(0, Math.max(0, room));
+    this._svUploading = (this._svUploading || 0) + 1;
+    try {
+      for (let i = 0; i < list.length; i++) {
+        const f = list[i];
+        if (status) status.textContent = 'Subiendo ' + (i + 1) + ' de ' + list.length + '…';
+        let item = null;
+        if (/^video\/(mp4|webm)$/.test(f.type)) {
+          if (f.size > 50 * 1024 * 1024) { UI.toast('“' + f.name + '” pesa más de 50 MB: prueba con un video más corto.', 'error'); continue; }
+          item = { type: 'video', url: await DB.uploadVideo(f, DB.tenant.id) };
+        } else if (/^image\/(png|jpeg|webp)$/.test(f.type)) {
+          const data = await readAndCompressImage(f, 1600, 0.84);
+          item = { type: 'image', url: await DB.uploadImage(data, DB.tenant.id) };
+        } else {
+          UI.toast('“' + f.name + '” no es una foto (JPG, PNG, WebP) ni un video (MP4, WebM).', 'error');
+          continue;
+        }
+        if (!document.getElementById('m-sv-media')) return;     // se cerró la ventana
+        if (DB.normMedia([item]).length) { this._svMedia.push(item); this.renderServiceMedia(); }
+      }
+      if (status) status.textContent = list.length ? 'Listo. Se guardan al pulsar Guardar.' : '';
+    } catch (err) {
+      if (status) status.textContent = '';
+      UI.toast(DB.errorText(err), 'error');
+    } finally {
+      this._svUploading--;
+    }
   },
 
   async previewServicePhoto(input) {
@@ -1459,6 +1538,8 @@ const CRM = {
     const desc = document.getElementById('m-sv-desc').value.trim();
     const pv = document.getElementById('m-sv-preview');
     const image = pv ? (pv.getAttribute('data-uploaded') || pv.getAttribute('data-current') || '') : '';
+    const media = DB.normMedia(this._svMedia);
+    if (this._svUploading > 0) { err.textContent = 'Espera a que terminen de subirse las fotos o videos.'; return false; }
     if (!name) { err.textContent = UI.v('Escribe el nombre {del:service} {service}.'); return false; }
     if (!isFinite(price) || price < 0) { err.textContent = 'Escribe un precio válido (0 o más).'; return false; }
     if (!durRaw && this.fshow('services', 'duration')) { err.textContent = UI.v('Escribe cuántos minutos dura {el:service} {service}.'); return false; }
@@ -1476,14 +1557,14 @@ const CRM = {
           a.service = name; a.price = price; updated++;
         }
       });
-      Object.assign(s, { name, category, price, duration, desc, image });
+      Object.assign(s, { name, category, price, duration, desc, image, media });
       this.closeModal();
       const ok = await DB.save();
       this.renderAll();
       if (ok) UI.toast(UI.v('{Service} actualizad{o:service}') + (updated ? ' (' + updated + ' cita' + (updated === 1 ? '' : 's') + ' futura' + (updated === 1 ? '' : 's') + ' ajustada' + (updated === 1 ? '' : 's') + ').' : '.'));
       return ok;
     }
-    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '', image });
+    DB.state.services.push({ id: DB.uid(), name, category, price, duration, desc: desc || '', image, media });
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();

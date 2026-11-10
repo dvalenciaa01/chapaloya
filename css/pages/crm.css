@@ -704,6 +704,19 @@ body.auth-ok .crm-boot { display: none; }
 .sv-photo-row .upload-dropzone { flex: 1 1 200px; margin-top: 0; }
 .sv-photo-preview { width: 84px; height: 84px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--golden); }
 .sv-photo-preview[hidden] { display: none; }
+/* Más fotos y videos del servicio (migración 25) */
+.sv-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--space-2); margin: 6px 0 var(--space-2); }
+.sv-media:empty { display: none; }
+.sv-media-item { position: relative; border: 1px solid var(--border-med); border-radius: var(--radius); overflow: hidden; background: var(--ink-900); }
+.sv-media-item img, .sv-media-item video { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.sv-media-tag { position: absolute; top: 6px; left: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.7); color: #FFFFFF; font-size: 0.72rem; font-weight: 700; }
+.sv-media-tag .ic { width: 12px; height: 12px; }
+.sv-media-tools { display: flex; justify-content: space-between; gap: 2px; padding: 4px; }
+.sv-media-tools .btn-xs { padding: 0 6px; min-height: 30px; }
+.sv-media-drop { display: flex; justify-content: center; cursor: pointer; margin-top: 0; }
+.sv-media-drop[hidden] { display: none; }
+.service-admin-media { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.8rem; color: var(--on-dark-md, inherit); }
+.service-admin-media .ic { width: 14px; height: 14px; }
 .service-admin-meta .ic { width: 14px; height: 14px; }
 
 /* Editor de paleta (crear/editar barbería) */
