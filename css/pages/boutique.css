@@ -147,7 +147,8 @@ html[data-layout="boutique"] {
 }
 .bq-hero-art { position: relative; min-height: 300px; }
 .bq-hero-illus { width: min(100%, 520px); margin: 0 auto; aspect-ratio: 440 / 460; }
-/* Portada con foto del negocio: a todo el ancho, el texto sobre su lado izquierdo
+/* Portada con foto del negocio: a todo el ancho y visible desde el borde izquierdo;
+   el texto va sobre su lado izquierdo
    con un velo del color de fondo (contraste del texto garantizado). En móvil la
    foto va debajo del texto, sin velo. */
 .bq-hero-bg { display: block; width: 100%; object-fit: cover; }
@@ -158,7 +159,7 @@ html[data-layout="boutique"] {
   .bq-hero.has-photo .bq-hero-bg { position: absolute; inset: 0; height: 100%; object-position: right center; z-index: 0; }
   .bq-hero.has-photo::before {
     content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    background: linear-gradient(90deg, var(--paper) 0%, color-mix(in srgb, var(--paper) 92%, transparent) 34%, color-mix(in srgb, var(--paper) 0%, transparent) 58%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--paper) 55%, transparent) 0%, color-mix(in srgb, var(--paper) 80%, transparent) 32%, color-mix(in srgb, var(--paper) 0%, transparent) 58%);
   }
   .bq-hero.has-photo .bq-hero-art { min-height: 0; }
 }
