@@ -8,6 +8,8 @@
    Desde la migración 22 también: letra y colores de toda la web (page.theme),
    color de fondo por bloque, bloques de Video y Fotos, y video de fondo en la
    portada. Fotos y videos se suben al bucket "media" de Supabase.
+   Desde la 23: formato de cada texto (botón "Formato" junto a cada campo:
+   letra, tamaño, grosor, cursiva, alineación, color y color del botón).
 
    Lo abren:
      - el superadministrador: consola → negocio → Diseñar web
@@ -49,7 +51,7 @@ const SiteBuilder = {
       tenant: t, opts: opts || {}, saved, fresh,
       page: fresh ? SiteBlocks.template({ site: (t.crmConfig && t.crmConfig.site) || {}, solo: false }) : JSON.parse(JSON.stringify(saved)),
       editor: t.webEditor !== false,
-      selected: null, view: 'list', device: 'desktop', dirty: false, saving: false, ready: false, info: null
+      selected: null, fmtOpen: null, view: 'list', device: 'desktop', dirty: false, saving: false, ready: false, info: null
     };
     const E = this.esc.bind(this);
     const root = document.createElement('div');
@@ -143,7 +145,7 @@ const SiteBuilder = {
       this.renderPanel();
     } else if (e.data.cmd === 'pick') {
       const id = String(e.data.id || '');
-      if (this.block(id)) { this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false }); }
+      if (this.block(id)) { if (this.st.selected !== id) this.st.fmtOpen = null; this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false }); }
     }
   },
 
@@ -248,12 +250,15 @@ const SiteBuilder = {
       const input = o.area
         ? '<textarea id="' + id + '" class="sb-input" rows="' + (o.rows || 3) + '" maxlength="' + M[k] + '" data-sb-field="' + k + '" placeholder="' + E(ph) + '">' + E(val) + '</textarea>'
         : '<input id="' + id + '" class="sb-input" type="text" maxlength="' + M[k] + '" data-sb-field="' + k + '" value="' + E(val) + '" placeholder="' + E(ph) + '" />';
-      return '<div class="sb-field"><label class="sb-lbl" for="' + id + '">' + E(label) + '</label>' + input + (o.hint ? '<p class="sb-hint">' + E(o.hint) + '</p>' : '') + '</div>';
+      const fk = SiteBlocks.FMT_SLOTS[k] ? k : null;
+      return '<div class="sb-field"><div class="sb-lbl-row"><label class="sb-lbl" for="' + id + '">' + E(label) + '</label>' + (fk ? this.fmtBtn(b, fk, label) : '') + '</div>' +
+        (fk ? this.fmtPanel(b, fk, label) : '') + input + (o.hint ? '<p class="sb-hint">' + E(o.hint) + '</p>' : '') + '</div>';
     };
     const btnField = (k, label, dest) => {
       const on = T.def[k] === '' ? !!(b[k] && b[k].trim()) : b[k] !== '';
       const id = 'sb-f-' + k;
-      return '<div class="sb-field"><label class="sb-check"><input type="checkbox" data-sb-btn="' + k + '"' + (on ? ' checked' : '') + ' /><span>' + E(label) + '</span></label>' +
+      return '<div class="sb-field"><div class="sb-lbl-row"><label class="sb-check"><input type="checkbox" data-sb-btn="' + k + '"' + (on ? ' checked' : '') + ' /><span>' + E(label) + '</span></label>' +
+        (on ? this.fmtBtn(b, k, 'el botón') : '') + '</div>' + (on ? this.fmtPanel(b, k, 'el botón') : '') +
         (on ? '<input id="' + id + '" class="sb-input" type="text" maxlength="' + M[k] + '" data-sb-field="' + k + '" value="' + E(b[k] || '') + '" placeholder="' + E(def(k)) + '" aria-label="Texto del botón" />' +
           '<p class="sb-hint">Lleva a ' + E(dest) + '.</p>' : '') + '</div>';
     };
@@ -316,6 +321,49 @@ const SiteBuilder = {
         '<button type="button" class="sb-btn sb-btn-danger" data-sb="del" data-id="' + E(b.id) + '">' + ic('trash') + '<span>Eliminar</span></button>' +
       '</div>' +
     '</div>';
+  },
+
+  /* ---------------- Formato de cada texto ---------------- */
+  FMT_SIZE_NAMES: [['xs', 'Más pequeño'], ['s', 'Pequeño'], ['', 'Normal'], ['l', 'Grande'], ['xl', 'Más grande'], ['xxl', 'Enorme']],
+  fmtBtn(b, slot, what, text) {
+    const E = this.esc.bind(this);
+    const open = this.st.fmtOpen === slot, set = !!(b.fmt && b.fmt[slot]);
+    return '<button type="button" class="sb-fmt-btn' + (open ? ' is-open' : '') + (set ? ' is-set' : '') + '" data-sb="fmt" data-slot="' + slot + '" aria-expanded="' + open + '" aria-label="Formato de ' + E(what) + '">' +
+      '<span class="sb-fmt-aa" aria-hidden="true">Aa</span>' + E(text || 'Formato') + (set ? '<span class="sb-fmt-dot" aria-hidden="true"></span>' : '') + '</button>';
+  },
+  fmtPanel(b, slot, what) {
+    if (this.st.fmtOpen !== slot) return '';
+    const E = this.esc.bind(this), F = SiteBlocks.FONTS;
+    const f = (b.fmt && b.fmt[slot]) || {};
+    const isBtn = slot === 'btn' || slot === 'btn2';
+    const sel = (k, label, opts, cur) => '<label class="sb-fmt-f"><span>' + label + '</span><select class="sb-input" data-sb-fmt="' + slot + '" data-k="' + k + '">' +
+      opts.map(([v, l]) => '<option value="' + E(v) + '"' + (v === cur ? ' selected' : '') + '>' + E(l) + '</option>').join('') + '</select></label>';
+    const color = (k, label, cur, def) => '<div class="sb-fmt-c"><label class="sb-color"><input type="color" data-sb-fmt="' + slot + '" data-k="' + k + '" value="' + E(cur || def) + '" />' +
+      '<span>' + label + '</span><code>' + (cur ? E(cur.toUpperCase()) : 'Como está') + '</code></label>' +
+      (cur ? '<button type="button" class="sb-back" data-sb="fmt-unset" data-slot="' + slot + '" data-k="' + k + '">' + ic('refresh') + 'Quitar</button>' : '') + '</div>';
+    const bold = f.bold === true ? 'b' : (f.bold === false ? 'n' : '');
+    return '<div class="sb-fmt" role="group" aria-label="Formato de ' + E(what) + '"><div class="sb-fmt-grid">' +
+      sel('font', 'Letra', [['', 'Como está']].concat(Object.keys(F).map(k => [k, F[k].label])), f.font || '') +
+      sel('size', 'Tamaño', this.FMT_SIZE_NAMES, f.size || '') +
+      sel('bold', 'Grosor', [['', 'Como está'], ['n', 'Normal'], ['b', 'Negrita']], bold) +
+      (isBtn || slot === 'eyebrow' ? '' : sel('align', 'Alineación', [['', 'Como está'], ['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']], f.align || '')) +
+      '</div>' +
+      '<label class="sb-check sb-fmt-it"><input type="checkbox" data-sb-fmt="' + slot + '" data-k="italic"' + (f.italic === true ? ' checked' : '') + ' /><span>Cursiva</span></label>' +
+      color('color', isBtn ? 'Color del texto' : 'Color', f.color, '#111418') +
+      (isBtn ? color('bg', 'Color del botón', f.bg, '#3B82F6') : '') +
+      (Object.keys(f).length ? '<button type="button" class="sb-link-danger" data-sb="fmt-clear" data-slot="' + slot + '">' + ic('x') + 'Quitar todo el formato</button>' : '') +
+    '</div>';
+  },
+  setFmt(b, slot, k, v) {
+    if (!SiteBlocks.FMT_SLOTS[slot]) return;
+    const fm = Object.assign({}, b.fmt || {});
+    const f = Object.assign({}, fm[slot] || {});
+    if (k === 'bold') { if (v === 'b') f.bold = true; else if (v === 'n') f.bold = false; else delete f.bold; }
+    else if (k === 'italic') { if (v) f.italic = true; else delete f.italic; }
+    else if (k === 'color' || k === 'bg') { if (SiteBlocks.HEX_RE.test(v || '')) f[k] = v.toUpperCase(); else delete f[k]; }
+    else if (['font', 'size', 'align'].includes(k)) { if (v) f[k] = v; else delete f[k]; }
+    if (Object.keys(f).length) fm[slot] = f; else delete fm[slot];
+    if (Object.keys(fm).length) b.fmt = fm; else delete b.fmt;
   },
 
   /* ---------------- Fotos y videos ---------------- */
@@ -425,11 +473,14 @@ const SiteBuilder = {
   itemsHTML(b) {
     const E = this.esc.bind(this), M = SiteBlocks.MAX;
     const items = Array.isArray(b.items) && b.items.length ? b.items : null;
+    const fmtPair = '<div class="sb-lbl-row sb-fmt-pair"><span class="sb-hint">Formato de todos los puntos:</span>' + this.fmtBtn(b, 'itemTitle', 'los títulos de los puntos', 'Títulos') + this.fmtBtn(b, 'itemText', 'los textos de los puntos', 'Textos') + '</div>' +
+      this.fmtPanel(b, 'itemTitle', 'los títulos de los puntos') + this.fmtPanel(b, 'itemText', 'los textos de los puntos');
     if (!items) {
-      return '<div class="sb-field"><span class="sb-lbl">Puntos</span><p class="sb-hint">Se muestran los puntos sugeridos (atención con cita, precios claros, reserva en un minuto y WhatsApp).</p>' +
+      return '<div class="sb-field"><span class="sb-lbl">Puntos</span><p class="sb-hint">Se muestran los puntos sugeridos (atención con cita, precios claros, reserva en un minuto y WhatsApp).</p>' + fmtPair +
         '<button type="button" class="sb-btn sb-btn-ghost" data-sb="items-custom">' + ic('edit') + '<span>Escribir mis propios puntos</span></button></div>';
     }
-    return '<div class="sb-field"><span class="sb-lbl">Puntos (hasta 6)</span><ol class="sb-items">' + items.map((it, i) =>
+    return '<div class="sb-field"><span class="sb-lbl">Puntos (hasta 6)</span>' + fmtPair +
+      '<ol class="sb-items">' + items.map((it, i) =>
       '<li class="sb-item">' +
         '<div class="sb-item-row"><select class="sb-input sb-item-ic" data-sb-item="' + i + '" data-k="icon" aria-label="Ícono del punto ' + (i + 1) + '">' +
           SiteBlocks.ICON_CHOICES.map(n => '<option value="' + n + '"' + (n === (it.icon || 'checkCircle') ? ' selected' : '') + '>' + E(this.ICON_NAMES[n] || n) + '</option>').join('') + '</select>' +
@@ -457,7 +508,7 @@ const SiteBuilder = {
         document.querySelectorAll('#sb-root .sb-dev').forEach(b => { const on = b.getAttribute('data-v') === st.device; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
         break;
       }
-      case 'edit': st.selected = id; st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id }); break;
+      case 'edit': st.selected = id; st.view = 'block'; st.fmtOpen = null; this.renderPanel(); this.post({ cmd: 'select', id }); break;
       case 'back': st.view = 'list'; this.renderPanel(); break;
       case 'add': st.view = 'add'; this.renderPanel(); break;
       case 'insert': {
@@ -498,6 +549,9 @@ const SiteBuilder = {
         break;
       }
       case 'theme': st.view = 'theme'; this.renderPanel(); break;
+      case 'fmt': { const sl = btn.getAttribute('data-slot'); st.fmtOpen = st.fmtOpen === sl ? null : sl; this.renderPanel(); break; }
+      case 'fmt-unset': { const b = this.block(st.selected); if (b) { this.setFmt(b, btn.getAttribute('data-slot'), btn.getAttribute('data-k'), ''); this.touch(true); } break; }
+      case 'fmt-clear': { const b = this.block(st.selected), sl = btn.getAttribute('data-slot'); if (b && b.fmt) { delete b.fmt[sl]; if (!Object.keys(b.fmt).length) delete b.fmt; this.touch(true); } break; }
       case 'theme-reset': this.setTheme(btn.getAttribute('data-k'), ''); this.touch(true); break;
       case 'items-custom': { const b = this.block(st.selected); if (b) { b.items = SiteBlocks.DEFAULT_ITEMS(!st.info || st.info.waEnabled).map(x => Object.assign({}, x, { text: this.fmt(x.text), title: this.fmt(x.title) })); this.touch(true); } break; }
       case 'item-add': { const b = this.block(st.selected); if (b && b.items && b.items.length < 6) { b.items.push({ icon: 'star', title: '', text: '' }); this.touch(true); } break; }
@@ -529,6 +583,13 @@ const SiteBuilder = {
       return;
     }
     if (!b) return;
+    if (el.hasAttribute('data-sb-fmt')) {
+      const k = el.getAttribute('data-k');
+      if ((el.tagName === 'SELECT' || el.type === 'checkbox') && e.type !== 'change') return;
+      this.setFmt(b, el.getAttribute('data-sb-fmt'), k, el.type === 'checkbox' ? el.checked : el.value);
+      this.touch(e.type === 'change');
+      return;
+    }
     if (el.hasAttribute('data-sb-bgcolor')) {
       if (!SiteBlocks.HEX_RE.test(el.value)) return;
       b.bgColor = el.value.toUpperCase();

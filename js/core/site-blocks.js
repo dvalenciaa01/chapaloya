@@ -114,6 +114,13 @@
     'inter-tight': { label: 'Inter Tight', family: "'Inter Tight', system-ui, sans-serif", file: 'rubro-fitness', body: true }
   };
   const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
+  /* Formato de cada texto del bloque (b.fmt, migración 23): letra, color,
+     tamaño (relativo al de siempre), grosor, cursiva, alineación y, en los
+     botones, su color. Sin dato = como lo dibuja la web. */
+  const FMT_SIZES = { xs: 0.75, s: 0.88, l: 1.2, xl: 1.45, xxl: 1.8 };
+  const FMT_ALIGN = ['left', 'center', 'right'];
+  // Textos que se pueden formatear y de qué campo dependen
+  const FMT_SLOTS = { eyebrow: 'eyebrow', title: 'title', text: 'text', btn: 'btn', btn2: 'btn2', itemTitle: 'items', itemText: 'items' };
   const MAX_IMAGES = 12;
   // Límites (iguales a private.web_page_valida, migraciones 21 y 22)
   const MAX = { eyebrow: 60, title: 120, text: 1500, btn: 30, btn2: 30, cat: 40, itemTitle: 60, itemText: 240 };
@@ -173,6 +180,8 @@
       if (T.fields.includes('images') && Array.isArray(b.images)) {
         o.images = b.images.filter(u => typeof u === 'string' && u.length <= 1000 && IMG_RE.test(u)).slice(0, MAX_IMAGES);
       }
+      const fm = normFmt(b.fmt, T);
+      if (fm) o.fmt = fm;
       if (T.fields.includes('limit') && Number.isInteger(b.limit) && b.limit >= 1 && b.limit <= 24) o.limit = b.limit;
       if (T.fields.includes('map') && typeof b.map === 'boolean') o.map = b.map;
       if (T.fields.includes('items') && Array.isArray(b.items)) {
@@ -191,6 +200,25 @@
     const th = normTheme(page.theme);
     if (th) out.theme = th;
     return out;
+  }
+
+  function normFmt(f, T) {
+    if (!f || typeof f !== 'object' || Array.isArray(f)) return null;
+    const out = {};
+    Object.keys(FMT_SLOTS).forEach(slot => {
+      const x = f[slot];
+      if (!T.fields.includes(FMT_SLOTS[slot]) || !x || typeof x !== 'object') return;
+      const o = {};
+      if (FONTS[x.font]) o.font = x.font;
+      if (typeof x.color === 'string' && HEX_RE.test(x.color)) o.color = x.color;
+      if ((slot === 'btn' || slot === 'btn2') && typeof x.bg === 'string' && HEX_RE.test(x.bg)) o.bg = x.bg;
+      if (FMT_SIZES[x.size]) o.size = x.size;
+      if (typeof x.bold === 'boolean') o.bold = x.bold;
+      if (typeof x.italic === 'boolean') o.italic = x.italic;
+      if (FMT_ALIGN.includes(x.align)) o.align = x.align;
+      if (Object.keys(o).length) out[slot] = o;
+    });
+    return Object.keys(out).length ? out : null;
   }
 
   // Tipo de letra y colores de toda la web (sin dato = los del negocio)
@@ -263,19 +291,61 @@
   const secOff = (type) => !!(PB() && PB().secOff(type));
   // Texto del bloque o el de por defecto
   const txt = (b, k) => (b[k] != null && (k === 'btn' || k === 'btn2' || String(b[k]).trim()) ? b[k] : fmt(TYPES[b.type].def[k] || ''));
-  // Párrafos: una línea en blanco separa párrafos; un salto simple, <br>
-  const paras = (s, cls) => String(s || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-    .map(p => '<p' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+
+  /* ---- Formato por texto: todos los valores ya vienen validados (normFmt) ---- */
+  const fmtOf = (b, slot) => (b.fmt && b.fmt[slot]) || null;
+  function spanCss(f) {
+    const c = [];
+    if (f.font && FONTS[f.font]) c.push('font-family:' + FONTS[f.font].family.replace(/"/g, "'"));
+    if (f.color && HEX_RE.test(f.color)) c.push('color:' + f.color);
+    if (FMT_SIZES[f.size]) c.push('font-size:' + FMT_SIZES[f.size] + 'em');
+    if (f.bold === true) c.push('font-weight:700');
+    if (f.bold === false) c.push('font-weight:400');
+    if (f.italic === true) c.push('font-style:italic');
+    if (f.italic === false) c.push('font-style:normal');
+    return c.join(';');
+  }
+  // Texto (ya con palabras del rubro) escapado y, si tiene formato, dentro de un <span>
+  function T(b, slot, s) {
+    const f = fmtOf(b, slot), css = f ? spanCss(f) : '';
+    return css ? '<span class="blk-f" style="' + esc(css) + '">' + esc(s) + '</span>' : esc(s);
+  }
+  // Alineación (va en el elemento de bloque: título o párrafo)
+  function AL(b, slot) {
+    const f = fmtOf(b, slot);
+    return f && FMT_ALIGN.includes(f.align) ? ' style="text-align:' + f.align + '"' : '';
+  }
+  // Color del botón: el texto queda blanco u oscuro según el fondo, salvo que se elija
+  function BS(b, slot) {
+    const f = fmtOf(b, slot);
+    if (!f || !HEX_RE.test(f.bg || '')) return '';
+    const fg = f.color || (isDark(f.bg) ? '#FFFFFF' : '#111418');
+    return ' style="--btn-bg:' + f.bg + ';--btn-line:' + f.bg + ';--btn-fg:' + fg + ';background:' + f.bg + ';border-color:' + f.bg + ';color:' + fg + '"';
+  }
+  // Párrafos con formato
+  const P = (b, slot, s, cls) => String(s || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+    .map(p => '<p' + (cls ? ' class="' + cls + '"' : '') + AL(b, slot) + '>' + T(b, slot, p).replace(/\n/g, '<br>') + '</p>').join('');
+  // Botón que lleva a una página del sitio
+  function BTN(b, slot, label, page, cls, iconBefore, iconAfter) {
+    return '<a class="btn ' + cls + '" href="' + esc(href(page)) + '"' + BS(b, slot) + '>' + (iconBefore ? icon(iconBefore) : '') +
+      '<span>' + T(b, slot, label) + '</span>' + (iconAfter ? icon(iconAfter) : '') + '</a>';
+  }
+  // Fuentes que usan los formatos del diseño (para cargarlas)
+  function fmtFonts(page) {
+    const set = new Set();
+    ((page && page.blocks) || []).forEach(b => Object.keys(b.fmt || {}).forEach(k => { const f = b.fmt[k]; if (f && FONTS[f.font]) set.add(FONTS[f.font].file); }));
+    return Array.from(set);
+  }
 
   function head(b, link, linkLabel) {
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title'), text = txt(b, 'text');
     if (!eb && !title && !text && !link) return '';
     return '<div class="section-head blk-head reveal"><div>' +
-      (eb ? '<span class="eyebrow">' + esc(eb) + '</span>' : '') +
-      (title ? '<h2>' + esc(title) + '</h2>' : '') +
-      (text ? paras(text) : '') +
+      (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
+      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') +
+      (text ? P(b, 'text', text) : '') +
       '</div>' +
-      (link && linkLabel ? '<a class="btn btn-outline" href="' + esc(href(link)) + '">' + esc(linkLabel) + ' ' + icon('arrowRight') + '</a>' : '') +
+      (link && linkLabel ? BTN(b, 'btn', linkLabel, link, 'btn-outline', null, 'arrowRight') : '') +
     '</div>';
   }
 
@@ -287,12 +357,12 @@
     const btn = txt(b, 'btn'), btn2 = txt(b, 'btn2');
     const city = t.city ? ' · ' + t.city : '';
     const body = '<div class="blk-hero-copy reveal">' +
-      (eb ? '<span class="blk-kicker">' + esc(eb + city) + '</span>' : '') +
-      '<h1 class="blk-hero-title">' + esc(title) + '</h1>' +
-      paras(txt(b, 'text'), 'blk-hero-lead') +
+      (eb ? '<span class="blk-kicker">' + T(b, 'eyebrow', eb + city) + '</span>' : '') +
+      '<h1 class="blk-hero-title"' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h1>' +
+      P(b, 'text', txt(b, 'text'), 'blk-hero-lead') +
       ((btn || (btn2 && !secOff('servicios'))) ? '<div class="blk-actions">' +
-        (btn ? '<a class="btn btn-accent btn-lg" href="' + esc(href('reservar.html')) + '">' + icon('calendar') + '<span>' + esc(btn) + '</span></a>' : '') +
-        (btn2 && !secOff('servicios') ? '<a class="btn btn-outline btn-lg" href="' + esc(href('servicios.html')) + '"><span>' + esc(btn2) + '</span></a>' : '') +
+        (btn ? BTN(b, 'btn', btn, 'reservar.html', 'btn-accent btn-lg', 'calendar') : '') +
+        (btn2 && !secOff('servicios') ? BTN(b, 'btn2', btn2, 'servicios.html', 'btn-outline btn-lg') : '') +
       '</div>' : '') +
     '</div>';
     if (style === 'foto-lado') {
@@ -382,7 +452,7 @@
     return '<div class="container">' + head(b) +
       '<ul class="blk-perks">' + items.map(it =>
         '<li class="reveal"><span class="blk-perk-ic" aria-hidden="true">' + icon(ICON_CHOICES.includes(it.icon) ? it.icon : 'checkCircle') + '</span>' +
-          '<div>' + (it.title ? '<strong>' + esc(fmt(it.title)) + '</strong>' : '') + (it.text ? '<p>' + esc(fmt(it.text)) + '</p>' : '') + '</div></li>').join('') +
+          '<div>' + (it.title ? '<strong' + AL(b, 'itemTitle') + '>' + T(b, 'itemTitle', fmt(it.title)) + '</strong>' : '') + (it.text ? '<p' + AL(b, 'itemText') + '>' + T(b, 'itemText', fmt(it.text)) + '</p>' : '') + '</div></li>').join('') +
       '</ul></div>';
   }
 
@@ -390,10 +460,10 @@
     const title = txt(b, 'title'), btn = txt(b, 'btn');
     const btn2 = secOff('mi-cita') ? '' : txt(b, 'btn2');
     return '<div class="container"><div class="blk-cta-inner reveal">' +
-      '<div>' + (title ? '<h2>' + esc(title) + '</h2>' : '') + paras(txt(b, 'text')) + '</div>' +
+      '<div>' + (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) + '</div>' +
       ((btn || btn2) ? '<div class="blk-actions">' +
-        (btn ? '<a class="btn btn-accent btn-lg" href="' + esc(href('reservar.html')) + '">' + icon('calendar') + '<span>' + esc(btn) + '</span></a>' : '') +
-        (btn2 ? '<a class="btn btn-outline btn-lg" href="' + esc(href('consultar-cita.html')) + '"><span>' + esc(btn2) + '</span></a>' : '') +
+        (btn ? BTN(b, 'btn', btn, 'reservar.html', 'btn-accent btn-lg', 'calendar') : '') +
+        (btn2 ? BTN(b, 'btn2', btn2, 'consultar-cita.html', 'btn-outline btn-lg') : '') +
       '</div>' : '') +
     '</div></div>';
   }
@@ -430,9 +500,9 @@
     const btn = txt(b, 'btn');
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title');
     const copy = '<div class="blk-text-copy reveal">' +
-      (eb ? '<span class="eyebrow">' + esc(eb) + '</span>' : '') +
-      (title ? '<h2>' + esc(title) + '</h2>' : '') + paras(txt(b, 'text')) +
-      (btn ? '<div class="blk-actions"><a class="btn btn-solid" href="' + esc(href('reservar.html')) + '"><span>' + esc(btn) + '</span>' + icon('arrowRight') + '</a></div>' : '') +
+      (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
+      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', txt(b, 'text')) +
+      (btn ? '<div class="blk-actions">' + BTN(b, 'btn', btn, 'reservar.html', 'btn-solid', null, 'arrowRight') + '</div>' : '') +
     '</div>';
     return '<div class="container"><div class="blk-text' + (img ? ' has-photo' : '') + '">' +
       (img ? '<div class="blk-text-media reveal"><img src="' + esc(img) + '" alt="" loading="lazy" decoding="async" /></div>' : '') + copy + '</div></div>';
@@ -455,9 +525,9 @@
     const btn = txt(b, 'btn');
     const eb = txt(b, 'eyebrow'), title = txt(b, 'title'), text = txt(b, 'text');
     const copy = (eb || title || text || btn) ? '<div class="blk-text-copy reveal">' +
-      (eb ? '<span class="eyebrow">' + esc(eb) + '</span>' : '') +
-      (title ? '<h2>' + esc(title) + '</h2>' : '') + paras(text) +
-      (btn ? '<div class="blk-actions"><a class="btn btn-solid" href="' + esc(href('reservar.html')) + '"><span>' + esc(btn) + '</span>' + icon('arrowRight') + '</a></div>' : '') +
+      (eb ? '<span class="eyebrow">' + T(b, 'eyebrow', eb) + '</span>' : '') +
+      (title ? '<h2' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h2>' : '') + P(b, 'text', text) +
+      (btn ? '<div class="blk-actions">' + BTN(b, 'btn', btn, 'reservar.html', 'btn-solid', null, 'arrowRight') + '</div>' : '') +
     '</div>' : '';
     if (b.style === 'con-texto' && copy) {
       return '<div class="container"><div class="blk-text has-photo"><div class="blk-video-side reveal">' + player + '</div>' + copy + '</div></div>';
@@ -474,8 +544,21 @@
         '<img src="' + esc(u) + '" alt="" loading="lazy" decoding="async" /></button>').join('');
     return '<div class="container">' + head(b) +
       '<div class="blk-gallery blk-photos">' + shots + '</div>' +
-      (btn ? '<div class="blk-actions"><a class="btn btn-solid" href="' + esc(href('reservar.html')) + '"><span>' + esc(btn) + '</span>' + icon('arrowRight') + '</a></div>' : '') +
+      (btn ? '<div class="blk-actions">' + BTN(b, 'btn', btn, 'reservar.html', 'btn-solid', null, 'arrowRight') + '</div>' : '') +
     '</div>';
+  }
+
+  // Carga una hoja de fuentes de css/fonts/ una sola vez; devuelve una promesa si es nueva
+  function loadFont(file) {
+    const id = 'rl-font-' + file;
+    if (document.getElementById(id)) return null;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = 'css/fonts/' + file + '.css?v=__RL_V__';    // el build pone la versión
+    const p = new Promise(r => { link.onload = r; link.onerror = r; });
+    document.head.appendChild(link);
+    return p;
   }
 
   /* Foto ampliada (bloque Fotos): ventana propia, sin depender de modal.js */
@@ -518,8 +601,8 @@
   }
 
   const SiteBlocks = {
-    TYPES, ORDER, BGS, MAX, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES,
-    DEFAULT_ITEMS, normalize, normTheme, template, create, newId, videoInfo, isDark,
+    TYPES, ORDER, BGS, MAX, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
+    DEFAULT_ITEMS, normalize, normTheme, normFmt, template, create, newId, videoInfo, isDark,
 
     /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
        Se aplica sobre los del negocio: TenantBrand ya pintó su paleta y la letra del rubro. */
@@ -536,16 +619,11 @@
         if (!key) { root.removeProperty(v); return; }
         const f = FONTS[key];
         root.setProperty(v, f.family);
-        const id = 'rl-font-' + f.file;
-        if (!document.getElementById(id)) {
-          const link = document.createElement('link');
-          link.id = id;
-          link.rel = 'stylesheet';
-          link.href = 'css/fonts/' + f.file + '.css?v=__RL_V__';    // el build pone la versión
-          waits.push(new Promise(r => { link.onload = r; link.onerror = r; }));
-          document.head.appendChild(link);
-        }
+        const w = loadFont(f.file);
+        if (w) waits.push(w);
       });
+      // Letras elegidas en el formato de algún texto
+      fmtFonts(normalize(page)).forEach(file => { const w = loadFont(file); if (w) waits.push(w); });
       document.documentElement.classList.toggle('blk-font-title', !!th.fontTitle);
       // Promesa para no mostrar la página con la letra equivocada (máx. 1,5 s)
       return waits.length ? Promise.race([Promise.all(waits), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();

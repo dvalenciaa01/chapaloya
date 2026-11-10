@@ -122,6 +122,25 @@ select.sb-input { cursor: pointer; }
 .sb-thumb-tools { display: flex; justify-content: space-between; background: var(--sb-card); }
 .sb-thumb-tools .sb-icon { width: 30px; height: 30px; }
 
+/* Formato de cada texto (botón "Aa Formato" junto al campo) */
+.sb-lbl-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.sb-lbl-row .sb-lbl { margin-bottom: 0; }
+.sb-lbl-row .sb-check { flex: 1; }
+.sb-fmt-pair { justify-content: flex-start; flex-wrap: wrap; }
+.sb-fmt-pair .sb-hint { margin: 0; flex: 1 1 100%; }
+.sb-fmt-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid var(--sb-line-2); border-radius: 999px; background: none; color: var(--sb-tx-2); font-size: 12.5px; font-weight: 600; cursor: pointer; flex: none; }
+.sb-fmt-btn:hover, .sb-fmt-btn.is-open { color: var(--sb-tx); border-color: var(--sb-ac); }
+.sb-fmt-btn.is-open { background: rgba(59, 130, 246, 0.16); }
+.sb-fmt-aa { font-family: Georgia, serif; font-size: 14px; font-weight: 700; }
+.sb-fmt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sb-ac-2); }
+.sb-fmt { display: grid; gap: 10px; margin: 0 0 10px; padding: 12px; border: 1px solid var(--sb-ac); border-radius: 12px; background: var(--sb-card); }
+.sb-fmt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sb-fmt-f { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: var(--sb-tx-3); }
+.sb-fmt-f .sb-input { min-height: 38px; padding: 6px 8px; font-size: 13.5px; }
+.sb-fmt .sb-color { margin-top: 0; }
+.sb-fmt-c { display: grid; gap: 2px; }
+.sb-fmt .sb-link-danger { padding-top: 2px; }
+
 /* ---------------- Vista previa ---------------- */
 .sb-stage { position: relative; min-width: 0; min-height: 0; display: grid; place-items: stretch; padding: 16px; background: #2A2D31; overflow: auto; }
 .sb-frame { position: relative; width: 100%; height: 100%; min-height: 480px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #FFFFFF; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); transition: width 0.25s ease; }
