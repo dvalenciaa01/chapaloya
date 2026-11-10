@@ -212,7 +212,10 @@ const TenantBrand = {
     if (!href || !slug) return href;
     if (/^(https?:|mailto:|tel:|#|javascript:)/i.test(href)) return href;
     // Con direcciones limpias el negocio ya va en la ruta y las páginas sin .html (/<enlace>/servicios)
-    if (Routes.pretty() && Routes.pathSlug() === slug) return /^(crm|login|reservalope)\.html/.test(href) ? href : Routes.clean(href);
+    if (Routes.pretty() && Routes.pathSlug() === slug) {
+      if (/^(crm|login|reservalope)\.html/.test(href)) return href;
+      return this.prettyHref(href) || Routes.clean(href);
+    }
     if (!/\.html(\?|#|$)/.test(href)) return href;
     if (/^(crm|login)\.html/.test(href)) return href;
     if (/[?&]b=/.test(href)) return href;
@@ -300,6 +303,21 @@ const TenantBrand = {
   sectionSlug(sec) {
     return Routes.sectionSlug(sec.label) || this.SECTION_PAGES[sec.type].replace(/\.html$/, '');
   },
+  /* 'barberos.html?x=1' → 'galeria?x=1': enlace a una página del sitio con el nombre
+     de su sección, para que la dirección sea la definitiva desde el primer momento */
+  prettyHref(href) {
+    const m = /^([a-z-]+)\.html(\?[^#]*)?(#.*)?$/.exec(String(href || ''));
+    if (!m || typeof DB === 'undefined' || !DB.tenant || DB.mode !== 'public') return null;
+    const type = Object.keys(this.SECTION_PAGES).find(k => this.SECTION_PAGES[k] === m[1] + '.html');
+    if (!type || type === 'inicio') return null;
+    const q = new URLSearchParams(m[2] || '');
+    const cat = (q.get('cat') || '').trim().toLowerCase();
+    const sec = this.effectiveSections().find(x => x.type === type && String(x.cat || '').trim().toLowerCase() === cat);
+    if (!sec) return null;
+    q.delete('cat');
+    const qs = q.toString();
+    return this.sectionSlug(sec) + (qs ? '?' + qs : '') + (m[3] || '');
+  },
   // Las configuradas o, sin configuración, las de siempre con sus nombres de siempre
   effectiveSections() {
     const secs = this.sections();
@@ -317,13 +335,25 @@ const TenantBrand = {
   },
   // Categoría de la página de servicios (se guarda antes de limpiar la dirección)
   pageCat() {
-    if (this._pageCat == null) this._pageCat = (new URLSearchParams(location.search).get('cat') || '').trim();
+    if (this._pageCat == null) {
+      const served = this.servedSection();
+      this._pageCat = served ? String(served.cat || '').trim() : (new URLSearchParams(location.search).get('cat') || '').trim();
+    }
     return this._pageCat;
+  },
+  // Sección que entregó el servidor (functions/[slug]/[page].js marca <body data-section="modelos">)
+  servedSection(list) {
+    const name = document.body.getAttribute('data-section');
+    if (!name) return null;
+    const secs = list || this.effectiveSections();
+    return secs.find(x => x.type !== 'inicio' && this.sectionSlug(x) === name) || null;
   },
   // Sección de la página abierta (en servicios, la de su categoría ?cat=)
   currentSection(all) {
     const secs = all ? this.effectiveSections() : this.sections();
     if (!secs) return null;
+    const served = this.servedSection(secs);
+    if (served) return served;
     const page = document.body.getAttribute('data-page');
     const cat = this.pageCat().toLowerCase();
     return secs.find(x => this.SECTION_DATA_PAGE[x.type] === page &&
@@ -344,7 +374,8 @@ const TenantBrand = {
     const base = '/' + t.slug + '/';
     const page = document.body.getAttribute('data-page');
     // Con ?cat= la página ya dice qué sección es (servicios?cat=Modelos no es la sección "Servicios")
-    const hasCat = new URLSearchParams(location.search).has('cat');
+    // Si el servidor ya entregó la página de la sección, no hay nada que cambiar
+    const hasCat = new URLSearchParams(location.search).has('cat') || !!this.servedSection(secs);
     const named = name && !hasCat ? secs.find(x => x.type !== 'inicio' && this.sectionSlug(x) === name) : null;
     if (named) {
       const here = this.currentSection(true);

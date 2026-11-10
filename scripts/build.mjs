@@ -32,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'dist');
-const PUBLIC = ['assets', 'css', 'js', 'landing', '_headers', '_redirects', 'robots.txt', 'sitemap.xml',
+const PUBLIC = ['assets', 'css', 'js', 'landing', '_headers', '_redirects', '_routes.json', 'robots.txt', 'sitemap.xml',
   'index.html', 'barberos.html', 'consultar-cita.html', 'crm.html', 'galeria.html', 'login.html', 'privacidad.html',
   'reservalope.html', 'reservar.html', 'servicios.html'];
 const KEEP_AS_IS = path.join('js', 'vendor');

@@ -54,8 +54,11 @@
 
 # --- Secciones con el nombre que les dio el negocio ------------------------
 # (consola → Personalizar CRM → Web). Los nombres de siempre van directo.
-# Cualquier otro (/<enlace>/modelos, /<enlace>/cortes…) no tiene regla: Pages
-# sirve index.html y TenantBrand.applyAddress abre la página de esa sección.
+# Cualquier otro (/<enlace>/modelos, /<enlace>/cortes…) lo atiende la función
+# functions/[slug]/[page].js, que entrega la página de esa sección sin cambiar
+# la dirección (ojo: _redirects no se aplica a lo que responde la función; ella
+# llama a next() para todo lo demás). Sin la función, Pages sirve index.html y
+# TenantBrand.applyAddress abre la página de esa sección.
 # (Una regla /:slug/:page no sirve: también tomaría /css/main.css o /js/main.js.)
 /:slug/equipo                  /barberos            200
 /:slug/mi-cita                 /consultar-cita      200
