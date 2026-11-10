@@ -342,6 +342,10 @@ const TenantBrand = {
       list.innerHTML = visible.map(x => '<li><a href="' + esc(this.sectionHref(x)) + '">' + esc(x.label) + '</a></li>').join('');
       if (privLi) list.appendChild(privLi);
     }
+    // "Ver galería" del inicio boutique: a la página Galería si está en el menú
+    if (this.sectionShown('galeria')) {
+      document.querySelectorAll('#bq-gallery-section a[href^="barberos.html"]').forEach(a => a.setAttribute('href', 'galeria.html'));
+    }
     // Enlaces del contenido a secciones ocultas (p. ej. "Consultar mi cita")
     ['equipo', 'galeria', 'mi-cita'].forEach(type => {
       if (this.sectionShown(type)) return;
