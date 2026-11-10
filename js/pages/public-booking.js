@@ -94,6 +94,7 @@ const PublicBooking = {
         case 'media-close': this.closeServiceMedia(); break;
         case 'media': this.openServiceMedia(id, Number(el.getAttribute('data-i')) || 0); break;
         case 'copy-code': this.copyCode(el); break;
+        case 'ref-del': this.removeRefPhoto(Number(el.getAttribute('data-i'))); break;
         case 'close': if (typeof ModalComponent !== 'undefined') ModalComponent.close(); break;
       }
     });
@@ -758,6 +759,7 @@ const PublicBooking = {
 
     dateInp.min = DB.todayISO();
     this.renderExtraFields();
+    this.renderRefPhotos();
     this.refreshTimes();
     this.updateSubmitState();
   },
@@ -876,6 +878,85 @@ const PublicBooking = {
       if (f.type === 'checkbox') el.checked = false; else el.value = '';
       this.setExtraError(el, '');
     });
+  },
+
+  /* ---------------- Fotos de modelo (migración 26) ----------------
+     Si el negocio lo activó en el CRM, quien reserva puede adjuntar hasta 3 fotos.
+     Se comprimen aquí (JPEG, 1280 px) y viajan con la reserva a la Edge Function,
+     que las guarda en un bucket privado después del captcha. */
+  REF_MAX: 3,
+  refPhotos: [],
+  refBusy: 0,
+  refPhotosOn() { return !!(DB.tenant && DB.tenant.bookingPhotos); },
+
+  renderRefPhotos() {
+    const box = document.getElementById('pb-photos');
+    const list = document.getElementById('pb-photos-list');
+    if (!box || !list) return;
+    const on = this.refPhotosOn();
+    box.hidden = !on;
+    if (!on) { this.refPhotos = []; return; }
+    const thumbs = this.refPhotos.map((src, i) =>
+      '<div class="ref-photo" role="listitem"><img src="' + this.esc(src) + '" alt="Foto de modelo ' + (i + 1) + '" />' +
+        '<button type="button" class="ref-photo-del" data-pb-action="ref-del" data-i="' + i + '" aria-label="Quitar foto ' + (i + 1) + '">' + ic('x') + '</button></div>').join('');
+    const busy = Array.from({ length: this.refBusy }, () => '<div class="ref-photo is-loading" role="listitem" aria-label="Cargando foto"></div>').join('');
+    const left = this.REF_MAX - this.refPhotos.length - this.refBusy;
+    const add = left > 0
+      ? '<label class="ref-photo-add" role="listitem">' + ic('camera') + '<span>' + (this.refPhotos.length ? 'Añadir otra' : 'Añadir foto') + '</span>' +
+          '<input type="file" id="pb-photos-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" multiple class="sr-only" aria-describedby="pb-photos-hint" /></label>'
+      : '';
+    list.innerHTML = thumbs + busy + add;
+    if (!list.dataset.bound) {
+      list.dataset.bound = '1';
+      list.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'pb-photos-input') this.addRefPhotos(e.target.files);
+      });
+    }
+  },
+
+  setRefError(msg) {
+    const err = document.getElementById('pb-photos-error');
+    if (!err) return;
+    const txt = err.querySelector('.field-error-text');
+    if (txt) txt.textContent = msg || '';
+    err.classList.toggle('is-visible', !!msg);
+  },
+
+  async addRefPhotos(fileList) {
+    const files = Array.from(fileList || []);
+    const room = this.REF_MAX - this.refPhotos.length - this.refBusy;
+    this.setRefError(files.length > room ? 'Puedes adjuntar hasta ' + this.REF_MAX + ' fotos. Se tomaron las primeras.' : '');
+    const take = files.slice(0, Math.max(0, room));
+    if (!take.length) return;
+    this.refBusy += take.length;
+    this.renderRefPhotos();
+    let failed = 0;
+    for (const f of take) {
+      try {
+        if (f.type && !/^image\//i.test(f.type)) throw new Error('tipo');
+        if (f.size > 25 * 1024 * 1024) throw new Error('grande');
+        const data = await readAndCompressImage(f, 1280, 0.82);
+        if (!data || !/^data:image\/jpeg;base64,/.test(data) || data.length > 5 * 1024 * 1024) throw new Error('lectura');
+        if (this.refPhotos.length < this.REF_MAX) this.refPhotos.push(data);
+      } catch (e) {
+        failed++;
+      } finally {
+        this.refBusy--;
+        this.renderRefPhotos();
+      }
+    }
+    if (failed) this.setRefError(failed === 1 ? 'Una foto no se pudo leer. Prueba con otra (JPG, PNG o WebP).' : 'Algunas fotos no se pudieron leer. Prueba con otras (JPG, PNG o WebP).');
+    this.updateSummary();
+  },
+
+  removeRefPhoto(i) {
+    if (!(i >= 0 && i < this.refPhotos.length)) return;
+    this.refPhotos.splice(i, 1);
+    this.setRefError('');
+    this.renderRefPhotos();
+    this.updateSummary();
+    const next = document.querySelector('#pb-photos-list .ref-photo-del, #pb-photos-input');
+    if (next) next.focus();
   },
 
   // Listeners del formulario (una sola vez) y refresco periódico de la disponibilidad
@@ -1040,7 +1121,8 @@ const PublicBooking = {
     set('pb-sum-dur', srvObj && srvObj.duration ? srvObj.duration + ' min' : '—');
     set('pb-sum-price', srvObj ? (cur + ' ' + srvObj.price) : (cur + ' 0'));
     const sumExtra = document.getElementById('pb-sum-extra');
-    if (sumExtra) sumExtra.innerHTML = this.extraSummaryHTML();
+    if (sumExtra) sumExtra.innerHTML = this.extraSummaryHTML() + (this.refPhotosOn() && this.refPhotos.length
+      ? '<div class="booking-summary-row"><span>Fotos de modelo</span><strong>' + this.refPhotos.length + '</strong></div>' : '');
     this.renderPickers();
   },
 
@@ -1150,13 +1232,15 @@ const PublicBooking = {
     if (slotError) { showError(slotError); this.refreshTimes(); return; }
 
     if (this.captchaRequired && !this.captchaToken) { showError('Completa la verificación de seguridad antes de confirmar.'); return; }
+    if (this.refBusy) { showError('Espera un momento: tus fotos de modelo se están cargando.'); return; }
+    const photos = this.refPhotosOn() ? this.refPhotos.slice(0, this.REF_MAX) : [];
 
     const btn = form.querySelector('button[type="submit"]');
     this.sending = true;
     if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
     let res;
     try {
-      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, extra, captcha: this.captchaToken || '' });
+      res = await DB.reservar({ serviceId: srvObj.id, barberId: barberObj.id, date, time, name, phone, notes, waOptIn, extra, photos, captcha: this.captchaToken || '' });
     } catch (ex) {
       // El servidor ya devuelve el motivo en español (horario ocupado, límite de citas…)
       showError((ex && ex.message) || 'No se pudo registrar la reserva. Inténtalo de nuevo.');
@@ -1182,6 +1266,7 @@ const PublicBooking = {
           '<span class="booking-code-hint">Guárdalo o toma una captura de esta pantalla: lo necesitas junto con tu celular para consultar tu ' + this.esc(this.v('appointment')) + '.</span>'
         : '') +
       (waOptIn ? '<span style="display:block; margin-top:4px;">Te enviaremos la confirmación por WhatsApp.</span>' : '') +
+      (photos.length ? '<span style="display:block; margin-top:4px;">Recibimos ' + (photos.length === 1 ? 'tu foto' : 'tus ' + photos.length + ' fotos') + ' de modelo.</span>' : '') +
       '<div class="alert-links">' +
         '<a href="' + this.esc(this.href('consultar-cita.html')) + '">Consultar mi ' + this.esc(this.v('appointment')) + ' ' + ic('arrowRight') + '</a>' +
       '</div></div>' +
@@ -1191,6 +1276,9 @@ const PublicBooking = {
     phoneInp.value = '';
     document.getElementById('pb-notes').value = '';
     this.resetExtra();
+    this.refPhotos = [];
+    this.setRefError('');
+    this.renderRefPhotos();
     if (waEl) waEl.checked = false;
     try { await DB.refreshBusy(); } catch (e4) { /* sin conexión */ }
     this.renderPublicViews();

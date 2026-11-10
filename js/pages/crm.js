@@ -138,7 +138,7 @@ const CRM = {
   bindDirtyGuards() {
     const mark = (e) => {
       const id = (e.target && e.target.id) || '';
-      if (/^set-(owner-name|currency|address|phone|hours|city|lead)$/.test(id)) this.setDirty = true;
+      if (/^set-(owner-name|currency|address|phone|hours|city|lead|ref-photos)$/.test(id)) this.setDirty = true;
       else if (id.indexOf('set-sch-') === 0 || id.indexOf('set-sch-on-') === 0) this.schDirty = true;
       else if (id.indexOf('wa-') === 0 && id !== 'wa-test-num') this.waDirty = true;
     };
@@ -732,7 +732,7 @@ const CRM = {
     switch (c.key) {
       case 'client': {
         const phoneUnder = this.fshow('appointments', 'phone') && !cols.some(x => x.key === 'phone');
-        return '<a href="#" class="appt-open" onclick="CRM.openApptDetail(\'' + E(a.id) + '\'); return false;" title="Ver la ficha"><strong>' + E(a.customerName) + '</strong></a>' +
+        return '<a href="#" class="appt-open" onclick="CRM.openApptDetail(\'' + E(a.id) + '\'); return false;" title="Ver la ficha"><strong>' + E(a.customerName) + '</strong>' + this.refBadge(a) + '</a>' +
           (phoneUnder || a.code ? '<br/><span style="font-size:0.76rem; color:var(--text-grey);">' + (phoneUnder ? E(a.phone || '—') : '') + (a.code ? (phoneUnder ? ' · ' : '') + E(a.code) : '') + '</span>' : '');
       }
       case 'phone': return E(a.phone || '—');
@@ -965,9 +965,9 @@ const CRM = {
           (size === 'full' ? '<span class="agenda-card-meta">' + E(a.customerName) + ' · ' + E(a.service) + '</span><span class="agenda-card-time">' + range + ' · ' + E(a.barber) + '</span>'
             : '<span class="agenda-card-time">' + E(a.customerName) + ' · ' + E(a.time) + '</span>');
       } else if (size === 'full') {
-        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-meta">' + E(a.service) + price + '</span><span class="agenda-card-time">' + range + st + '</span>';
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + this.refBadge(a) + '</strong><span class="agenda-card-meta">' + E(a.service) + price + '</span><span class="agenda-card-time">' + range + st + '</span>';
       } else if (size === 'compact') {
-        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + range + st + '</span>';
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + this.refBadge(a) + '</strong><span class="agenda-card-time">' + range + st + '</span>';
       } else {
         body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + E(a.time) + '</span>';
       }
@@ -1048,6 +1048,12 @@ const CRM = {
       ? '<div class="cf-field cf-wide"><label class="field-lbl" for="m-ad-notes">Notas</label><textarea id="m-ad-notes" class="input-dark" rows="3" maxlength="500"' + (canEdit ? '' : ' disabled') + '>' + E(a.notes || '') + '</textarea></div>' : '';
     const custom = CrmConfig.formHTML('appointments', 'm-ad-x-', a.extra);
     const editable = notes || custom;
+    // Fotos de modelo que adjuntó el cliente al reservar (se cargan con enlaces firmados)
+    const refs = Array.isArray(a.refPhotos) ? a.refPhotos : [];
+    const photos = refs.length
+      ? '<div class="appt-refs"><span class="field-lbl">' + ic('camera') + 'Fotos de modelo (' + refs.length + ')</span>' +
+          '<div class="appt-refs-grid" id="m-ad-refs">' + refs.map(() => '<span class="appt-ref is-loading"></span>').join('') + '</div></div>'
+      : '';
     // Lo que se puede hacer con la cita (en la vista agenda la ficha es el único lugar)
     const acts = (this.waConfirmBtn(a)) + (Auth.can('appointments.status') ? this.apptActions(a).map(x => x.key === 'RESCHEDULE'
       ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal(); CRM.openRescheduleModal(\'' + E(a.id) + '\')">' + ic('calendar') + 'Reprogramar</button>'
@@ -1056,7 +1062,7 @@ const CRM = {
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">' + this.vx('Ficha de {el:appointment} {appointment}') + '</span><h3>' + E(a.customerName) + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveApptDetail(event, \'' + E(a.id) + '\')" novalidate>' +
-        '<dl class="appt-facts">' + facts + '</dl>' +
+        '<dl class="appt-facts">' + facts + '</dl>' + photos +
         (notes ? '<div class="form-grid-2 cf-grid">' + notes + '</div>' : '') + custom +
         '<div class="form-error" id="m-ad-error" role="alert"></div>' +
         (acts ? '<div class="appt-detail-actions">' + acts + '</div>' : '') +
@@ -1065,6 +1071,26 @@ const CRM = {
       '</form>'
     );
     if (!canEdit) document.querySelectorAll('#crm-modal-content [data-cf]').forEach(el => { el.disabled = true; });
+    if (refs.length) this.loadApptRefs(refs);
+  },
+
+  // Marca de "trae fotos de modelo" en la lista y la agenda
+  refBadge(a) {
+    const n = Array.isArray(a.refPhotos) ? a.refPhotos.length : 0;
+    return n ? ' <span class="appt-ref-badge" title="' + n + (n === 1 ? ' foto' : ' fotos') + ' de modelo">' + ic('camera') + '<span class="sr-only">' + n + ' fotos de modelo</span></span>' : '';
+  },
+
+  async loadApptRefs(refs) {
+    let urls = [];
+    try { urls = await DB.refPhotoUrls(refs); } catch (e) { urls = []; }
+    const box = document.getElementById('m-ad-refs');
+    if (!box) return;                      // la ficha ya se cerró
+    box.innerHTML = refs.map((p, i) => {
+      const u = urls[i] || '';
+      if (!/^https:\/\//i.test(u)) return '<span class="appt-ref is-missing" title="No se pudo cargar la foto">' + ic('image') + '</span>';
+      return '<a class="appt-ref" href="' + UI.esc(u) + '" target="_blank" rel="noopener" aria-label="Ver foto de modelo ' + (i + 1) + ' en grande">' +
+        '<img src="' + UI.esc(u) + '" alt="Foto de modelo ' + (i + 1) + '" loading="lazy" /></a>';
+    }).join('');
   },
 
   async saveApptDetail(e, id) {
@@ -1621,6 +1647,16 @@ const CRM = {
       set('set-hours', t.hours);
       set('set-city', t.city);
       set('set-lead', String(t.leadMinutes == null ? 15 : t.leadMinutes));
+    }
+    // Fotos de modelo al reservar (migración 26)
+    const rp = document.getElementById('set-ref-photos');
+    if (rp) {
+      if (!this.setDirty) rp.checked = !!t.bookingPhotos;
+      rp.disabled = !t.hasBookingPhotos;
+      const hint = document.getElementById('set-ref-photos-hint');
+      if (hint) hint.textContent = t.hasBookingPhotos
+        ? 'Quien reserva en la web puede adjuntar hasta 3 fotos de lo que quiere (diseño, corte, color). Las ves en la ficha de la cita.'
+        : 'Para activarlo falta aplicar la migración 26 en Supabase.';
     }
     const nameEl = document.getElementById('set-tenant-name');
     if (nameEl) nameEl.textContent = t.name;
@@ -2407,8 +2443,11 @@ const CRM = {
       if (errEl) errEl.textContent = 'La anticipación mínima debe ser un número entero de minutos entre 0 y 1440.';
       return false;
     }
-    const before = [t.ownerName, t.currency, t.address, t.phone, t.hours, t.city, (t.leadMinutes == null ? 15 : t.leadMinutes) + ' min'].join(' | ');
+    const photosTxt = (on) => on ? 'fotos de modelo: sí' : 'fotos de modelo: no';
+    const before = [t.ownerName, t.currency, t.address, t.phone, t.hours, t.city, (t.leadMinutes == null ? 15 : t.leadMinutes) + ' min', photosTxt(t.bookingPhotos)].join(' | ');
     t.leadMinutes = lead;
+    const rp = document.getElementById('set-ref-photos');
+    if (rp && t.hasBookingPhotos) t.bookingPhotos = !!rp.checked;
     t.ownerName = g('set-owner-name');
     t.currency = g('set-currency') || 'S/';
     t.address = g('set-address');
@@ -2420,7 +2459,7 @@ const CRM = {
     const ok = await DB.save();
     if (!ok) return false;
     this.setDirty = false;
-    DB.log('Actualizó la configuración', 'Antes: ' + before + ' · Ahora: ' + [t.ownerName, t.currency, t.address, t.phone, t.hours, t.city, t.leadMinutes + ' min'].join(' | '));
+    DB.log('Actualizó la configuración', 'Antes: ' + before + ' · Ahora: ' + [t.ownerName, t.currency, t.address, t.phone, t.hours, t.city, t.leadMinutes + ' min', photosTxt(t.bookingPhotos)].join(' | '));
     this.renderAll();
     UI.toast('Configuración guardada.');
     return true;

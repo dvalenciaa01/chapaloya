@@ -261,6 +261,9 @@ const DB = {
     t.hasWebPage = 'web_page' in r;
     t.webPage = (r.web_page && typeof r.web_page === 'object' && !Array.isArray(r.web_page)) ? r.web_page : null;
     t.webEditor = r.web_editor !== false;
+    // Fotos de modelo al reservar (migración 26). Sin la columna, la opción no se puede activar.
+    t.hasBookingPhotos = 'booking_photos' in r;
+    t.bookingPhotos = r.booking_photos === true;
     return t;
   },
   tenantRow(t) {
@@ -268,6 +271,7 @@ const DB = {
     if (t.leadMinutes != null && !isNaN(Number(t.leadMinutes))) row.booking_lead_minutes = Math.min(1440, Math.max(0, Math.round(Number(t.leadMinutes))));
     if (t.hasApptView) row.appt_view = t.apptView === 'lista' ? 'lista' : 'agenda';
     if (t.hasCrmPrefs) row.crm_prefs = t.crmPrefs || {};
+    if (t.hasBookingPhotos) row.booking_photos = !!t.bookingPhotos;
     return row;
   },
   tenantRowBase(t) {
@@ -388,7 +392,9 @@ const DB = {
           price: Number(r.price), status: r.status, source: r.source, notes: r.notes || '',
           waOptIn: !!r.wa_opt_in, createdAt: r.created_at, completedAt: r.completed_at,
           durationMin: r.duration_min != null ? Number(r.duration_min) : undefined,
-          extra: DB.normExtra(r.extra) };
+          extra: DB.normExtra(r.extra),
+          // Fotos de modelo que adjuntó el cliente (migración 26): rutas del bucket privado "reservas"
+          refPhotos: Array.isArray(r.ref_photos) ? r.ref_photos.filter(x => typeof x === 'string').slice(0, 3) : [] };
       },
       // Barbero y servicio se comparan y guardan por id (los nombres los pone el servidor)
       logical(a) {
@@ -656,6 +662,8 @@ const DB = {
     // Campos propios de la cita que el negocio pide al reservar (migración 12, crm_config).
     // Sin dato (base antigua) = ninguno. Se descarta lo que no tenga forma válida.
     t.bookingFields = this.normBookingFields(pick('booking_fields'));
+    // Fotos de modelo al reservar (migración 26); sin dato = no se piden
+    t.bookingPhotos = pick('booking_photos') === true;
     // Portada personalizable (título, subtítulo, imagen); sin dato = diseño de siempre
     t.site = this.normSite(pick('site'));
     // Inicio diseñado con el constructor visual (migración 21); null = el de siempre
@@ -745,11 +753,25 @@ const DB = {
     const { data, error } = await this.client().functions.invoke('reservar', {
       body: { slug: this.tenant.slug, service_id: p.serviceId, barber_id: p.barberId, date: p.date, time: p.time,
         name: p.name, phone: p.phone, notes: p.notes || '', wa_opt_in: !!p.waOptIn, captcha: p.captcha || '',
-        extra: (p.extra && typeof p.extra === 'object') ? p.extra : {} }
+        extra: (p.extra && typeof p.extra === 'object') ? p.extra : {},
+        ...(Array.isArray(p.photos) && p.photos.length ? { photos: p.photos.slice(0, 3) } : {}) }
     });
     if (error) throw new Error(await this.functionError(error));
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo registrar la reserva.');
     return data.reserva;
+  },
+
+  // CRM: enlaces firmados (1 h) para ver las fotos de modelo de una cita.
+  // El bucket "reservas" es privado: solo el equipo del negocio puede leerlo.
+  async refPhotoUrls(paths) {
+    const list = (paths || []).filter(x => typeof x === 'string' && x);
+    if (!list.length) return [];
+    const { data, error } = await this.client().storage.from('reservas').createSignedUrls(list, 3600);
+    if (error) throw error;
+    return list.map(p => {
+      const hit = (data || []).find(d => d.path === p);
+      return hit && hit.signedUrl && !hit.error ? hit.signedUrl : '';
+    });
   },
 
   // Web pública: "Mi cita" con celular + código

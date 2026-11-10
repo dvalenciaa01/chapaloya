@@ -1124,3 +1124,20 @@ body.auth-ok .crm-boot { display: none; }
 
 /* Configuración: si una de las dos tarjetas no aplica a este rol, la otra ocupa el ancho completo */
 .crm-split-2:has(> .perm-hidden) { grid-template-columns: minmax(0, 1fr); }
+
+/* Fotos de modelo de la cita (migración 26) */
+.set-ref-photos { margin-top: var(--space-4); padding: 14px var(--space-4); border: 1px solid var(--line-dark); border-radius: 12px; }
+.set-ref-photos:has(input:disabled) { opacity: .7; cursor: not-allowed; }
+.appt-refs { margin: 0 0 var(--space-3); }
+.appt-refs .field-lbl { display: inline-flex; align-items: center; gap: 6px; }
+.appt-refs .field-lbl svg { width: 16px; height: 16px; }
+.appt-refs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 420px; }
+.appt-ref { display: grid; place-items: center; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.06); border: 1px solid var(--line-dark); color: var(--on-dark-lo); }
+.appt-ref img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.appt-ref svg { width: 22px; height: 22px; }
+a.appt-ref:hover, a.appt-ref:focus-visible { border-color: var(--yellow); }
+.appt-ref.is-loading { animation: appt-ref-pulse 1.2s ease-in-out infinite; }
+@keyframes appt-ref-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .appt-ref.is-loading { animation: none; } }
+.appt-ref-badge { display: inline-flex; vertical-align: -2px; margin-left: 4px; color: var(--yellow); }
+.appt-ref-badge svg { width: 14px; height: 14px; }
