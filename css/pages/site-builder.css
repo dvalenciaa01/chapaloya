@@ -68,6 +68,7 @@
 .sb-row-tools [data-sb="up"] .ic, .sb-row-tools [data-sb="down"] .ic { transform: rotate(90deg); }
 
 .sb-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--sb-line); display: grid; gap: 14px; }
+.sb-link { display: inline; padding: 0; border: 0; background: none; color: var(--sb-ac); cursor: pointer; font: inherit; font-weight: 600; text-decoration: underline; }
 .sb-link-danger { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 4px 0; border: 0; background: none; color: var(--sb-danger); cursor: pointer; font-weight: 600; font-size: 13.5px; }
 
 .sb-types { display: grid; gap: 8px; margin-top: 12px; }

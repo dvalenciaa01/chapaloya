@@ -226,6 +226,21 @@
     return Object.keys(out).length ? out : null;
   }
 
+  /* Posición libre de un cuadro de texto (migración 28): porcentajes del
+     bloque. x, y = esquina superior izquierda (0 a 100); w = ancho (10 a 100). */
+  const FREE_MOBILE = '(max-width: 640px)';
+  function normPos(p) {
+    if (!p || typeof p !== 'object') return null;
+    const n = (v, lo, hi) => (typeof v === 'number' && isFinite(v) ? Math.round(Math.min(hi, Math.max(lo, v)) * 10) / 10 : null);
+    const x = n(p.x, 0, 100), y = n(p.y, 0, 100), w = n(p.w, 10, 100);
+    return x == null || y == null || w == null ? null : { x, y, w };
+  }
+  // En celular, sin posición propia: la de computadora, más ancha (el texto no queda en una tira)
+  function mobilePos(x) {
+    if (x.mpos) return x.mpos;
+    const w = Math.max(x.pos.w, 70);
+    return { x: Math.round(Math.min(x.pos.x, 100 - w) * 10) / 10, y: x.pos.y, w };
+  }
   function normExtras(list) {
     if (!Array.isArray(list)) return null;
     const ids = new Set(), out = [];
@@ -239,6 +254,9 @@
       // Mismo formato que un texto del bloque, sin color de botón
       const f = normFmt({ text: x.fmt }, { fields: ['text'] });
       if (f) o.fmt = f.text;
+      const pos = normPos(x.pos), mpos = pos && normPos(x.mpos);
+      if (pos) o.pos = pos;
+      if (mpos) o.mpos = mpos;
       out.push(o);
     });
     return out.length ? out : null;
@@ -367,15 +385,30 @@
   }
   // Cuadros de texto extra, debajo de los textos del bloque
   function EX(b) {
-    return (b.extras || []).filter(x => String(x.text || '').trim()).map(x => {
-      const css = x.fmt ? spanCss(x.fmt) : '';
-      const al = x.fmt && FMT_ALIGN.includes(x.fmt.align) ? ' style="text-align:' + x.fmt.align + '"' : '';
-      const inner = (p) => { const e = esc(p).replace(/\n/g, '<br>'); return css ? '<span class="blk-f" style="' + esc(css) + '">' + e + '</span>' : e; };
-      const key = b.id + '|x:' + x.id;
-      if (x.kind === 'titulo') return '<h3 class="blk-x blk-x-titulo"' + al + '>' + ED(key, inner(x.text.trim())) + '</h3>';
-      if (x.kind === 'subtitulo') return '<p class="blk-x blk-x-sub"' + al + '>' + ED(key, inner(x.text.trim())) + '</p>';
-      return ED(key, String(x.text).split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map(p => '<p class="blk-x blk-x-p"' + al + '>' + inner(p) + '</p>').join(''), true);
-    }).join('');
+    return (b.extras || []).filter(x => !x.pos && String(x.text || '').trim()).map(x => extraHTML(b, x)).join('');
+  }
+  function extraHTML(b, x) {
+    const css = x.fmt ? spanCss(x.fmt) : '';
+    const al = x.fmt && FMT_ALIGN.includes(x.fmt.align) ? ' style="text-align:' + x.fmt.align + '"' : '';
+    const inner = (p) => { const e = esc(p).replace(/\n/g, '<br>'); return css ? '<span class="blk-f" style="' + esc(css) + '">' + e + '</span>' : e; };
+    const key = b.id + '|x:' + x.id;
+    const text = String(x.text || '');
+    if (x.kind === 'titulo') return '<h3 class="blk-x blk-x-titulo"' + al + '>' + ED(key, inner(text.trim())) + '</h3>';
+    if (x.kind === 'subtitulo') return '<p class="blk-x blk-x-sub"' + al + '>' + ED(key, inner(text.trim())) + '</p>';
+    const ps = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+    // Vacío en la vista previa: un párrafo para poder escribir en él
+    if (!ps.length && EDIT) ps.push('');
+    return ED(key, ps.map(p => '<p class="blk-x blk-x-p"' + al + '>' + inner(p) + '</p>').join(''), true);
+  }
+  // Cuadros de texto en posición libre: una capa encima del bloque (como en Canva)
+  function FREE(b) {
+    const list = (b.extras || []).filter(x => x.pos && (EDIT || String(x.text || '').trim()));
+    if (!list.length) return '';
+    return '<div class="blk-free-layer">' + list.map(x => {
+      const m = mobilePos(x);
+      const st = '--x:' + x.pos.x + '%;--y:' + x.pos.y + '%;--w:' + x.pos.w + '%;--mx:' + m.x + '%;--my:' + m.y + '%;--mw:' + m.w + '%';
+      return '<div class="blk-free" data-xid="' + esc(x.id) + '" style="' + st + '">' + extraHTML(b, x) + '</div>';
+    }).join('') + '</div>';
   }
   // Fuentes que usan los formatos del diseño (para cargarlas)
   function fmtFonts(page) {
@@ -650,12 +683,14 @@
       style = ' style="--blk-bg:' + b.bgColor + '"';
     }
     if (heroMedia) cls.push('has-photo');
-    return '<section class="' + cls.join(' ') + '" data-blk="' + esc(b.id) + '"' + style + '>' + inner + '</section>';
+    const free = FREE(b);
+    if (free) cls.push('has-free');
+    return '<section class="' + cls.join(' ') + '" data-blk="' + esc(b.id) + '"' + style + '>' + inner + free + '</section>';
   }
 
   const SiteBlocks = {
     TYPES, ORDER, BGS, MAX, EXTRA_KINDS, MAX_EXTRAS, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
-    DEFAULT_ITEMS, normalize, normTheme, normFmt, template, create, newId, videoInfo, isDark,
+    DEFAULT_ITEMS, FREE_MOBILE, normalize, normTheme, normFmt, normPos, template, create, newId, videoInfo, isDark,
 
     /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
        Se aplica sobre los del negocio: TenantBrand ya pintó su paleta y la letra del rubro. */
@@ -748,7 +783,7 @@
         if (tool) {
           e.preventDefault();
           e.stopPropagation();
-          send({ cmd: 'act', act: tool.getAttribute('data-ed-act'), id: tool.getAttribute('data-id') });
+          send({ cmd: 'act', act: tool.getAttribute('data-ed-act'), id: tool.getAttribute('data-id'), x: tool.getAttribute('data-x') || '' });
           return;
         }
         const ftool = e.target.closest('[data-ed-fmt]');
@@ -795,6 +830,21 @@
         if (el.classList.contains('blk-ed-multi')) el.setAttribute('aria-multiline', 'true');
         el.setAttribute('aria-label', 'Editar texto');
       });
+      // Cuadros en posición libre: asa para moverlos, borde para el ancho y quitar
+      root.querySelectorAll('section[data-blk] .blk-free').forEach(box => {
+        const bid = box.closest('section[data-blk]').getAttribute('data-blk'), xid = box.getAttribute('data-xid');
+        const h = document.createElement('div');
+        h.className = 'blk-free-tools';
+        h.innerHTML = '<span class="blk-free-grip" data-free-grip title="Arrastra para mover el texto" aria-hidden="true">' + icon('menu') + '</span>' +
+          '<button type="button" class="blk-free-del" data-ed-act="xdel" data-id="' + esc(bid) + '" data-x="' + esc(xid) + '" aria-label="Quitar este cuadro de texto" title="Quitar este cuadro de texto">' + icon('trash') + '</button>';
+        box.appendChild(h);
+        const r = document.createElement('span');
+        r.className = 'blk-free-size';
+        r.setAttribute('data-free-size', '');
+        r.title = 'Arrastra para cambiar el ancho';
+        r.setAttribute('aria-hidden', 'true');
+        box.appendChild(r);
+      });
       // "+" entre bloques (después de cada uno)
       root.querySelectorAll('section[data-blk]').forEach(sec => {
         const id = sec.getAttribute('data-blk');
@@ -821,6 +871,7 @@
       bar.innerHTML = '<span class="blk-tool blk-tool-grip" draggable="true" data-ed-grip="' + esc(id) + '" title="Arrastra para mover" aria-hidden="true">⋮⋮</span>' +
         '<span class="blk-tool-name">' + esc(def.label) + '</span>' +
         btn('up', 'arrowLeft', 'Subir bloque', i === 0) + btn('down', 'arrowRight', 'Bajar bloque', i === p.length - 1) +
+        ((b.extras || []).length < MAX_EXTRAS ? '<button type="button" class="blk-tool blk-tool-txt" data-ed-act="xadd" data-id="' + esc(id) + '" aria-label="Agregar un cuadro de texto" title="Agregar un cuadro de texto que puedes mover a cualquier lugar">T+</button>' : '') +
         (b.type !== 'portada' && p.length < MAX_BLOCKS ? btn('dup', 'plus', 'Duplicar bloque') : '') +
         btn('toggle', hidden ? 'eye' : 'lock', hidden ? 'Mostrar en la web' : 'Ocultar en la web') +
         btn('del', 'trash', 'Eliminar bloque');
@@ -917,8 +968,62 @@
         clear();
         document.querySelectorAll('.blk-dragging').forEach(x => x.classList.remove('blk-dragging'));
       });
+      this.bindFree(send);
       window.addEventListener('scroll', () => { if (this._edEl) this.placeFmtBar(this._edEl); }, { passive: true });
       window.addEventListener('resize', () => { if (this._edEl) this.placeFmtBar(this._edEl); });
+    },
+
+    /* Mover (asa) y cambiar el ancho (borde derecho) de un cuadro en posición
+       libre. Se mueve dentro de su bloque; al soltar, el editor guarda la
+       posición de la vista actual (computadora o celular). */
+    bindFree(send) {
+      let drag = null;
+      const round = (v) => Math.round(v * 10) / 10;
+      document.addEventListener('pointerdown', (e) => {
+        const grip = e.target.closest && e.target.closest('[data-free-grip], [data-free-size]');
+        if (!grip || e.button > 0) return;
+        const box = grip.closest('.blk-free'), sec = box && box.closest('section[data-blk]');
+        if (!sec) return;
+        e.preventDefault();
+        const sr = sec.getBoundingClientRect(), br = box.getBoundingClientRect();
+        drag = {
+          box, sec, sr, resize: grip.hasAttribute('data-free-size'), sx: e.clientX, sy: e.clientY,
+          x: (br.left - sr.left) / sr.width * 100, y: (br.top - sr.top) / sr.height * 100, w: br.width / sr.width * 100, h: br.height / sr.height * 100
+        };
+        drag.nx = drag.x; drag.ny = drag.y; drag.nw = drag.w;
+        box.classList.add('is-moving');
+        try { grip.setPointerCapture(e.pointerId); } catch (x) { /* sin captura */ }
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      });
+      document.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        e.preventDefault();
+        const dx = (e.clientX - drag.sx) / drag.sr.width * 100, dy = (e.clientY - drag.sy) / drag.sr.height * 100;
+        if (drag.resize) {
+          drag.nw = Math.max(10, Math.min(100 - drag.x, drag.w + dx));
+          drag.box.style.width = drag.nw + '%';
+        } else {
+          drag.nx = Math.max(0, Math.min(100 - drag.w, drag.x + dx));
+          drag.ny = Math.max(0, Math.min(Math.max(0, 100 - drag.h), drag.y + dy));
+          drag.box.style.left = drag.nx + '%';
+          drag.box.style.top = drag.ny + '%';
+        }
+      });
+      const end = () => {
+        if (!drag) return;
+        const d = drag;
+        drag = null;
+        d.box.classList.remove('is-moving');
+        const moved = Math.abs(d.nx - d.x) + Math.abs(d.ny - d.y) + Math.abs(d.nw - d.w) > 0.2;
+        if (!moved) return;
+        const mobile = !!(global.matchMedia && global.matchMedia(FREE_MOBILE).matches);
+        send({
+          cmd: 'xpos', id: d.sec.getAttribute('data-blk'), x: d.box.getAttribute('data-xid'), mobile,
+          pos: { x: round(d.nx), y: round(Math.min(100, d.ny)), w: round(Math.min(100, d.nw)) }
+        });
+      };
+      document.addEventListener('pointerup', end);
+      document.addEventListener('pointercancel', end);
     },
 
     /* Barra flotante de formato del texto que se está escribiendo */
