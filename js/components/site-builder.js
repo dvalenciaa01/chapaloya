@@ -152,7 +152,9 @@ const SiteBuilder = {
         this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false });
       }
     } else if (e.data.cmd === 'act') {
-      this.fromPreview(String(e.data.act || ''), String(e.data.id || ''));
+      this.fromPreview(String(e.data.act || ''), String(e.data.id || ''), String(e.data.x || ''));
+    } else if (e.data.cmd === 'xpos') {
+      this.placeExtra(String(e.data.id || ''), String(e.data.x || ''), e.data.pos, !!e.data.mobile);
     } else if (e.data.cmd === 'move') {
       this.moveBlock(String(e.data.id || ''), String(e.data.target || ''), !!e.data.after);
     } else if (e.data.cmd === 'text' || e.data.cmd === 'textdone') {
@@ -167,8 +169,18 @@ const SiteBuilder = {
 
   /* ---------------- Edición sobre la página (lo que llega de la vista previa) ---------------- */
   // Acciones de la barra del bloque y del "+": las mismas que los botones del panel
-  fromPreview(act, id) {
-    if (!['up', 'down', 'dup', 'toggle', 'del', 'addafter'].includes(act) || !this.block(id)) return;
+  fromPreview(act, id, xid) {
+    if (!['up', 'down', 'dup', 'toggle', 'del', 'addafter', 'xadd', 'xdel'].includes(act) || !this.block(id)) return;
+    if (act === 'xadd') { this.addFreeText(id); return; }
+    if (act === 'xdel') {
+      const b = this.block(id), i = (b.extras || []).findIndex(x => x.id === xid);
+      if (i < 0) return;
+      b.extras.splice(i, 1);
+      if (!b.extras.length) delete b.extras;
+      this.st.selected = id; this.st.view = 'block';
+      this.touch(true);
+      return;
+    }
     if (act === 'addafter') {
       this.st.selected = id; this.st.view = 'add'; this.renderPanel();
       const p = document.getElementById('sb-panel'); if (p) { p.scrollTop = 0; const f = p.querySelector('.sb-type'); if (f) f.focus(); }
@@ -179,6 +191,29 @@ const SiteBuilder = {
     el.setAttribute('data-id', id);
     this.onClick({ target: el });
     if (act === 'dup' || act === 'toggle') setTimeout(() => this.st && this.post({ cmd: 'select', id: this.st.selected, scroll: false }), 150);
+  },
+  /* Cuadros de texto en posición libre (migración 28) */
+  // Nuevo cuadro arriba a la izquierda del bloque, listo para escribir y arrastrar
+  addFreeText(id) {
+    const b = this.block(id);
+    if (!b || (b.extras || []).length >= SiteBlocks.MAX_EXTRAS) return;
+    const n = (b.extras || []).filter(x => x.pos).length;
+    const pos = { x: Math.min(60, 8 + n * 6), y: Math.min(70, 12 + n * 8), w: 36 };
+    b.extras = (b.extras || []).concat([{ id: SiteBlocks.newId(), kind: 'subtitulo', text: 'Tu texto aquí', pos }]);
+    this.st.selected = id; this.st.view = 'block';
+    this.touch(true);
+    setTimeout(() => this.st && this.post({ cmd: 'select', id, scroll: false }), 150);
+  },
+  // Lo que se soltó en la vista previa: posición de computadora o de celular
+  placeExtra(id, xid, pos, mobile) {
+    const b = this.block(id), x = b && (b.extras || []).find(e => e.id === xid);
+    const p = SiteBlocks.normPos(pos);
+    if (!x || !p) return;
+    if (mobile && x.pos) x.mpos = p;
+    else x.pos = p;
+    this.st.selected = id;
+    this.touch(this.st.view === 'block');
+    setTimeout(() => this.st && this.post({ cmd: 'select', id, scroll: false }), 150);
   },
   moveBlock(id, target, after) {
     const list = this.st.page.blocks;
@@ -508,8 +543,11 @@ const SiteBuilder = {
           '<button type="button" class="sb-icon" data-sb="extra-del" data-i="' + i + '" aria-label="Quitar el cuadro ' + n + '">' + ic('trash') + '</button>' +
           '</div>' + this.fmtPanel(b, slot, 'el cuadro de texto ' + n) +
           '<textarea class="sb-input" rows="' + (x.kind === 'parrafo' ? 4 : 2) + '" maxlength="' + SiteBlocks.MAX.text + '" data-sb-extra="' + i + '" data-k="text" placeholder="Escribe aquí…" aria-label="Texto del cuadro ' + n + '">' + E(x.text || '') + '</textarea>' +
+          '<label class="sb-check"><input type="checkbox" data-sb-extra="' + i + '" data-k="free"' + (x.pos ? ' checked' : '') + ' /><span>Posición libre (moverlo a cualquier lugar)</span></label>' +
+          (x.pos ? '<p class="sb-hint">Arrástralo desde su asa en la vista previa y estira su borde derecho para el ancho. En la vista Celular puedes acomodarlo aparte.' +
+            (x.mpos ? ' <button type="button" class="sb-link" data-sb="extra-mreset" data-i="' + i + '">Usar en celular la misma posición</button>' : '') + '</p>' : '') +
         '</li>';
-      }).join('') + '</ol>' : '<p class="sb-hint">Agrega títulos o párrafos debajo de los textos del bloque, cada uno con su propio formato.</p>') +
+      }).join('') + '</ol>' : '<p class="sb-hint">Agrega títulos o párrafos debajo de los textos del bloque, cada uno con su propio formato. Con «T+» en la barra del bloque (vista previa) agregas uno que puedes mover a cualquier lugar.</p>') +
       (list.length < SiteBlocks.MAX_EXTRAS ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="extra-add">' + ic('plus') + '<span>Agregar cuadro de texto</span></button>' : '') +
     '</div>';
   },
@@ -707,6 +745,7 @@ const SiteBuilder = {
         if (b && (b.extras || []).length < SiteBlocks.MAX_EXTRAS) { b.extras = (b.extras || []).concat([{ id: SiteBlocks.newId(), kind: 'parrafo', text: '' }]); this.touch(true); }
         break;
       }
+      case 'extra-mreset': { const b = this.block(st.selected), x = b && (b.extras || [])[Number(btn.getAttribute('data-i'))]; if (x) { delete x.mpos; this.touch(true); } break; }
       case 'extra-del': { const b = this.block(st.selected); if (b && b.extras) { b.extras.splice(Number(btn.getAttribute('data-i')), 1); if (!b.extras.length) delete b.extras; this.touch(true); } break; }
       case 'extra-move': {
         const b = this.block(st.selected), i = Number(btn.getAttribute('data-i')), j = i + Number(btn.getAttribute('data-d'));
@@ -755,6 +794,13 @@ const SiteBuilder = {
       const x = (b.extras || [])[Number(el.getAttribute('data-sb-extra'))], k = el.getAttribute('data-k');
       if (!x) return;
       if (k === 'kind') { if (e.type !== 'change') return; x.kind = el.value; this.touch(true); return; }
+      if (k === 'free') {
+        if (e.type !== 'change') return;
+        if (el.checked) { const n = (b.extras || []).filter(e2 => e2.pos).length; x.pos = { x: Math.min(60, 8 + n * 6), y: Math.min(70, 12 + n * 8), w: 36 }; }
+        else { delete x.pos; delete x.mpos; }
+        this.touch(true);
+        return;
+      }
       if (k === 'text') { x.text = el.value; this.touch(false); }
       return;
     }
@@ -924,6 +970,8 @@ const SiteBuilder = {
     const m = String((error && (error.message || error.details)) || error || '');
     if (/web_page|web_editor/.test(m) && /column|columna|schema cache/i.test(m)) return 'Falta aplicar la migración 21 en Supabase (constructor de la web). Pídele al superadministrador que la ejecute.';
     // Letra, colores, Video, Fotos o color de fondo con la base aún en la migración 21
+    const free = !!(this.st && this.st.page.blocks.some(b => (b.extras || []).some(x => x.pos)));
+    if (free && /tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta cuadros de texto en posición libre: falta aplicar la migración 28 en Supabase. Pídele al superadministrador que la ejecute.';
     if (/tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta letra, colores, fotos ni videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
     if (/mime type|invalid_mime_type|not supported/i.test(m) && /video/i.test(m)) return 'Aún no se pueden subir videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
     if (/exceeded the maximum allowed size|payload too large|413|entity too large/i.test(m)) return 'El archivo es demasiado grande para subirlo. Prueba con uno más liviano (videos hasta 50 MB).';

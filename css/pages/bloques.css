@@ -209,6 +209,17 @@
 .blk-preview .blk-hidden::after { content: "Oculto en la web"; position: absolute; top: 12px; right: 12px; z-index: 5; padding: 4px 10px; border-radius: 999px; background: #111418; color: #FFFFFF; font-size: 12px; }
 .blk-preview .wsp-float-btn, .blk-preview .wsp-panel { display: none !important; }
 
+/* ---------------- Cuadros de texto en posición libre (migración 28) ----------------
+   Una capa encima del bloque; cada cuadro va donde lo dejó el negocio (en
+   porcentajes del bloque), con otra posición en celular. */
+.blk-free-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.blk-free { position: absolute; left: var(--x); top: var(--y); width: var(--w); pointer-events: auto; overflow-wrap: anywhere; }
+.blk-free > .blk-x, .blk-free .blk-x { margin: 0; }
+.blk-free .blk-ed-multi > .blk-x-p + .blk-x-p { margin-top: .6em; }
+@media (max-width: 640px) {
+  .blk-free { left: var(--mx); top: var(--my); width: var(--mw); }
+}
+
 /* ---------------- Edición sobre la página (solo en la vista previa del editor) ---------------- */
 .blk-preview .blk { position: relative; }
 .blk-preview [data-ed] { cursor: text; border-radius: 4px; outline: 1px dashed transparent; outline-offset: 3px; transition: outline-color .15s ease, background-color .15s ease; }
@@ -264,3 +275,20 @@
 .blk-fb-sep { width: 1px; height: 18px; margin: 0 3px; background: rgba(255, 255, 255, .25); }
 .blk-fb-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
 .blk-fb-swatch { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #FFFFFF; }
+
+/* Cuadros en posición libre: asa para moverlos, borde derecho para el ancho */
+.blk-preview .blk-free { outline: 1px dashed color-mix(in srgb, #3B82F6 55%, transparent); outline-offset: 4px; }
+.blk-preview .blk-free:hover, .blk-preview .blk-free:focus-within, .blk-preview .blk-free.is-moving { outline: 2px solid #3B82F6; }
+.blk-free.is-moving { opacity: .85; user-select: none; }
+.blk-free-tools { position: absolute; top: -38px; left: -6px; display: none; gap: 2px; padding: 3px; border-radius: 9px; background: #1E3A8A; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); z-index: 2; }
+.blk-preview .blk-free:hover .blk-free-tools, .blk-preview .blk-free:focus-within .blk-free-tools, .blk-preview .blk-free.is-moving .blk-free-tools { display: inline-flex; }
+@media (hover: none) { .blk-preview .blk-selected .blk-free-tools { display: inline-flex; } }
+.blk-free-grip, .blk-free-del { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #FFFFFF; cursor: grab; touch-action: none; }
+.blk-free-del { cursor: pointer; }
+.blk-free-grip svg, .blk-free-del svg { width: 15px; height: 15px; }
+.blk-free-grip:hover, .blk-free-del:hover, .blk-free-del:focus-visible { background: rgba(255, 255, 255, .18); outline: none; }
+.is-moving .blk-free-grip { cursor: grabbing; }
+.blk-free-size { position: absolute; top: 50%; right: -11px; width: 12px; height: 28px; margin-top: -14px; border: 2px solid #FFFFFF; border-radius: 6px; background: #3B82F6; cursor: ew-resize; touch-action: none; display: none; }
+.blk-preview .blk-free:hover .blk-free-size, .blk-preview .blk-free:focus-within .blk-free-size, .blk-preview .blk-free.is-moving .blk-free-size { display: block; }
+@media (hover: none) { .blk-preview .blk-selected .blk-free-size { display: block; } }
+.blk-tool-txt { width: auto; padding: 0 8px; font: 700 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; }
