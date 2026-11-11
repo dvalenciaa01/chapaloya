@@ -208,3 +208,59 @@
 .blk-preview .blk-hidden { opacity: 0.4; }
 .blk-preview .blk-hidden::after { content: "Oculto en la web"; position: absolute; top: 12px; right: 12px; z-index: 5; padding: 4px 10px; border-radius: 999px; background: #111418; color: #FFFFFF; font-size: 12px; }
 .blk-preview .wsp-float-btn, .blk-preview .wsp-panel { display: none !important; }
+
+/* ---------------- Edición sobre la página (solo en la vista previa del editor) ---------------- */
+.blk-preview .blk { position: relative; }
+.blk-preview [data-ed] { cursor: text; border-radius: 4px; outline: 1px dashed transparent; outline-offset: 3px; transition: outline-color .15s ease, background-color .15s ease; }
+.blk-preview .blk:hover [data-ed] { outline-color: color-mix(in srgb, #3B82F6 45%, transparent); }
+.blk-preview [data-ed]:hover { background: color-mix(in srgb, #3B82F6 8%, transparent); }
+.blk-preview [data-ed]:focus { outline: 2px solid #3B82F6; outline-offset: 3px; background: color-mix(in srgb, #3B82F6 6%, transparent); }
+.blk-preview span[data-ed] { display: inline-block; min-width: 1ch; }
+.blk-preview .blk-ed-multi { display: block; }
+.blk-preview [data-ed].is-empty::before, .blk-preview [data-ed]:empty::before { content: "Escribe aquí…"; opacity: .45; pointer-events: none; }
+.blk-preview .btn [data-ed] { cursor: text; }
+
+/* Barra del bloque elegido */
+.blk-tools {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 30;
+  display: inline-flex; align-items: center; gap: 2px; padding: 4px;
+  border-radius: 10px; background: #1E3A8A; color: #FFFFFF; box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+  font: 600 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap;
+}
+.blk-tool { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: inherit; cursor: pointer; padding: 0; }
+.blk-tool svg { width: 16px; height: 16px; }
+.blk-tool:hover:not(:disabled), .blk-tool:focus-visible { background: rgba(255, 255, 255, .18); outline: none; }
+.blk-tool:disabled { opacity: .35; cursor: default; }
+.blk-tool[data-ed-act="up"] svg, .blk-tool[data-ed-act="down"] svg { transform: rotate(90deg); }
+.blk-tool-grip { cursor: grab; font-size: 14px; letter-spacing: -2px; }
+.blk-tool-grip:active { cursor: grabbing; }
+.blk-tool-name { padding: 0 8px 0 2px; opacity: .85; }
+.blk-preview .blk-hidden::after { top: 52px; }
+.blk-dragging { opacity: .45; }
+.blk-drop-before { box-shadow: inset 0 4px 0 #3B82F6; }
+.blk-drop-after { box-shadow: inset 0 -4px 0 #3B82F6; }
+
+/* "+" entre bloques */
+.blk-add-row { position: relative; height: 0; z-index: 25; display: flex; justify-content: center; }
+.blk-add {
+  position: absolute; top: -16px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 2px solid #FFFFFF; border-radius: 50%; background: #3B82F6; color: #FFFFFF; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25); opacity: 0; transform: scale(.8); transition: opacity .15s ease, transform .15s ease;
+}
+.blk-add svg { width: 16px; height: 16px; }
+.blk-preview .blk:hover + .blk-add-row .blk-add, .blk-add-row:hover .blk-add, .blk-add:focus-visible, .blk-selected + .blk-add-row .blk-add { opacity: 1; transform: scale(1); }
+@media (hover: none) { .blk-add { opacity: 1; transform: scale(1); } }
+
+/* Barra flotante de formato del texto */
+.blk-fmtbar {
+  position: absolute; z-index: 1000; display: flex; align-items: center; gap: 2px; padding: 4px;
+  border-radius: 10px; background: #111418; color: #FFFFFF; box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.blk-fmtbar[hidden] { display: none; }
+.blk-fb { position: relative; display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 6px; border: 0; border-radius: 7px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.blk-fb:hover, .blk-fb:focus-visible, .blk-fb:focus-within { background: rgba(255, 255, 255, .16); outline: none; }
+.blk-fb.is-on { background: #3B82F6; }
+.blk-fb-sep { width: 1px; height: 18px; margin: 0 3px; background: rgba(255, 255, 255, .25); }
+.blk-fb-color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
+.blk-fb-swatch { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #FFFFFF; }

@@ -329,10 +329,19 @@
     return c.join(';');
   }
   // Texto (ya con palabras del rubro) escapado y, si tiene formato, dentro de un <span>
-  function T(b, slot, s) {
+  function Tr(b, slot, s) {
     const f = fmtOf(b, slot), css = f ? spanCss(f) : '';
     return css ? '<span class="blk-f" style="' + esc(css) + '">' + esc(s) + '</span>' : esc(s);
   }
+  /* Edición sobre la página (solo en la vista previa del editor): cada texto va
+     marcado con data-ed="<bloque>|<campo>" para escribirlo ahí mismo.
+     Campos: eyebrow, title, text, btn, btn2, x:<id> (cuadro extra), item:<n>:title|text. */
+  let EDIT = false;
+  const ED = (key, html, multi) => EDIT
+    ? (multi ? '<div class="blk-ed blk-ed-multi" data-ed="' + esc(key) + '">' + html + '</div>'
+      : '<span class="blk-ed" data-ed="' + esc(key) + '">' + html + '</span>')
+    : html;
+  const T = (b, slot, s, key) => ED(key || (b.id + '|' + slot), Tr(b, slot, s));
   // Alineación (va en el elemento de bloque: título o párrafo)
   function AL(b, slot) {
     const f = fmtOf(b, slot);
@@ -345,9 +354,12 @@
     const fg = f.color || (isDark(f.bg) ? '#FFFFFF' : '#111418');
     return ' style="--btn-bg:' + f.bg + ';--btn-line:' + f.bg + ';--btn-fg:' + fg + ';background:' + f.bg + ';border-color:' + f.bg + ';color:' + fg + '"';
   }
-  // Párrafos con formato
-  const P = (b, slot, s, cls) => String(s || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-    .map(p => '<p' + (cls ? ' class="' + cls + '"' : '') + AL(b, slot) + '>' + T(b, slot, p).replace(/\n/g, '<br>') + '</p>').join('');
+  // Párrafos con formato (al editar, todos juntos en un solo recuadro)
+  const P = (b, slot, s, cls) => {
+    const html = String(s || '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+      .map(p => '<p' + (cls ? ' class="' + cls + '"' : '') + AL(b, slot) + '>' + Tr(b, slot, p).replace(/\n/g, '<br>') + '</p>').join('');
+    return html ? ED(b.id + '|' + slot, html, true) : '';
+  };
   // Botón que lleva a una página del sitio
   function BTN(b, slot, label, page, cls, iconBefore, iconAfter) {
     return '<a class="btn ' + cls + '" href="' + esc(href(page)) + '"' + BS(b, slot) + '>' + (iconBefore ? icon(iconBefore) : '') +
@@ -359,9 +371,10 @@
       const css = x.fmt ? spanCss(x.fmt) : '';
       const al = x.fmt && FMT_ALIGN.includes(x.fmt.align) ? ' style="text-align:' + x.fmt.align + '"' : '';
       const inner = (p) => { const e = esc(p).replace(/\n/g, '<br>'); return css ? '<span class="blk-f" style="' + esc(css) + '">' + e + '</span>' : e; };
-      if (x.kind === 'titulo') return '<h3 class="blk-x blk-x-titulo"' + al + '>' + inner(x.text.trim()) + '</h3>';
-      if (x.kind === 'subtitulo') return '<p class="blk-x blk-x-sub"' + al + '>' + inner(x.text.trim()) + '</p>';
-      return String(x.text).split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map(p => '<p class="blk-x blk-x-p"' + al + '>' + inner(p) + '</p>').join('');
+      const key = b.id + '|x:' + x.id;
+      if (x.kind === 'titulo') return '<h3 class="blk-x blk-x-titulo"' + al + '>' + ED(key, inner(x.text.trim())) + '</h3>';
+      if (x.kind === 'subtitulo') return '<p class="blk-x blk-x-sub"' + al + '>' + ED(key, inner(x.text.trim())) + '</p>';
+      return ED(key, String(x.text).split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map(p => '<p class="blk-x blk-x-p"' + al + '>' + inner(p) + '</p>').join(''), true);
     }).join('');
   }
   // Fuentes que usan los formatos del diseño (para cargarlas)
@@ -395,7 +408,7 @@
     const btn = txt(b, 'btn'), btn2 = txt(b, 'btn2');
     const city = t.city ? ' · ' + t.city : '';
     const body = '<div class="blk-hero-copy reveal">' +
-      (eb ? '<span class="blk-kicker">' + T(b, 'eyebrow', eb + city) + '</span>' : '') +
+      (eb ? '<span class="blk-kicker">' + (EDIT ? T(b, 'eyebrow', eb) + esc(city) : T(b, 'eyebrow', eb + city)) + '</span>' : '') +
       (title ? '<h1 class="blk-hero-title"' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h1>' : '') +
       P(b, 'text', txt(b, 'text'), 'blk-hero-lead') + EX(b) +
       ((btn || (btn2 && !secOff('servicios'))) ? '<div class="blk-actions">' +
@@ -487,11 +500,12 @@
 
   function perksHTML(b, t) {
     const items = (Array.isArray(b.items) && b.items.length ? b.items : DEFAULT_ITEMS(t.waEnabled).slice(0, 4))
-      .filter(it => it.title || it.text);
+      .map((it, n) => ({ it, n })).filter(({ it }) => it.title || it.text);
+    const ik = (n, k) => b.id + '|item:' + n + ':' + k;
     return '<div class="container">' + head(b) +
-      '<ul class="blk-perks">' + items.map(it =>
+      '<ul class="blk-perks">' + items.map(({ it, n }) =>
         '<li class="reveal"><span class="blk-perk-ic" aria-hidden="true">' + icon(ICON_CHOICES.includes(it.icon) ? it.icon : 'checkCircle') + '</span>' +
-          '<div>' + (it.title ? '<strong' + AL(b, 'itemTitle') + '>' + T(b, 'itemTitle', fmt(it.title)) + '</strong>' : '') + (it.text ? '<p' + AL(b, 'itemText') + '>' + T(b, 'itemText', fmt(it.text)) + '</p>' : '') + '</div></li>').join('') +
+          '<div>' + (it.title ? '<strong' + AL(b, 'itemTitle') + '>' + T(b, 'itemTitle', fmt(it.title), ik(n, 'title')) + '</strong>' : '') + (it.text ? '<p' + AL(b, 'itemText') + '>' + T(b, 'itemText', fmt(it.text), ik(n, 'text')) + '</p>' : '') + '</div></li>').join('') +
       '</ul></div>';
   }
 
@@ -682,11 +696,15 @@
       root.hidden = !on;
       if (!on) { root.innerHTML = ''; return false; }
       const t = DB.tenant;
-      root.innerHTML = page.blocks.filter(b => b.show !== false || preview)
-        .map(b => {
-          const h = blockHTML(b, t, preview);
-          return b.show === false ? h.replace('<section class="', '<section class="blk-hidden ') : h;
-        }).join('');
+      EDIT = preview && !!this._previewOn;
+      try {
+        root.innerHTML = page.blocks.filter(b => b.show !== false || preview)
+          .map(b => {
+            const h = blockHTML(b, t, preview);
+            return b.show === false ? h.replace('<section class="', '<section class="blk-hidden ') : h;
+          }).join('');
+      } finally { EDIT = false; }
+      if (preview && this._previewOn) this.decorate(root, page);
       if (TB() && t.slug) TB().rewriteLinks(t.slug, root);
       if (!root._zoomBound) {
         root._zoomBound = true;
@@ -719,14 +737,29 @@
           this.select(e.data.selected, false);
         } else if (e.data.cmd === 'select') {
           this.select(e.data.id, e.data.scroll !== false);
+        } else if (e.data.cmd === 'fmtapply') {
+          this.applyEdFmt(String(e.data.key || ''), e.data.fmt || null);
         }
       });
+      this._send = send;
       document.addEventListener('click', (e) => {
-        const a = e.target.closest('a, button, form');
-        if (a) e.preventDefault();
+        // Barra del bloque y "+": acciones para el editor
+        const tool = e.target.closest('[data-ed-act]');
+        if (tool) {
+          e.preventDefault();
+          e.stopPropagation();
+          send({ cmd: 'act', act: tool.getAttribute('data-ed-act'), id: tool.getAttribute('data-id') });
+          return;
+        }
+        const ftool = e.target.closest('[data-ed-fmt]');
+        if (ftool) { e.preventDefault(); e.stopPropagation(); this.fmtClick(ftool); return; }
+        // En la vista previa nada navega ni abre ventanas (reservar con un servicio, fotos…)
+        const a = e.target.closest('a, button, form, [data-pb-action], [data-blk-zoom]');
+        if (a) { e.preventDefault(); e.stopPropagation(); }
         const blk = e.target.closest('[data-blk]');
         if (blk) send({ cmd: 'pick', id: blk.getAttribute('data-blk') });
       }, true);
+      this.bindEditing(send);
       document.addEventListener('submit', (e) => e.preventDefault(), true);
       // Datos del CRM que el editor usa (categorías de servicios, cuántos hay del equipo)
       const st = DB.state;
@@ -741,14 +774,268 @@
         }
       });
     },
+    /* ---------------- Edición sobre la página (vista previa del editor) ----------------
+       Textos con data-ed se escriben ahí mismo (cada letra viaja al editor, que
+       guarda el diseño; la vista previa no se redibuja mientras escribes). El
+       bloque elegido lleva una barra (arrastrar, subir, bajar, duplicar,
+       ocultar, eliminar) y entre bloques hay un "+" para agregar uno nuevo. */
+    ED_MAX(slot) {
+      if (/^x:/.test(slot)) return MAX.text;
+      const m = /^item:\d+:(title|text)$/.exec(slot);
+      if (m) return m[1] === 'title' ? MAX.itemTitle : MAX.itemText;
+      return MAX[slot] || 120;
+    },
+    decorate(root, page) {
+      this._page = page;
+      const plain = (() => { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only'; })();
+      root.querySelectorAll('[data-ed]').forEach(el => {
+        el.contentEditable = plain ? 'plaintext-only' : 'true';
+        el.spellcheck = true;
+        el.setAttribute('role', 'textbox');
+        if (el.classList.contains('blk-ed-multi')) el.setAttribute('aria-multiline', 'true');
+        el.setAttribute('aria-label', 'Editar texto');
+      });
+      // "+" entre bloques (después de cada uno)
+      root.querySelectorAll('section[data-blk]').forEach(sec => {
+        const id = sec.getAttribute('data-blk');
+        const add = document.createElement('div');
+        add.className = 'blk-add-row';
+        add.innerHTML = '<button type="button" class="blk-add" data-ed-act="addafter" data-id="' + esc(id) + '" aria-label="Agregar un bloque aquí" title="Agregar un bloque aquí">' + icon('plus') + '</button>';
+        sec.insertAdjacentElement('afterend', add);
+        sec.setAttribute('draggable', 'false');
+      });
+    },
+    blockTools(sec) {
+      const id = sec.getAttribute('data-blk');
+      const p = this._page && this._page.blocks;
+      const i = p ? p.findIndex(b => b.id === id) : -1;
+      const b = i >= 0 ? p[i] : null;
+      if (!b) return;
+      const def = TYPES[b.type];
+      const hidden = b.show === false;
+      const btn = (act, ic, label, dis) => '<button type="button" class="blk-tool" data-ed-act="' + act + '" data-id="' + esc(id) + '" aria-label="' + esc(label) + '" title="' + esc(label) + '"' + (dis ? ' disabled' : '') + '>' + icon(ic) + '</button>';
+      const bar = document.createElement('div');
+      bar.className = 'blk-tools';
+      bar.setAttribute('role', 'toolbar');
+      bar.setAttribute('aria-label', 'Acciones del bloque ' + def.label);
+      bar.innerHTML = '<span class="blk-tool blk-tool-grip" draggable="true" data-ed-grip="' + esc(id) + '" title="Arrastra para mover" aria-hidden="true">⋮⋮</span>' +
+        '<span class="blk-tool-name">' + esc(def.label) + '</span>' +
+        btn('up', 'arrowLeft', 'Subir bloque', i === 0) + btn('down', 'arrowRight', 'Bajar bloque', i === p.length - 1) +
+        (b.type !== 'portada' && p.length < MAX_BLOCKS ? btn('dup', 'plus', 'Duplicar bloque') : '') +
+        btn('toggle', hidden ? 'eye' : 'lock', hidden ? 'Mostrar en la web' : 'Ocultar en la web') +
+        btn('del', 'trash', 'Eliminar bloque');
+      sec.appendChild(bar);
+    },
+    bindEditing(send) {
+      if (this._edBound) return;
+      this._edBound = true;
+      const keyOf = (el) => String(el.getAttribute('data-ed') || '');
+      const valOf = (el) => {
+        let v = String(el.innerText || '').replace(/\u00a0/g, ' ');
+        if (el.classList.contains('blk-ed-multi')) v = v.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+        else v = v.replace(/\s*\n\s*/g, ' ');
+        return v;
+      };
+      document.addEventListener('input', (e) => {
+        const el = e.target.closest && e.target.closest('[data-ed]');
+        if (!el) return;
+        const key = keyOf(el), slot = key.slice(key.indexOf('|') + 1);
+        let v = valOf(el);
+        const max = this.ED_MAX(slot);
+        if (v.length > max) {
+          v = v.slice(0, max);
+          el.textContent = v;
+          const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+          const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        }
+        el.classList.toggle('is-empty', !v.trim());
+        send({ cmd: 'text', key, value: v });
+        this.placeFmtBar(el);
+      });
+      document.addEventListener('keydown', (e) => {
+        const el = e.target.closest && e.target.closest('[data-ed]');
+        if (!el) return;
+        if (e.key === 'Escape' || (e.key === 'Enter' && !el.classList.contains('blk-ed-multi'))) { e.preventDefault(); el.blur(); }
+      });
+      // Con contentEditable="true" (navegadores sin plaintext-only) se pega solo texto
+      document.addEventListener('paste', (e) => {
+        const el = e.target.closest && e.target.closest('[data-ed]');
+        if (!el || el.contentEditable === 'plaintext-only') return;
+        e.preventDefault();
+        const t = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+        document.execCommand('insertText', false, t);
+      });
+      document.addEventListener('focusin', (e) => {
+        const el = e.target.closest && e.target.closest('[data-ed]');
+        if (!el) return;
+        this._edEl = el;
+        const sec = el.closest('[data-blk]');
+        if (sec && !sec.classList.contains('blk-selected')) send({ cmd: 'pick', id: sec.getAttribute('data-blk') });
+        this.showFmtBar(el);
+      });
+      document.addEventListener('focusout', (e) => {
+        const el = e.target.closest && e.target.closest('[data-ed]');
+        if (!el) return;
+        setTimeout(() => {
+          if (document.activeElement === el) return;
+          const bar = document.getElementById('blk-fmtbar');
+          if (bar && bar.contains(document.activeElement)) return;      // eligiendo un color
+          if (this._edEl === el) { this._edEl = null; this.hideFmtBar(); }
+          send({ cmd: 'textdone', key: keyOf(el), value: valOf(el) });
+        }, 0);
+      });
+      // Arrastrar bloques desde la barra (⋮⋮)
+      let dragId = null;
+      const clear = () => document.querySelectorAll('.blk-drop-before, .blk-drop-after').forEach(x => x.classList.remove('blk-drop-before', 'blk-drop-after'));
+      document.addEventListener('dragstart', (e) => {
+        const g = e.target.closest && e.target.closest('[data-ed-grip]');
+        if (!g) return;
+        dragId = g.getAttribute('data-ed-grip');
+        try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); } catch (x) { /* navegador antiguo */ }
+        const sec = g.closest('section[data-blk]');
+        if (sec) { try { e.dataTransfer.setDragImage(sec, 40, 20); } catch (x) { /* sin imagen */ } sec.classList.add('blk-dragging'); }
+      });
+      document.addEventListener('dragover', (e) => {
+        if (!dragId) return;
+        const sec = e.target.closest && e.target.closest('section[data-blk]');
+        if (!sec) return;
+        e.preventDefault();
+        clear();
+        if (sec.getAttribute('data-blk') === dragId) return;
+        const r = sec.getBoundingClientRect();
+        sec.classList.add(e.clientY < r.top + r.height / 2 ? 'blk-drop-before' : 'blk-drop-after');
+      });
+      document.addEventListener('drop', (e) => {
+        if (!dragId) return;
+        e.preventDefault();
+        const sec = document.querySelector('.blk-drop-before, .blk-drop-after');
+        if (sec) send({ cmd: 'move', id: dragId, target: sec.getAttribute('data-blk'), after: sec.classList.contains('blk-drop-after') });
+        clear();
+      });
+      document.addEventListener('dragend', () => {
+        dragId = null;
+        clear();
+        document.querySelectorAll('.blk-dragging').forEach(x => x.classList.remove('blk-dragging'));
+      });
+      window.addEventListener('scroll', () => { if (this._edEl) this.placeFmtBar(this._edEl); }, { passive: true });
+      window.addEventListener('resize', () => { if (this._edEl) this.placeFmtBar(this._edEl); });
+    },
+
+    /* Barra flotante de formato del texto que se está escribiendo */
+    edFmt(key) {
+      const i = key.indexOf('|'), bid = key.slice(0, i), slot = key.slice(i + 1);
+      const b = this._page && this._page.blocks.find(x => x.id === bid);
+      if (!b) return { b: null };
+      if (/^x:/.test(slot)) { const x = (b.extras || []).find(e => e.id === slot.slice(2)); return { b, slot, f: (x && x.fmt) || {}, fslot: slot }; }
+      const m = /^item:\d+:(title|text)$/.exec(slot);
+      const fslot = m ? (m[1] === 'title' ? 'itemTitle' : 'itemText') : slot;
+      return { b, slot, fslot, f: (b.fmt && b.fmt[fslot]) || {} };
+    },
+    showFmtBar(el) {
+      let bar = document.getElementById('blk-fmtbar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'blk-fmtbar';
+        bar.className = 'blk-fmtbar';
+        bar.setAttribute('role', 'toolbar');
+        bar.setAttribute('aria-label', 'Formato del texto');
+        // No quita el foco del texto al pulsar
+        bar.addEventListener('mousedown', (e) => { if (!e.target.closest('input, label')) e.preventDefault(); });
+        bar.addEventListener('focusout', () => setTimeout(() => {
+          const a = document.activeElement;
+          if (bar.contains(a) || (a && a.closest && a.closest('[data-ed]'))) return;
+          this._edEl = null; this.hideFmtBar();
+        }, 0));
+        document.body.appendChild(bar);
+      }
+      this.renderFmtBar(el);
+      bar.hidden = false;
+      this.placeFmtBar(el);
+    },
+    renderFmtBar(el) {
+      const bar = document.getElementById('blk-fmtbar');
+      if (!bar || !el) return;
+      const { b, f, fslot } = this.edFmt(el.getAttribute('data-ed') || '');
+      if (!b) { bar.hidden = true; return; }
+      const sizes = ['xs', 's', '', 'l', 'xl', 'xxl'];
+      const si = Math.max(0, sizes.indexOf(f.size || ''));
+      const on = (x) => x ? ' is-on' : '';
+      const B = (k, v, label, html, pressed) => '<button type="button" class="blk-fb' + on(pressed) + '" data-ed-fmt="' + k + '" data-v="' + esc(v) + '" aria-label="' + esc(label) + '" title="' + esc(label) + '"' + (pressed != null ? ' aria-pressed="' + !!pressed + '"' : '') + '>' + html + '</button>';
+      bar.innerHTML =
+        B('bold', f.bold === true ? '' : 'b', 'Negrita', '<b>B</b>', f.bold === true) +
+        B('italic', f.italic ? '' : '1', 'Cursiva', '<i>I</i>', !!f.italic) +
+        '<span class="blk-fb-sep"></span>' +
+        B('size', sizes[Math.max(0, si - 1)], 'Letra más pequeña', 'A−') +
+        B('size', sizes[Math.min(sizes.length - 1, si + 1)], 'Letra más grande', 'A+') +
+        '<span class="blk-fb-sep"></span>' +
+        B('align', f.align === 'left' ? '' : 'left', 'Alinear a la izquierda', '⇤', f.align === 'left') +
+        B('align', f.align === 'center' ? '' : 'center', 'Centrar', '↔', f.align === 'center') +
+        B('align', f.align === 'right' ? '' : 'right', 'Alinear a la derecha', '⇥', f.align === 'right') +
+        '<span class="blk-fb-sep"></span>' +
+        '<label class="blk-fb blk-fb-color" title="Color del texto"><span class="blk-fb-swatch" style="background:' + esc(HEX_RE.test(f.color || '') ? f.color : 'currentColor') + '"></span>' +
+          '<input type="color" data-ed-color value="' + esc(HEX_RE.test(f.color || '') ? f.color : '#111418') + '" aria-label="Color del texto" /></label>' +
+        B('more', fslot, 'Más formato (letra, color del botón…)', 'Aa');
+      const inp = bar.querySelector('[data-ed-color]');
+      if (inp) inp.oninput = () => this._send && this._send({ cmd: 'fmtset', key: el.getAttribute('data-ed'), k: 'color', v: inp.value });
+    },
+    placeFmtBar(el) {
+      const bar = document.getElementById('blk-fmtbar');
+      if (!bar || bar.hidden || !el) return;
+      const r = el.getBoundingClientRect();
+      const bw = bar.offsetWidth, bh = bar.offsetHeight;
+      const left = Math.max(8, Math.min(window.innerWidth - bw - 8, r.left + r.width / 2 - bw / 2));
+      let top = r.top - bh - 10;
+      if (top < 8) top = r.bottom + 10;
+      bar.style.left = Math.round(left + window.scrollX) + 'px';
+      bar.style.top = Math.round(top + window.scrollY) + 'px';
+    },
+    hideFmtBar() { const bar = document.getElementById('blk-fmtbar'); if (bar) bar.hidden = true; },
+    fmtClick(btn) {
+      const el = this._edEl;
+      if (!el || !this._send) return;
+      const k = btn.getAttribute('data-ed-fmt'), v = btn.getAttribute('data-v') || '';
+      if (k === 'more') { this._send({ cmd: 'fmtmore', key: el.getAttribute('data-ed') }); return; }
+      this._send({ cmd: 'fmtset', key: el.getAttribute('data-ed'), k, v });
+    },
+    // El editor confirma el formato: se aplica al texto sin redibujar (no se pierde el cursor)
+    applyEdFmt(key, f) {
+      const info = this.edFmt(key);
+      if (info.b) {
+        if (/^x:/.test(info.slot)) { const x = (info.b.extras || []).find(e => e.id === info.slot.slice(2)); if (x) { if (f) x.fmt = f; else delete x.fmt; } }
+        else { info.b.fmt = Object.assign({}, info.b.fmt || {}); if (f) info.b.fmt[info.fslot] = f; else delete info.b.fmt[info.fslot]; }
+      }
+      const css = f ? spanCss(f) : '';
+      const align = f && FMT_ALIGN.includes(f.align) ? f.align : '';
+      // Todos los textos que comparten ese formato (p. ej. los títulos de "Ventajas")
+      const bid = key.slice(0, key.indexOf('|'));
+      const sec = document.querySelector('section[data-blk="' + bid.replace(/[^a-z0-9]/g, '') + '"]');
+      if (sec) {
+        sec.querySelectorAll('[data-ed]').forEach(el => {
+          const k2 = el.getAttribute('data-ed');
+          const same = k2 === key || (info.fslot && /^item:/.test(info.slot) && this.edFmt(k2).fslot === info.fslot);
+          if (!same) return;
+          el.style.cssText = css;
+          const host = el.classList.contains('blk-ed-multi') ? el : el.parentElement;
+          if (host && !host.matches('a, .btn')) {
+            host.style.textAlign = align;
+            if (host === el) el.querySelectorAll('p').forEach(p => { p.style.textAlign = align; });
+          }
+          el.querySelectorAll('.blk-f').forEach(s => { s.style.cssText = ''; });
+        });
+      }
+      if (this._edEl) { this.renderFmtBar(this._edEl); this.placeFmtBar(this._edEl); }
+    },
+
     select(id, scroll) {
       const root = document.getElementById('pub-blocks');
       if (!root) return;
       root.querySelectorAll('.blk-selected').forEach(el => el.classList.remove('blk-selected'));
+      root.querySelectorAll('.blk-tools').forEach(el => el.remove());
       if (!id) return;
       const el = root.querySelector('[data-blk="' + String(id).replace(/[^a-z0-9]/g, '') + '"]');
       if (!el) return;
       el.classList.add('blk-selected');
+      if (this._previewOn) this.blockTools(el);
       el.querySelectorAll('.reveal').forEach(r => r.classList.add('is-visible'));
       if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
