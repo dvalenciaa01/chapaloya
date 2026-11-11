@@ -147,8 +147,107 @@ const SiteBuilder = {
       this.renderPanel();
     } else if (e.data.cmd === 'pick') {
       const id = String(e.data.id || '');
-      if (this.block(id)) { if (this.st.selected !== id) this.st.fmtOpen = null; this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false }); }
+      if (this.block(id) && (this.st.selected !== id || this.st.view !== 'block')) {
+        if (this.st.selected !== id) this.st.fmtOpen = null;
+        this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false });
+      }
+    } else if (e.data.cmd === 'act') {
+      this.fromPreview(String(e.data.act || ''), String(e.data.id || ''));
+    } else if (e.data.cmd === 'move') {
+      this.moveBlock(String(e.data.id || ''), String(e.data.target || ''), !!e.data.after);
+    } else if (e.data.cmd === 'text' || e.data.cmd === 'textdone') {
+      this.applyText(String(e.data.key || ''), String(e.data.value == null ? '' : e.data.value), e.data.cmd === 'textdone');
+    } else if (e.data.cmd === 'fmtset') {
+      this.applyFmtFromPreview(String(e.data.key || ''), String(e.data.k || ''), String(e.data.v == null ? '' : e.data.v));
+    } else if (e.data.cmd === 'fmtmore') {
+      const r = this.edTarget(String(e.data.key || ''));
+      if (r) { this.st.selected = r.b.id; this.st.view = 'block'; this.st.fmtOpen = r.fslot; this.renderPanel(); this.scrollPanelTo('[data-slot="' + r.fslot + '"]'); }
     }
+  },
+
+  /* ---------------- Edición sobre la página (lo que llega de la vista previa) ---------------- */
+  // Acciones de la barra del bloque y del "+": las mismas que los botones del panel
+  fromPreview(act, id) {
+    if (!['up', 'down', 'dup', 'toggle', 'del', 'addafter'].includes(act) || !this.block(id)) return;
+    if (act === 'addafter') {
+      this.st.selected = id; this.st.view = 'add'; this.renderPanel();
+      const p = document.getElementById('sb-panel'); if (p) { p.scrollTop = 0; const f = p.querySelector('.sb-type'); if (f) f.focus(); }
+      return;
+    }
+    const el = document.createElement('button');
+    el.setAttribute('data-sb', act);
+    el.setAttribute('data-id', id);
+    this.onClick({ target: el });
+    if (act === 'dup' || act === 'toggle') setTimeout(() => this.st && this.post({ cmd: 'select', id: this.st.selected, scroll: false }), 150);
+  },
+  moveBlock(id, target, after) {
+    const list = this.st.page.blocks;
+    const from = list.findIndex(b => b.id === id);
+    if (from < 0 || id === target || list.findIndex(b => b.id === target) < 0) return;
+    const [b] = list.splice(from, 1);
+    const to = list.findIndex(x => x.id === target) + (after ? 1 : 0);
+    list.splice(to, 0, b);
+    this.st.selected = id;
+    this.touch(true);
+    setTimeout(() => this.st && this.post({ cmd: 'select', id, scroll: false }), 150);
+  },
+  // "<bloque>|<campo>" → { b, slot, fslot }
+  edTarget(key) {
+    const i = key.indexOf('|');
+    if (i < 1) return null;
+    const b = this.block(key.slice(0, i)), slot = key.slice(i + 1);
+    if (!b) return null;
+    const m = /^item:(\d+):(title|text)$/.exec(slot);
+    if (m) return { b, slot, item: Number(m[1]), k: m[2], fslot: m[2] === 'title' ? 'itemTitle' : 'itemText' };
+    if (/^x:/.test(slot)) return this.extraOf(b, slot) ? { b, slot, fslot: slot } : null;
+    if (!['eyebrow', 'title', 'text', 'btn', 'btn2'].includes(slot)) return null;
+    return { b, slot, fslot: slot };
+  },
+  applyText(key, value, done) {
+    const r = this.edTarget(key);
+    if (!r) return;
+    const { b, slot } = r, M = SiteBlocks.MAX;
+    let field = null;
+    if (r.item != null) {
+      // Ventajas sin personalizar: se copian las de siempre (las que se ven) para editarlas
+      if (!Array.isArray(b.items) || !b.items.length) {
+        const wa = !this.st.info || this.st.info.waEnabled;
+        b.items = SiteBlocks.DEFAULT_ITEMS(wa).slice(0, 4).map(x => Object.assign({}, x, { title: this.fmt(x.title), text: this.fmt(x.text) }));
+      }
+      const it = b.items[r.item];
+      if (!it) return;
+      it[r.k] = value.slice(0, r.k === 'title' ? M.itemTitle : M.itemText);
+      field = '[data-sb-item="' + r.item + '"][data-k="' + r.k + '"]';
+    } else if (/^x:/.test(slot)) {
+      const x = this.extraOf(b, slot);
+      x.text = value.slice(0, M.text);
+      field = '[data-sb-extra="' + (b.extras || []).indexOf(x) + '"][data-k="text"]';
+    } else {
+      b[slot] = value.slice(0, M[slot]);
+      field = '[data-sb-field="' + slot + '"]';
+    }
+    this.st.dirty = true;
+    this.updateSave();
+    // El panel muestra el mismo texto (sin redibujarlo, para no perder nada)
+    const panel = document.getElementById('sb-panel');
+    const inp = panel && this.st.selected === b.id && panel.querySelector(field);
+    if (inp && document.activeElement !== inp) inp.value = r.item != null ? b.items[r.item][r.k] : (/^x:/.test(slot) ? this.extraOf(b, slot).text : b[slot]);
+    // Al terminar con el texto vacío se redibuja (ese texto queda quitado, como en el panel)
+    if (done && !value.trim()) this.touch(true);
+  },
+  applyFmtFromPreview(key, k, v) {
+    const r = this.edTarget(key);
+    if (!r || !['bold', 'italic', 'size', 'align', 'color'].includes(k)) return;
+    this.setFmt(r.b, r.fslot, k, v);
+    this.st.dirty = true;
+    this.updateSave();
+    if (this.st.selected === r.b.id && this.st.view === 'block') this.renderPanel();
+    this.post({ cmd: 'fmtapply', key, fmt: this.fmtGet(r.b, r.fslot) });
+  },
+  scrollPanelTo(sel) {
+    const p = document.getElementById('sb-panel');
+    const el = p && p.querySelector(sel);
+    if (el) { el.scrollIntoView({ block: 'center' }); if (el.focus) el.focus(); }
   },
 
   /* ---------------- Datos ---------------- */
@@ -206,7 +305,7 @@ const SiteBuilder = {
     if (info && !info.contact) notes.push('Para el bloque de contacto, completa dirección, teléfono u horario en CRM → Configuración.');
     return '<div class="sb-pad">' +
       '<h2 class="sb-h">Bloques del Inicio</h2>' +
-      '<p class="sb-hint">Toca un bloque para editarlo, o tócalo en la vista previa. Arrástralos o usa las flechas para ordenarlos. ' +
+      '<p class="sb-hint">Escribe directamente sobre la página: haz clic en cualquier texto para cambiarlo y en un bloque para moverlo, duplicarlo u ocultarlo. Con el <strong>+</strong> entre bloques agregas uno nuevo. ' +
         E(this.fmt('Los {servicePlural}, el equipo, las fotos y los datos de contacto salen del CRM: si los cambias allí, la web se actualiza sola.')) + '</p>' +
       notes.map(n => '<p class="sb-note">' + n + '</p>').join('') +
       '<button type="button" class="sb-type sb-theme-btn" data-sb="theme">' +
