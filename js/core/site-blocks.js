@@ -977,25 +977,41 @@
        libre. Se mueve dentro de su bloque; al soltar, el editor guarda la
        posición de la vista actual (computadora o celular). */
     bindFree(send) {
-      let drag = null;
+      let drag = null, pending = null;
       const round = (v) => Math.round(v * 10) / 10;
-      document.addEventListener('pointerdown', (e) => {
-        const grip = e.target.closest && e.target.closest('[data-free-grip], [data-free-size]');
-        if (!grip || e.button > 0) return;
-        const box = grip.closest('.blk-free'), sec = box && box.closest('section[data-blk]');
-        if (!sec) return;
-        e.preventDefault();
+      const start = (box, resize, ev, el) => {
+        const sec = box.closest('section[data-blk]');
         const sr = sec.getBoundingClientRect(), br = box.getBoundingClientRect();
         drag = {
-          box, sec, sr, resize: grip.hasAttribute('data-free-size'), sx: e.clientX, sy: e.clientY,
+          box, sec, sr, resize, sx: ev.clientX, sy: ev.clientY,
           x: (br.left - sr.left) / sr.width * 100, y: (br.top - sr.top) / sr.height * 100, w: br.width / sr.width * 100, h: br.height / sr.height * 100
         };
         drag.nx = drag.x; drag.ny = drag.y; drag.nw = drag.w;
         box.classList.add('is-moving');
-        try { grip.setPointerCapture(e.pointerId); } catch (x) { /* sin captura */ }
+        try { el.setPointerCapture(ev.pointerId); } catch (x) { /* sin captura */ }
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        this.hideFmtBar();
+      };
+      document.addEventListener('pointerdown', (e) => {
+        if (e.button > 0 || !e.target.closest) return;
+        const box = e.target.closest('.blk-free');
+        if (!box || !box.closest('section[data-blk]') || e.target.closest('.blk-free-del')) return;
+        const grip = e.target.closest('[data-free-grip], [data-free-size]');
+        if (grip) { e.preventDefault(); start(box, grip.hasAttribute('data-free-size'), e, grip); return; }
+        // Como en Canva: se arrastra desde cualquier parte del cuadro; un clic sin
+        // mover entra a escribir. Mientras se escribe, el mouse selecciona texto.
+        const ed = box.querySelector('[data-ed]');
+        if (ed && ed.contains(document.activeElement)) return;
+        e.preventDefault();
+        pending = { box, ed, sx: e.clientX, sy: e.clientY, id: e.pointerId, el: e.target };
       });
       document.addEventListener('pointermove', (e) => {
+        if (pending && !drag) {
+          if (Math.abs(e.clientX - pending.sx) + Math.abs(e.clientY - pending.sy) < 5) return;
+          const p = pending;
+          pending = null;
+          start(p.box, false, { clientX: p.sx, clientY: p.sy, pointerId: p.id }, p.box);
+        }
         if (!drag) return;
         e.preventDefault();
         const dx = (e.clientX - drag.sx) / drag.sr.width * 100, dy = (e.clientY - drag.sy) / drag.sr.height * 100;
@@ -1009,7 +1025,20 @@
           drag.box.style.top = drag.ny + '%';
         }
       });
-      const end = () => {
+      const end = (e) => {
+        if (pending) {
+          const p = pending;
+          pending = null;
+          if (e && e.type === 'pointerup' && p.ed) {
+            p.ed.focus();
+            // El cursor donde se hizo clic
+            try {
+              const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+              if (r && p.ed.contains(r.startContainer)) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+            } catch (x) { /* sin cursor exacto */ }
+          }
+          return;
+        }
         if (!drag) return;
         const d = drag;
         drag = null;
@@ -1089,8 +1118,11 @@
       const r = el.getBoundingClientRect();
       const bw = bar.offsetWidth, bh = bar.offsetHeight;
       const left = Math.max(8, Math.min(window.innerWidth - bw - 8, r.left + r.width / 2 - bw / 2));
-      let top = r.top - bh - 10;
+      // En un cuadro libre, debajo (arriba están su asa y su papelera)
+      const free = el.closest && el.closest('.blk-free');
+      let top = free ? r.bottom + 12 : r.top - bh - 10;
       if (top < 8) top = r.bottom + 10;
+      if (free && top + bh > window.innerHeight - 8) top = Math.max(8, r.top - bh - 48);
       bar.style.left = Math.round(left + window.scrollX) + 'px';
       bar.style.top = Math.round(top + window.scrollY) + 'px';
     },
