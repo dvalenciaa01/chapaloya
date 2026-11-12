@@ -380,7 +380,7 @@ const DB = {
       from(r) {
         return { id: r.id, name: r.name, phone: r.phone || '—', notes: r.notes || '',
           email: r.email || '', birthdate: r.birthdate || '', document: r.document || '', address: r.address || '',
-          extra: DB.normExtra(r.extra) };
+          createdAt: r.created_at || '', extra: DB.normExtra(r.extra) };
       },
       logical(c) {
         return { name: c.name, phone: DB.cleanPhone(c.phone), notes: c.notes || '',

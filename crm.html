@@ -377,8 +377,30 @@
             <label for="cust-search-q" class="sr-only" data-v-fmt="Buscar {client}">Buscar cliente</label>
             <input type="search" id="cust-search-q" class="input-dark" placeholder="Buscar por nombre, teléfono o dato…" oninput="CRM.renderCustomers(true)" />
           </div>
+          <div class="cust-tools">
+            <div class="segmented cust-filters" id="cust-filters" role="group" aria-label="Filtro rápido"></div>
+            <div class="cust-tools-right">
+              <label class="cust-sort-lbl" for="cust-sort">Ordenar por</label>
+              <select id="cust-sort" class="input-dark cust-sort" onchange="CRM.renderCustomers(true)">
+                <option value="recent">Última visita</option>
+                <option value="name">Nombre</option>
+                <option value="visits">Más visitas</option>
+                <option value="spent">Más gasto</option>
+              </select>
+              <div class="cust-view" role="group" aria-label="Forma de ver">
+                <button type="button" class="cust-view-btn" data-cview="cards" onclick="CRM.setCustView('cards')" aria-label="Ver como tarjetas" title="Tarjetas"><i data-icon="dashboard"></i></button>
+                <button type="button" class="cust-view-btn" data-cview="table" onclick="CRM.setCustView('table')" aria-label="Ver como tabla" title="Tabla"><i data-icon="list"></i></button>
+              </div>
+            </div>
+          </div>
           <p class="field-hint" id="cust-count" aria-live="polite"></p>
           <div class="cards-grid-3" id="crm-customers-grid"></div>
+          <div class="crm-table-wrap" id="crm-customers-table" hidden>
+            <table class="crm-table cust-table">
+              <thead id="cust-thead"></thead>
+              <tbody id="cust-tbody"></tbody>
+            </table>
+          </div>
           <div class="btn-row cust-more-row"><button type="button" class="btn-dark" id="cust-more" onclick="CRM.showMoreCustomers()" hidden>Ver más</button></div>
         </div>
 
