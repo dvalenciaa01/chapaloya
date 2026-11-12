@@ -54,7 +54,7 @@ const CRM = {
     this.bindDirtyGuards();
     const today = DB.todayISO();
     const dateLbl = document.getElementById('crm-current-date-label');
-    if (dateLbl) dateLbl.textContent = 'Fecha: ' + today;
+    if (dateLbl) dateLbl.textContent = this.fmtShortDate(today, true);
 
     const badgeAppts = document.getElementById('badge-nav-appts');
     if (badgeAppts) badgeAppts.textContent = DB.visibleAppointments().filter(a => a.date === today).length;
@@ -134,6 +134,22 @@ const CRM = {
     box.hidden = false;
   },
 
+  /* Menú "⋯" con acciones poco usadas o peligrosas (Eliminar), para que no
+     queden al lado de Editar en cada tarjeta. items: [{ label, icon, onclick, danger }] */
+  moreMenu(label, items) {
+    if (!this._moreBound) {
+      this._moreBound = true;
+      document.addEventListener('click', (e) => {
+        document.querySelectorAll('details.row-more[open]').forEach(d => { if (!d.contains(e.target) || e.target.closest('.row-more-menu button')) d.open = false; });
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.row-more[open]').forEach(d => { d.open = false; }); });
+    }
+    return '<details class="row-more"><summary class="btn-dark btn-xs" aria-label="' + UI.esc(label) + '" title="Más opciones">' + ic('dots') + '</summary>' +
+      '<div class="row-more-menu" role="menu">' + items.map(it =>
+        '<button type="button" role="menuitem"' + (it.danger ? ' class="is-danger"' : '') + ' onclick="' + it.onclick + '">' + (it.icon ? ic(it.icon) : '') + UI.esc(it.label) + '</button>').join('') +
+      '</div></details>';
+  },
+
   /* ---------- M13: marcar formularios con cambios sin guardar ---------- */
   bindDirtyGuards() {
     const mark = (e) => {
@@ -178,19 +194,20 @@ const CRM = {
               '<h3 style="font-size:1.3rem; overflow-wrap:anywhere;">' + E(bp.name) + '</h3>' +
               (F('role') ? '<div style="font-size:0.78rem; color:var(--text-grey); margin-bottom:8px;">' + E(bp.role || Vocab.T('staff')) + '</div>' : '') +
               '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
-                (F('gallery') ? '<button class="btn-golden btn-xs" onclick="CRM.openAddHaircutPhotoModal(\'' + E(bp.id) + '\')">' + ic('camera') + 'Subir foto de trabajo</button>' : '') +
-                '<button class="btn-dark btn-xs" onclick="CRM.openBarberProfileModal(\'' + E(bp.id) + '\')">' + ic('edit') + 'Editar perfil</button>' +
-                '<button class="btn-danger btn-xs" onclick="CRM.deleteBarberProfile(\'' + E(bp.id) + '\')" aria-label="Eliminar">' + ic('trash') + '</button>' +
+                (F('gallery') ? '<button class="btn-golden btn-xs" onclick="CRM.openAddHaircutPhotoModal(\'' + E(bp.id) + '\')">' + ic('camera') + 'Subir foto</button>' : '') +
+                '<button class="btn-dark btn-xs" onclick="CRM.openBarberProfileModal(\'' + E(bp.id) + '\')">' + ic('edit') + 'Editar</button>' +
+                this.moreMenu('Más opciones para ' + bp.name, [{ danger: true, icon: 'trash', label: UI.v('Eliminar {staff}'), onclick: 'CRM.deleteBarberProfile(\'' + E(bp.id) + '\')' }]) +
               '</div>' +
             '</div>' +
           '</div>' +
           (F('bio') ? '<div style="margin-bottom:14px;">' +
-            '<span class="field-lbl" style="font-size:0.68rem; color:var(--text-grey);">ESPECIALIDADES:</span>' +
+            '<span class="crm-mini-lbl">Especialidades</span>' +
             '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">' + specs + '</div>' +
           '</div>' : '') +
           (F('gallery') ? '<div>' +
-            '<span class="field-lbl" style="font-size:0.68rem; color:var(--golden);">FOTOS DE TRABAJOS REALIZADOS (' + (bp.works || []).length + '):</span>' +
-            '<div class="crm-work-thumbs">' + thumbs + '</div>' +
+            '<span class="crm-mini-lbl">Fotos de trabajos (' + (bp.works || []).length + ')</span>' +
+            ((bp.works || []).length ? '<div class="crm-work-thumbs">' + thumbs + '</div>'
+              : '<p class="crm-mini-empty">' + ic('camera') + 'Aún no hay fotos. Súbelas con «Subir foto» y se verán en la web.</p>') +
           '</div>' : '') +
         '</div>' +
       '</div>';
@@ -737,7 +754,7 @@ const CRM = {
       case 'phone': return E(a.phone || '—');
       case 'service': return E(a.service);
       case 'staff': return E(a.barber);
-      case 'date': return E(a.date);
+      case 'date': return '<span title="' + E(a.date) + '">' + E(this.fmtShortDate(a.date)) + '</span>';
       case 'time': return '<strong>' + E(a.time) + '</strong>';
       case 'price': return '<strong>' + cur + E(a.price) + '</strong>';
       case 'status': return '<span class="st-badge st-' + E(a.status) + '">' + E(DB.statusLabel(a.status)) + '</span>';
@@ -833,7 +850,7 @@ const CRM = {
     const note = document.getElementById('appt-view-note');
     if (note) {
       const local = DB.tenant && !DB.tenant.hasApptView;
-      note.hidden = !local;
+      note.hidden = !local || !(Auth.user && Auth.user.role === 'SUPERADMIN');
       note.textContent = local ? 'Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 14 en Supabase.' : '';
     }
   },
@@ -1038,7 +1055,7 @@ const CRM = {
       row(Vocab.T('service'), E(a.service)),
       (a.options || []).length ? row('Opciones', a.options.map(o => E(o.group ? o.group + ': ' : '') + '<strong>' + E(o.item) + '</strong>' + (o.price ? ' (+' + E(this.cur()) + E(o.price) + ')' : '')).join('<br>')) : '',
       row(Vocab.T('staff'), E(a.barber)),
-      row('Fecha y hora', E(a.date) + ' · ' + E(a.time)),
+      row('Fecha y hora', E(this.fmtShortDate(a.date)) + ' · ' + E(a.time)),
       this.fshow('appointments', 'price') ? row('Precio', this.cur() + E(a.price)) : '',
       row('Estado', '<span class="st-badge st-' + E(a.status) + '">' + E(DB.statusLabel(a.status)) + '</span>'),
       this.fshow('appointments', 'source') ? row('Origen', a.source === 'WEB' ? 'Web' : 'CRM') : '',
@@ -1180,7 +1197,7 @@ const CRM = {
     const barbOptions = barbers.map(b => '<option value="' + E(b.id) + '"' + (b.id === a.barberId ? ' selected' : '') + '>' + E(b.name) + '</option>').join('');
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">Agenda</span><h3>' + this.vx('Reprogramar {appointment}') + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
-      '<p class="form-note">' + E(a.customerName) + ' · ' + E(a.service) + ' · ahora: ' + E(a.date) + ' ' + E(a.time) + ' con ' + E(a.barber) + '</p>' +
+      '<p class="form-note">' + E(a.customerName) + ' · ' + E(a.service) + ' · ahora: ' + E(this.fmtShortDate(a.date)) + ' ' + E(a.time) + ' con ' + E(a.barber) + '</p>' +
       '<form onsubmit="CRM.saveReschedule(event, \'' + E(a.id) + '\')" novalidate>' +
         '<div class="form-grid-2">' +
           '<div><label class="field-lbl" for="m-rp-barber">' + E(Vocab.T('staff')) + '</label><select id="m-rp-barber" class="input-dark" onchange="CRM.refreshRescheduleSlots(\'' + E(a.id) + '\')"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
@@ -1262,7 +1279,7 @@ const CRM = {
         '<div>' +
           '<h3 style="font-size:1.15rem;">' + E(w.customerName) + '</h3>' +
           '<span class="st-badge st-' + E(w.status) + '" style="margin:4px 0 10px;">' + stLabel + '</span>' +
-          (old ? '<p class="text-warn" style="font-size:0.78rem;">Quedó abierto del ' + E(w.date) + ': finalízalo.</p>' : '') +
+          (old ? '<p class="text-warn" style="font-size:0.78rem;">Quedó abierto del ' + E(this.fmtShortDate(w.date)) + ': finalízalo.</p>' : '') +
           '<p style="font-size:0.83rem; line-height:1.65; color:var(--text-light); margin-bottom:14px;">' +
             E(w.service) + ' - <strong>' + cur + E(w.price) + '</strong><br/>' +
             E(Vocab.T('staff')) + ': <strong>' + E(w.barber) + '</strong> • Agregado: ' + E(w.addedAt) +
@@ -1273,15 +1290,16 @@ const CRM = {
           '<button type="button" class="btn-dark btn-xs" onclick="CRM.setWalkInStatus(\'' + E(w.id) + '\',\'FINALIZADO\')">Finalizar</button>' +
         '</div>' +
       '</div>';
-    }).join('');
+    }).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('hourglass') + '<strong>Nadie en espera</strong>' +
+      'Cuando llegue alguien sin cita, agrégalo con <b>+ Agregar walk-in</b> y aparecerá aquí.</div>';
 
-    document.getElementById('walkin-finished-count').textContent = finished.length + ' completados';
+    document.getElementById('walkin-finished-count').textContent = finished.length + (finished.length === 1 ? ' completado' : ' completados');
     document.getElementById('walkin-finished-list').innerHTML = finished.map(w =>
       '<div class="crm-list-item">' +
         '<div><strong>' + E(w.customerName) + '</strong> — ' + E(w.service) + ' (' + cur + E(w.price) + ')</div>' +
         '<span class="st-badge st-COMPLETADA">Finalizado</span>' +
       '</div>'
-    ).join('');
+    ).join('') || '<p class="crm-mini-empty">' + ic('check') + 'Todavía no se finalizó ninguna atención sin cita hoy.</p>';
   },
 
   async setWalkInStatus(id, status) {
@@ -1337,7 +1355,7 @@ const CRM = {
     const sh = document.getElementById('sales-recent-thead');
     if (sh) sh.innerHTML = '<tr><th scope="col">Fecha</th><th scope="col">' + L.client + '</th><th scope="col">' + L.service + '</th><th scope="col">' + L.staff + '</th>' + (src ? '<th scope="col">Origen</th>' : '') + '<th scope="col">Ingreso</th></tr>';
     document.getElementById('sales-recent-tbody').innerHTML = allSales.slice(0, 60).map(s =>
-      '<tr><td data-label="Fecha">' + E(s.date) + (s.time ? ' ' + E(s.time) : '') + '</td><td data-label="' + L.client + '"><strong>' + E(s.customer) + '</strong></td><td data-label="' + L.service + '">' + E(s.service) + '</td><td data-label="' + L.staff + '">' + E(s.barber) + '</td>' + (src ? '<td data-label="Origen"><span class="st-badge st-EN_SILLON">' + E(s.source) + '</span></td>' : '') + '<td data-label="Ingreso"><strong style="color:var(--golden);">' + cur + s.price + '</strong></td></tr>'
+      '<tr><td data-label="Fecha">' + E(this.fmtShortDate(s.date)) + (s.time ? ' · ' + E(s.time) : '') + '</td><td data-label="' + L.client + '"><strong>' + E(s.customer) + '</strong></td><td data-label="' + L.service + '">' + E(s.service) + '</td><td data-label="' + L.staff + '">' + E(s.barber) + '</td>' + (src ? '<td data-label="Origen"><span class="st-badge st-soft">' + E(s.source) + '</span></td>' : '') + '<td data-label="Ingreso"><strong style="color:var(--golden);">' + cur + s.price + '</strong></td></tr>'
     ).join('');
   },
 
@@ -1370,7 +1388,7 @@ const CRM = {
         '</div>' +
         (canEdit ? '<div class="row-actions">' +
           '<button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')" aria-label="Editar a ' + E(c.name) + '">' + ic('edit') + 'Editar</button>' +
-          '<button type="button" class="btn-danger btn-xs" onclick="CRM.deleteCustomer(\'' + E(c.id) + '\')" aria-label="Eliminar a ' + E(c.name) + '">' + ic('trash') + 'Eliminar</button>' +
+          this.moreMenu('Más opciones para ' + c.name, [{ danger: true, icon: 'trash', label: 'Eliminar', onclick: 'CRM.deleteCustomer(\'' + E(c.id) + '\')' }]) +
         '</div>' : '') +
       '</div>';
     }).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>' + this.vx('Sin {clientPlural}') + '</strong>' + (q ? 'Nadie coincide con la búsqueda.' : this.vx('Se agregan al registrar {appointmentPlural} con celular.')) + '</div>';
@@ -1412,7 +1430,7 @@ const CRM = {
         '</div>' +
         '<div class="row-actions">' +
           '<button type="button" class="btn-dark btn-xs" onclick="CRM.openServiceModal(\'' + UI.esc(s.id) + '\')">' + ic('edit') + 'Editar</button>' +
-          '<button type="button" class="btn-danger btn-xs" onclick="CRM.deleteService(\'' + UI.esc(s.id) + '\')">' + ic('trash') + 'Eliminar</button>' +
+          this.moreMenu('Más opciones para ' + s.name, [{ danger: true, icon: 'trash', label: 'Eliminar', onclick: 'CRM.deleteService(\'' + UI.esc(s.id) + '\')' }]) +
         '</div>' +
       '</div>'
     ).join('');
@@ -1770,7 +1788,7 @@ const CRM = {
       const hint = document.getElementById('set-ref-photos-hint');
       if (hint) hint.textContent = t.hasBookingPhotos
         ? 'Quien reserva en la web puede adjuntar hasta 3 fotos de lo que quiere (diseño, corte, color). Las ves en la ficha de la cita.'
-        : 'Para activarlo falta aplicar la migración 26 en Supabase.';
+        : (Auth.user && Auth.user.role === 'SUPERADMIN' ? 'Para activarlo falta aplicar la migración 26 en Supabase.' : 'Próximamente: tus clientes podrán adjuntar fotos de lo que quieren al reservar.');
     }
     const nameEl = document.getElementById('set-tenant-name');
     if (nameEl) nameEl.textContent = t.name;
@@ -1798,7 +1816,7 @@ const CRM = {
     const txt = document.getElementById('set-web-design-text');
     const btn = document.getElementById('set-web-design-btn');
     if (!t.hasWebPage) {
-      if (txt) txt.textContent = 'El constructor de la web necesita la migración 21 en Supabase (ver supabase/README.md).';
+      if (txt) txt.textContent = sa ? 'El constructor de la web necesita la migración 21 en Supabase (ver supabase/README.md).' : 'Próximamente podrás diseñar tu web desde aquí.';
       if (btn) btn.disabled = true;
       return;
     }
@@ -2528,6 +2546,16 @@ const CRM = {
         '<button type="button" class="btn-dark btn-xs" onclick="CRM.deleteException(\'' + UI.esc(e.id) + '\')" aria-label="Quitar fecha especial del ' + UI.esc(this.fmtLongDate(e.date)) + '">' + ic('trash') + 'Quitar</button>' +
       '</div>';
     }).join('') + '</div>';
+  },
+
+  // "jue 12 nov" (con el año si no es el actual); long=true → "Jueves 12 de noviembre"
+  fmtShortDate(iso, long) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+    if (long) return this.fmtLongDate(iso.slice(0, 10));
+    const d = new Date(iso.slice(0, 10) + 'T12:00:00');
+    const M = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const y = d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '';
+    return DB.DAY_NAMES[d.getDay()].slice(0, 3).toLowerCase() + ' ' + d.getDate() + ' ' + M[d.getMonth()] + y;
   },
 
   fmtLongDate(iso) {

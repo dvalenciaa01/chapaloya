@@ -616,3 +616,17 @@ img, video, svg { max-width: 100%; }
   text-overflow: ellipsis;
 }
 .brand-wordmark.is-lg { font-size: 2.2rem; }
+
+/* Menú "⋯" de las tarjetas (Eliminar y acciones poco usadas) */
+.row-more { position: relative; display: inline-block; }
+.row-more > summary { list-style: none; cursor: pointer; }
+.row-more > summary::-webkit-details-marker { display: none; }
+.row-more > summary .ic { width: 18px; height: 18px; }
+.row-more-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 180px; padding: 6px;
+  background: var(--ink-850); border: 1px solid var(--line-dark-strong); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28); }
+.row-more-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 12px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--white); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.row-more-menu button:hover, .row-more-menu button:focus-visible { background: var(--ink-750); }
+.row-more-menu button.is-danger { color: var(--danger-text); }
+.row-more-menu .ic { width: 16px; height: 16px; }
+.st-soft { background: rgba(var(--fg-rgb), 0.06); color: var(--on-dark-lo); border: 1px solid var(--line-dark); }
