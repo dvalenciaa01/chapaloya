@@ -708,7 +708,7 @@ const DB = {
     if (sub) out.heroSubtitle = sub;
     if (img && /^https:\/\/[^\s"'<>()]+$/i.test(img)) out.heroImage = img;   // solo https, sin caracteres que rompan el atributo
     // Diseño y secciones del menú (migración 19). Sin dato = según el rubro y las de siempre.
-    if (site.layout === 'clasico' || site.layout === 'boutique') out.layout = site.layout;
+    if (site.layout === 'clasico' || site.layout === 'boutique' || site.layout === 'rosa') out.layout = site.layout;   // rosa: migración 30
     if (Array.isArray(site.sections)) {
       const TYPES = ['inicio', 'servicios', 'equipo', 'galeria', 'mi-cita', 'reservar'];
       const secs = site.sections.filter(x => x && typeof x === 'object' && TYPES.includes(x.type) && txt(x.label, 30))

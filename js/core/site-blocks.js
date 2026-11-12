@@ -662,6 +662,47 @@
     if (typeof d.showModal === 'function') d.showModal(); else window.open(src, '_blank', 'noopener');
   }
 
+  /* Diseño "rosa" (css/pages/rosa.css): adornos sobre el Inicio ya dibujado, con las
+     fotos de trabajos que el negocio ya subió. Nada de texto nuevo: solo resalta en
+     rosa la segunda parte del título de la portada y la última palabra de la franja. */
+  function rosaDecor(root, editing) {
+    const works = [];
+    DB.state.barberProfiles.forEach(bp => (bp.works || []).forEach(w => { if (w.image) works.push(w.image); }));
+    const photo = (cls, src) => {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.setAttribute('aria-hidden', 'true');
+      d.innerHTML = '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async" />';
+      return d;
+    };
+    // Solo títulos de texto simple (sin formato ni edición en curso)
+    const plain = (el) => {
+      if (!el || editing) return null;
+      const span = el.children.length === 1 && el.firstElementChild.classList.contains('blk-f') && !el.firstElementChild.children.length ? el.firstElementChild : null;
+      if (el.children.length && !span) return null;
+      return span || el;
+    };
+    const h1 = plain(root.querySelector('.blk-portada .blk-hero-title'));
+    if (h1) {
+      const txt = h1.textContent, i = txt.indexOf(', ');
+      if (i > 0 && i < txt.length - 2) h1.innerHTML = esc(txt.slice(0, i + 1)) + ' <em class="rs-em">' + esc(txt.slice(i + 2)) + '</em>';
+    }
+    const cta = root.querySelector('.blk-reservar .blk-cta-inner');
+    if (cta) {
+      const h2 = plain(cta.querySelector('h2'));
+      if (h2) {
+        const m = h2.textContent.match(/^(.*\s)(\S+?)([?!.]*)$/);
+        if (m) h2.innerHTML = esc(m[1]) + '<em class="rs-em">' + esc(m[2]) + '</em>' + esc(m[3]);
+      }
+      if (works.length && !cta.querySelector('.rs-band-photo')) cta.appendChild(photo('rs-band-photo', works[1] || works[0]));
+    }
+    const visit = root.querySelector('.blk-contacto');
+    if (visit && works.length && !visit.querySelector('.rs-visit-photo')) {
+      visit.classList.add('rs-has-photo');
+      visit.insertBefore(photo('rs-visit-photo', works[2] || works[0]), visit.firstChild);
+    }
+  }
+
   const RENDER = { video: videoHTML, fotos: photosHTML, portada: heroHTML, servicios: servicesHTML, equipo: teamHTML, galeria: galleryHTML, ventajas: perksHTML, reservar: ctaHTML, contacto: contactHTML, texto: textHTML };
 
   function blockHTML(b, t, preview) {
@@ -740,6 +781,7 @@
           }).join('');
       } finally { EDIT = false; }
       if (preview && this._previewOn) this.decorate(root, page);
+      if (document.documentElement.getAttribute('data-look') === 'rosa') rosaDecor(root, preview && !!this._previewOn);
       if (TB() && t.slug) TB().rewriteLinks(t.slug, root);
       if (!root._zoomBound) {
         root._zoomBound = true;

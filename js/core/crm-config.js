@@ -12,7 +12,7 @@
      lists         { appointments: { columns: ['client', …, 'x:clave'] } }
      theme         { mode, primary, accent, font, density, radius, logoInNav }
      site          { heroTitle, heroSubtitle, heroImage } portada de la web
-                   layout   'clasico' | 'boutique' (sin dato = según el rubro)
+                   layout   'clasico' | 'boutique' | 'rosa' (sin dato = según el rubro)
                    sections [{ type, label, show, cat? }] menú de la web, en orden
                             (sin dato = las de siempre). El CRM nunca lee "site":
                             solo lo usa la web pública (js/core/tenant-brand.js).
@@ -118,7 +118,8 @@
   const SITE_LAYOUTS = [
     { key: '', label: 'Según el rubro' },
     { key: 'clasico', label: 'Clásico' },
-    { key: 'boutique', label: 'Boutique (portada grande con serifa)' }
+    { key: 'boutique', label: 'Boutique (portada grande con serifa)' },
+    { key: 'rosa', label: 'Rosa (salón de uñas: rosa, negro y blanco)' }
   ];
   const SECTION_TYPES = [
     { key: 'inicio', label: 'Inicio', name: 'Inicio', max: 1, fixed: true, hint: 'Página principal' },

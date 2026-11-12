@@ -272,7 +272,44 @@ const TenantBrand = {
     const type = typeof Vocab !== 'undefined' ? Vocab.type() : null;
     const chosen = t && t.site && t.site.layout;
     const layout = chosen || (type && this.LAYOUTS[type]) || 'clasico';
-    document.documentElement.setAttribute('data-layout', layout);
+    // "rosa" (migración 30) es el boutique con otra apariencia (css/pages/rosa.css):
+    // todo lo que hace el boutique sigue igual y html[data-look="rosa"] cambia el estilo
+    const rosa = layout === 'rosa';
+    document.documentElement.setAttribute('data-layout', rosa ? 'boutique' : layout);
+    if (rosa) document.documentElement.setAttribute('data-look', 'rosa');
+    else document.documentElement.removeAttribute('data-look');
+    if (rosa) this.applyRosa(t);
+  },
+
+  /* Diseño "rosa": barra superior con ciudad, horario y teléfono, y en el pie una
+     columna con los servicios. Solo usa datos que el negocio ya tiene: lo que está
+     vacío se oculta (fillTexts esconde las filas data-t-row sin valor). */
+  applyRosa(t) {
+    const icon = (n) => (typeof ic === 'function' ? ic(n) : '');
+    const header = document.querySelector('.site-header');
+    if (header && !document.querySelector('.rosa-topbar')) {
+      const bar = document.createElement('div');
+      bar.className = 'rosa-topbar';
+      bar.innerHTML = '<div class="container rosa-topbar-in">' +
+        '<span class="rosa-topbar-left">' +
+          '<span data-t-row>' + icon('pin') + '<span data-t="city"></span></span>' +
+          '<span data-t-row>' + icon('clock') + '<span data-t="hours"></span></span>' +
+        '</span>' +
+        '<span class="rosa-topbar-right" data-t-row>' + icon('phone') + '<a data-t="phone" href="#"></a></span>' +
+      '</div>';
+      header.parentNode.insertBefore(bar, header);
+    }
+    const grid = document.querySelector('.site-footer .footer-grid');
+    const services = (typeof DB !== 'undefined' && DB.state && DB.state.services) || [];
+    if (grid && services.length && !grid.querySelector('.rosa-foot-srv') && this.sectionShown('servicios')) {
+      const col = document.createElement('div');
+      col.className = 'rosa-foot-srv';
+      col.innerHTML = '<h2 class="footer-title">' + UIx.esc(typeof Vocab !== 'undefined' ? Vocab.word('ServicePlural') : 'Servicios') + '</h2>' +
+        '<ul class="footer-list">' + services.slice(0, 6).map(s =>
+          '<li><a href="servicios.html">' + UIx.esc(s.name) + '</a></li>').join('') + '</ul>';
+      const contact = grid.lastElementChild;
+      grid.insertBefore(col, contact);
+    }
   },
 
   /* ---------------- Secciones de la web (crm_config.site.sections) ----------------

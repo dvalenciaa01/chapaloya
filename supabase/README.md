@@ -48,6 +48,8 @@ Hazlo primero en el proyecto de **pruebas** y, cuando todo funcione, en el de **
 
 > **Cuadros de texto en posición libre (`…28`).** Ejecuta el `…28` después del `…27` (es corto, se puede repetir y no toca datos). Solo cambia la validación del diseño de la web: permite guardar dónde va cada cuadro de texto (en computadora y en celular). No hay que volver a publicar ninguna función. Mientras no se ejecute, guardar una web con un cuadro en posición libre avisa que falta la migración.
 
+> **Diseño "rosa" de la web (`…30`).** Ejecuta el `…30` después del `…28` (es corto, se puede repetir y no toca datos). Solo cambia la validación de la configuración de la web para aceptar el diseño `rosa` (salón de uñas en rosa, negro y blanco). Mientras no se ejecute, elegir ese diseño en la consola avisa que falta la migración.
+
 > **Fotos de modelo al reservar (`…26`).** Ejecuta el `…26` (requiere el `…25`; es corto, se puede repetir y deja la opción apagada en todos los negocios) y **después** vuelve a publicar la función `reservar` (paso 2). Crea el bucket privado `reservas`: el público no puede ver ni subir nada ahí; las fotos las sube la función después del captcha y el equipo del negocio las ve en la ficha de la cita. El negocio activa la opción en **CRM → Configuración → Fotos de modelo al reservar**. Mientras no se ejecute, la casilla aparece desactivada y la web reserva como siempre.
 
 > **Si ya ejecutaste hasta el `…20`, solo falta el `…21`** (constructor visual de la web). Es corto, se puede repetir y no toca datos: todos los negocios quedan sin diseño por bloques (la web se ve igual que hoy) y con permiso para editar su web. Mientras no se ejecute, el botón **Diseñar web** avisa que falta la migración y la web sigue igual.
