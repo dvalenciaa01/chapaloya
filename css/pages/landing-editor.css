@@ -1,0 +1,19 @@
+/* ==========================================================================
+   Editor de la landing (js/components/landing-editor.js)
+   --------------------------------------------------------------------------
+   Usa la base del editor de webs (css/pages/site-builder.css: .sb-root,
+   .sb-top, .sb-panel, .sb-frame…). Aquí solo lo propio de la landing.
+   ========================================================================== */
+.le-root .le-show { margin-top: 14px; padding: 12px; border: 1px solid var(--sb-line); border-radius: 12px; background: var(--sb-card); }
+.le-root .sb-note { margin-top: 14px; }
+.le-root .le-items { margin-top: 22px; }
+.le-root .le-item-head { justify-content: space-between; }
+.le-root .le-item-head strong { font-size: 14px; }
+.le-root .le-item-head .sb-check { flex: none; font-size: 13px; color: var(--sb-tx-2); }
+.le-root .sb-item .sb-field { margin-top: 10px; }
+.le-root .sb-item.is-off > .sb-field { opacity: 0.45; }
+.le-root .le-restore { font-size: 12.5px; }
+.le-root .sb-field { border-radius: 10px; transition: box-shadow 0.3s ease; }
+.le-root .le-flash { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.55); }
+.le-root .sb-img video { object-fit: contain; }
+.rl-landing-card .card-text { margin: 0; }
