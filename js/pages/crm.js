@@ -1416,39 +1416,160 @@ const CRM = {
     ).join('');
   },
 
-  /* ---------- Clientes (B15: paginado con "Ver más") ---------- */
+  /* ---------- Clientes (B15: paginado con "Ver más") ----------
+     Cada ficha se cruza con sus citas por celular: visitas (completadas),
+     última visita, gasto y próxima cita. Nada de esto se guarda: se calcula. */
+  custStats() {
+    const today = DB.todayISO();
+    const by = {};
+    DB.state.appointments.forEach(a => {
+      const ph = DB.cleanPhone(a.phone);
+      if (!ph) return;
+      const s = by[ph] || (by[ph] = { visits: 0, spent: 0, last: '', first: '', next: null, total: 0, noShow: 0, list: [] });
+      s.list.push(a);
+      if (a.status === 'CANCELADA') return;
+      s.total++;
+      if (!s.first || a.date < s.first) s.first = a.date;
+      if (a.status === 'COMPLETADA') { s.visits++; s.spent += Number(a.price) || 0; if (a.date > s.last) s.last = a.date; }
+      if (a.status === 'NO_ASISTIO') s.noShow++;
+      if (this.isVigente(a) && a.date >= today && !DB.isPastSlot(a.date, a.time) && (!s.next || (a.date + a.time) < (s.next.date + s.next.time))) s.next = a;
+    });
+    return by;
+  },
+  custInfo(c, by) {
+    const empty = { visits: 0, spent: 0, last: '', first: '', next: null, total: 0, noShow: 0, list: [] };
+    const s = by[DB.cleanPhone(c.phone)] || empty;
+    const today = DB.todayISO();
+    const month = today.slice(0, 7);
+    const since = s.last ? DB.daysBetweenISO(s.last, today) : null;
+    return Object.assign({}, s, {
+      since,
+      isNew: (s.first || (c.createdAt || '').slice(0, 10) || '').slice(0, 7) === month,
+      isFreq: s.visits >= 3,
+      isAway: since !== null && since > 60 && !s.next,
+      isBday: !!c.birthdate && this.fshow('customers', 'birthdate') && c.birthdate.slice(5, 7) === today.slice(5, 7)
+    });
+  },
+  CUST_FILTERS: [
+    { key: 'all', label: 'Todos' },
+    { key: 'new', label: 'Nuevos este mes', test: (i) => i.isNew },
+    { key: 'freq', label: 'Frecuentes', test: (i) => i.isFreq, title: '3 visitas o más' },
+    { key: 'away', label: 'No vienen hace 60 días', test: (i) => i.isAway },
+    { key: 'bday', label: 'Cumpleaños este mes', test: (i) => i.isBday, field: 'birthdate' }
+  ],
+  setCustFilter(k) { this.custFilter = k; this.renderCustomers(true); },
+  setCustView(v) {
+    this.custView = v === 'table' ? 'table' : 'cards';
+    if (DB.tenant) DB.pref('custView:' + DB.tenant.id, this.custView);
+    this.renderCustomers();
+  },
+  custBadges(i) {
+    const out = [];
+    if (i.isNew) out.push('<span class="cust-tag is-new">Nuevo</span>');
+    if (i.isFreq) out.push('<span class="cust-tag is-freq">Frecuente</span>');
+    if (i.isAway) out.push('<span class="cust-tag is-away">Hace ' + i.since + ' días sin venir</span>');
+    if (i.isBday) out.push('<span class="cust-tag is-bday">Cumple este mes</span>');
+    return out.join('');
+  },
+
   renderCustomers(resetPage) {
     const custGrid = document.getElementById('crm-customers-grid');
     if (!custGrid) return;
     if (resetPage) this.custLimit = 60;
+    if (!this.custView) this.custView = (DB.tenant && DB.pref('custView:' + DB.tenant.id)) === 'table' ? 'table' : 'cards';
     const E = (v) => UI.esc(v);
+    const cur = this.cur();
+    const fin = Auth.can('finance.view');
     const q = (document.getElementById('cust-search-q')?.value || '').trim().toLowerCase();
     const F = (k) => this.fshow('customers', k);
     const customs = CrmConfig.custom('customers');
     const listed = customs.filter(f => f.showInList);
     const STD = [['email', 'Correo'], ['birthdate', 'Nacimiento'], ['document', 'Documento'], ['address', 'Dirección']].filter(([k]) => F(k));
-    const list = DB.state.customers.filter(c => {
+    const by = this.custStats();
+    const all = DB.state.customers.map(c => ({ c, i: this.custInfo(c, by) }));
+    const filters = this.CUST_FILTERS.filter(f => !f.field || F(f.field));
+    if (!filters.some(f => f.key === this.custFilter)) this.custFilter = 'all';
+    const fEl = document.getElementById('cust-filters');
+    if (fEl) fEl.innerHTML = filters.map(f => {
+      const n = f.test ? all.filter(x => f.test(x.i)).length : all.length;
+      return '<button type="button" class="btn-dark' + (this.custFilter === f.key ? ' active' : '') + '" aria-pressed="' + (this.custFilter === f.key) + '"' +
+        (f.title ? ' title="' + E(f.title) + '"' : '') + ' onclick="CRM.setCustFilter(\'' + f.key + '\')">' + E(f.label) + ' <span class="cust-filter-n">' + n + '</span></button>';
+    }).join('');
+    const sortSel = document.getElementById('cust-sort');
+    const spentOpt = sortSel && sortSel.querySelector('option[value="spent"]');
+    if (spentOpt) { spentOpt.hidden = !fin; spentOpt.disabled = !fin; }
+    let sort = sortSel ? sortSel.value : 'recent';
+    if (sort === 'spent' && !fin) { sort = 'recent'; sortSel.value = 'recent'; }
+    document.querySelectorAll('.cust-view-btn').forEach(b => { const on = b.getAttribute('data-cview') === this.custView; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+
+    const flt = filters.find(f => f.key === this.custFilter);
+    const list = all.filter(({ c, i }) => {
+      if (flt && flt.test && !flt.test(i)) return false;
+      if (!q) return true;
       const hay = (c.name + ' ' + c.phone + ' ' + c.notes + ' ' + (c.email || '') + ' ' + (c.document || '') + ' ' +
         customs.map(f => CrmConfig.display(f, (c.extra || {})[f.key])).join(' ')).toLowerCase();
-      return !q || hay.includes(q);
+      return hay.includes(q);
     });
+    const byName = (x, y) => x.c.name.localeCompare(y.c.name, 'es');
+    const SORT = {
+      name: byName,
+      recent: (x, y) => (y.i.last || '').localeCompare(x.i.last || '') || byName(x, y),
+      visits: (x, y) => y.i.visits - x.i.visits || byName(x, y),
+      spent: (x, y) => y.i.spent - x.i.spent || byName(x, y)
+    };
+    list.sort(SORT[sort] || SORT.recent);
+
     const canEdit = Auth.can('customers.manage');
-    custGrid.innerHTML = list.slice(0, this.custLimit).map(c => {
-      const facts = STD.filter(([k]) => c[k]).map(([k, l]) => [l, k === 'birthdate' ? Reports.fmtDate(c[k]) : c[k]])
-        .concat(listed.map(f => [f.label, CrmConfig.display(f, (c.extra || {})[f.key])]).filter(x => x[1]));
-      return '<div class="crm-item-card" data-customer="' + E(c.id) + '">' +
-        '<div>' +
-          '<h3 style="font-size:1.15rem; margin-bottom:4px; overflow-wrap:anywhere;">' + E(c.name) + '</h3>' +
-          (F('phone') ? '<div class="cust-phone">' + ic('phone') + ' ' + E(c.phone) + this.waLink(c.phone, '', 'Escribir a ' + c.name + ' por WhatsApp') + '</div>' : '') +
-          (facts.length ? '<dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl>' : '') +
-          (F('notes') ? '<p style="font-size:0.8rem; line-height:1.5; margin-bottom:12px;">' + E(c.notes || 'Sin observaciones') + '</p>' : '') +
-        '</div>' +
-        (canEdit ? '<div class="row-actions">' +
-          '<button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')" aria-label="Editar a ' + E(c.name) + '">' + ic('edit') + 'Editar</button>' +
-          this.moreMenu('Más opciones para ' + c.name, [{ danger: true, icon: 'trash', label: 'Eliminar', onclick: 'CRM.deleteCustomer(\'' + E(c.id) + '\')' }]) +
-        '</div>' : '') +
-      '</div>';
-    }).join('') || '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>' + this.vx('Sin {clientPlural}') + '</strong>' + (q ? 'Nadie coincide con la búsqueda.' : this.vx('Se agregan al registrar {appointmentPlural} con celular.')) + '</div>';
+    const page = list.slice(0, this.custLimit);
+    const nameBtn = (c, tag) => '<button type="button" class="cust-name" onclick="CRM.openCustomerProfile(\'' + E(c.id) + '\')" title="' + this.vx('Ver la ficha') + '">' + (tag ? '<' + tag + '>' : '') + E(c.name) + (tag ? '</' + tag + '>' : '') + '</button>';
+    const lastTxt = (i) => i.last ? this.fmtShortDate(i.last) + (i.since === 0 ? ' (hoy)' : i.since === 1 ? ' (ayer)' : ' (hace ' + i.since + ' días)') : 'Aún no viene';
+    const nextTxt = (i) => i.next ? this.fmtShortDate(i.next.date) + ' ' + i.next.time : '—';
+    const actions = (c) => canEdit ? '<div class="row-actions">' +
+      '<button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')" aria-label="Editar a ' + E(c.name) + '">' + ic('edit') + 'Editar</button>' +
+      this.moreMenu('Más opciones para ' + c.name, [{ danger: true, icon: 'trash', label: 'Eliminar', onclick: 'CRM.deleteCustomer(\'' + E(c.id) + '\')' }]) +
+    '</div>' : '';
+    const emptyHTML = '<div class="empty-state" style="grid-column:1/-1;">' + ic('users') + '<strong>' + this.vx('Sin {clientPlural}') + '</strong>' +
+      (q || this.custFilter !== 'all' ? 'Nadie coincide con la búsqueda o el filtro.' : this.vx('Se agregan al registrar {appointmentPlural} con celular.')) + '</div>';
+
+    const tableBox = document.getElementById('crm-customers-table');
+    const asTable = this.custView === 'table' && !!tableBox;
+    custGrid.hidden = asTable;
+    if (tableBox) tableBox.hidden = !asTable || !page.length;
+    if (asTable) {
+      const L = E(Vocab.T('client'));
+      document.getElementById('cust-thead').innerHTML = '<tr><th scope="col">' + L + '</th>' + (F('phone') ? '<th scope="col">Celular</th>' : '') +
+        '<th scope="col">Última visita</th><th scope="col">Visitas</th>' + (fin ? '<th scope="col">Gastó</th>' : '') + '<th scope="col">' + this.vx('Próxima {appointment}') + '</th>' + (canEdit ? '<th scope="col"><span class="sr-only">Acciones</span></th>' : '') + '</tr>';
+      document.getElementById('cust-tbody').innerHTML = page.map(({ c, i }) =>
+        '<tr><td data-label="' + L + '">' + nameBtn(c, 'strong') + '<div class="cust-tags">' + this.custBadges(i) + '</div></td>' +
+        (F('phone') ? '<td data-label="Celular"><span class="cust-phone is-inline">' + E(c.phone) + this.waLink(c.phone, '', 'Escribir a ' + c.name + ' por WhatsApp') + '</span></td>' : '') +
+        '<td data-label="Última visita">' + E(lastTxt(i)) + '</td><td data-label="Visitas">' + i.visits + '</td>' +
+        (fin ? '<td data-label="Gastó"><strong>' + cur + i.spent.toLocaleString('es-PE') + '</strong></td>' : '') +
+        '<td data-label="' + this.vx('Próxima {appointment}') + '">' + E(nextTxt(i)) + '</td>' +
+        (canEdit ? '<td data-label="Acciones">' + actions(c) + '</td>' : '') + '</tr>').join('');
+      custGrid.innerHTML = '';
+      if (!page.length) { custGrid.hidden = false; custGrid.innerHTML = emptyHTML; }
+    } else {
+      custGrid.innerHTML = page.map(({ c, i }) => {
+        const facts = STD.filter(([k]) => c[k]).map(([k, l]) => [l, k === 'birthdate' ? Reports.fmtDate(c[k]) : c[k]])
+          .concat(listed.map(f => [f.label, CrmConfig.display(f, (c.extra || {})[f.key])]).filter(x => x[1]));
+        return '<div class="crm-item-card cust-card" data-customer="' + E(c.id) + '">' +
+          '<div>' +
+            '<div class="cust-card-head">' + nameBtn(c, 'h3') + '</div>' +
+            '<div class="cust-tags">' + this.custBadges(i) + '</div>' +
+            (F('phone') ? '<div class="cust-phone">' + ic('phone') + ' ' + E(c.phone) + this.waLink(c.phone, '', 'Escribir a ' + c.name + ' por WhatsApp') + '</div>' : '') +
+            '<div class="cust-stats">' +
+              '<div><span>Última visita</span><strong>' + E(i.last ? this.fmtShortDate(i.last) : '—') + '</strong></div>' +
+              '<div><span>Visitas</span><strong>' + i.visits + '</strong></div>' +
+              (fin ? '<div><span>Gastó</span><strong>' + cur + i.spent.toLocaleString('es-PE') + '</strong></div>' : '') +
+            '</div>' +
+            (i.next ? '<div class="cust-next">' + ic('calendar') + this.vx('Próxima {appointment}: ') + '<strong>' + E(nextTxt(i)) + '</strong></div>' : '') +
+            (facts.length ? '<dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl>' : '') +
+            (F('notes') && c.notes ? '<p class="cust-notes">' + E(c.notes) + '</p>' : '') +
+          '</div>' +
+          actions(c) +
+        '</div>';
+      }).join('') || emptyHTML;
+    }
     const more = document.getElementById('cust-more');
     if (more) {
       more.hidden = list.length <= this.custLimit;
@@ -1456,6 +1577,61 @@ const CRM = {
     }
     const count = document.getElementById('cust-count');
     if (count) count.textContent = list.length + ' ' + Vocab.t(list.length === 1 ? 'client' : 'clientPlural');
+  },
+
+  /* Ficha del cliente: datos, números, próxima cita, historial y notas */
+  openCustomerProfile(id) {
+    const c = DB.state.customers.find(x => x.id === id);
+    if (!c) return;
+    const E = (v) => UI.esc(v);
+    const cur = this.cur();
+    const fin = Auth.can('finance.view');
+    const i = this.custInfo(c, this.custStats());
+    const F = (k) => this.fshow('customers', k);
+    const hist = i.list.slice().sort((x, y) => (y.date + y.time).localeCompare(x.date + x.time));
+    const STD = [['email', 'Correo'], ['birthdate', 'Nacimiento'], ['document', 'Documento'], ['address', 'Dirección']].filter(([k]) => F(k) && c[k]);
+    const facts = STD.map(([k, l]) => [l, k === 'birthdate' ? Reports.fmtDate(c[k]) : c[k]])
+      .concat(CrmConfig.custom('customers').map(f => [f.label, CrmConfig.display(f, (c.extra || {})[f.key])]).filter(x => x[1]));
+    const wa = this.waUrl(c.phone);
+    const canEdit = Auth.can('customers.manage');
+    const canBook = Auth.can('appointments.create');
+    const stat = (l, v) => '<div class="cp-stat"><span>' + l + '</span><strong>' + v + '</strong></div>';
+    ModalComponent.open(
+      '<div class="crm-modal-header"><div class="cp-head"><span class="cp-avatar" aria-hidden="true">' + E((c.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()) + '</span>' +
+        '<div><h3 class="cp-name">' + E(c.name) + '</h3>' + (F('phone') && c.phone && c.phone !== '—' ? '<div class="cp-phone">' + ic('phone') + E(c.phone) + '</div>' : '') +
+        '<div class="cust-tags">' + this.custBadges(i) + '</div></div></div>' +
+        '<button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+      '<div class="cp-actions">' +
+        (wa ? '<a class="btn-dark btn-xs cp-wa" href="' + E(wa) + '" target="_blank" rel="noopener">' + ic('whatsapp') + 'WhatsApp</a>' : '') +
+        (canBook ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.customerBook(\'' + E(c.id) + '\')">' + ic('calendar') + this.vx('Agendar {appointment}') + '</button>' : '') +
+        (canEdit ? '<button type="button" class="btn-dark btn-xs" onclick="CRM.openCustomerModal(\'' + E(c.id) + '\')">' + ic('edit') + 'Editar datos</button>' : '') +
+      '</div>' +
+      '<div class="cp-stats">' +
+        stat('Visitas', i.visits) +
+        stat('Última visita', E(i.last ? this.fmtShortDate(i.last) : '—')) +
+        (fin ? stat('Gastó en total', cur + i.spent.toLocaleString('es-PE')) : '') +
+        stat('No asistió', i.noShow) +
+      '</div>' +
+      (i.next ? '<div class="cust-next cp-next">' + ic('calendar') + '<span>' + this.vx('Próxima {appointment}: ') + '<strong>' + E(this.fmtShortDate(i.next.date) + ' ' + i.next.time) + '</strong> · ' + E(i.next.service) + ' · ' + E(i.next.barber) + '</span></div>' : '') +
+      (F('notes') && c.notes ? '<div class="cp-block"><h4>Notas</h4><p class="cust-notes">' + E(c.notes) + '</p></div>' : '') +
+      (facts.length ? '<div class="cp-block"><h4>Datos</h4><dl class="cust-facts">' + facts.map(([l, v]) => '<div><dt>' + E(l) + '</dt><dd>' + E(v) + '</dd></div>').join('') + '</dl></div>' : '') +
+      '<div class="cp-block"><h4>' + this.vx('Historial de {appointmentPlural}') + ' <span class="cp-count">' + hist.length + '</span></h4>' +
+        (hist.length ? '<ul class="cp-hist">' + hist.slice(0, 50).map(a =>
+          '<li><button type="button" class="cp-hist-row" onclick="CRM.openApptDetail(\'' + E(a.id) + '\')">' +
+            '<span class="cp-hist-date">' + E(this.fmtShortDate(a.date)) + '<small>' + E(a.time) + '</small></span>' +
+            '<span class="cp-hist-main"><strong>' + E(a.service) + '</strong><small>' + E(a.barber) + '</small></span>' +
+            (fin ? '<span class="cp-hist-price">' + cur + E(a.price) + '</span>' : '') +
+            '<span class="st-badge st-' + E(a.status) + '">' + E(DB.statusLabel(a.status)) + '</span>' +
+          '</button></li>').join('') + '</ul>' + (hist.length > 50 ? '<p class="field-hint">Se muestran las 50 más recientes.</p>' : '')
+        : '<p class="dash-none">' + this.vx('Aún no tiene {appointmentPlural} con este celular.') + '</p>') +
+      '</div>'
+    );
+  },
+  customerBook(id) {
+    const c = DB.state.customers.find(x => x.id === id);
+    if (!c) return;
+    this.openAppointmentModal();
+    setTimeout(() => { if (this.apPick) this.apPick(id); }, 0);
   },
 
   showMoreCustomers() {
