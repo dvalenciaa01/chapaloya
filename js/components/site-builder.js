@@ -114,6 +114,8 @@ const SiteBuilder = {
     window.removeEventListener('message', this._onMsg);
     document.removeEventListener('keydown', this._onKey);
     window.removeEventListener('beforeunload', this._onUnload);
+    if (this.st.ai && this.st.ai.url) URL.revokeObjectURL(this.st.ai.url);
+    if (this.st.ai && this.st.ai.ctrl) this.st.ai.ctrl.abort();
     this.st = null;
   },
 
@@ -308,9 +310,9 @@ const SiteBuilder = {
     const el = document.getElementById('sb-panel');
     if (!el || !this.st) return;
     const v = this.st.view;
-    el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML()
+    el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML() : v === 'ai' ? this.aiHTML()
       : (v === 'block' && this.block(this.st.selected) ? this.blockFormHTML(this.block(this.st.selected)) : this.listHTML());
-    if (v !== 'block' && v !== 'add' && v !== 'theme') this.st.view = 'list';
+    if (v !== 'block' && v !== 'add' && v !== 'theme' && v !== 'ai') this.st.view = 'list';
     this.bindDrag();
   },
 
@@ -346,6 +348,9 @@ const SiteBuilder = {
       '<button type="button" class="sb-type sb-theme-btn" data-sb="theme">' +
         '<span class="sb-row-ic" aria-hidden="true">' + ic('sliders') + '</span><strong>Letra y colores</strong>' +
         '<span>' + E(this.themeSummary()) + '</span></button>' +
+      (this.isSA() ? '<button type="button" class="sb-type sb-theme-btn sb-ai-btn" data-sb="ai">' +
+        '<span class="sb-row-ic" aria-hidden="true">' + ic('sparkles') + '</span><strong>Copiar diseño de una imagen</strong>' +
+        '<span>' + (st.page.css ? 'Esta web tiene un estilo propio copiado de una imagen.' : 'Sube la captura de una web y Claude la arma con los datos del negocio.') + '</span></button>' : '') +
       '<ol class="sb-list" id="sb-list">' + rows + '</ol>' +
       (st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-add" data-sb="add">' + ic('plus') + '<span>Agregar bloque</span></button>' : '') +
       '<div class="sb-foot">' +
@@ -612,6 +617,222 @@ const SiteBuilder = {
   },
 
   /* ---------------- Letra y colores de toda la web ---------------- */
+  /* ---------------- Copiar diseño de una imagen (solo superadministrador) ----------------
+     Manda la captura a la función disenar-con-imagen (Claude) junto con el
+     diseño actual y el esqueleto de la vista previa. Lo que vuelve se pone en
+     el editor como cualquier cambio: se ve en la vista previa y llega a la web
+     solo con "Guardar y publicar". "Deshacer" vuelve a como estaba. */
+  AI_FN: 'disenar-con-imagen',
+  aiState() { if (!this.st.ai) this.st.ai = { notes: '' }; return this.st.ai; },
+
+  aiHTML() {
+    const E = this.esc.bind(this), ai = this.aiState(), page = this.st.page;
+    const res = ai.result;
+    return '<div class="sb-pad">' +
+      '<button type="button" class="sb-back" data-sb="back">' + ic('arrowLeft') + 'Bloques</button>' +
+      '<h2 class="sb-h"><span class="sb-row-ic" aria-hidden="true">' + ic('sparkles') + '</span>Copiar diseño de una imagen</h2>' +
+      '<p class="sb-hint">Sube la captura de una web que te guste (puede ser de la página entera). Claude copia sus colores, letras, orden y estilo, y la arma con los ' +
+        E(this.fmt('{servicePlural}')) + ', fotos y datos que este negocio ya tiene. No inventa contenido.</p>' +
+      '<div class="sb-field"><span class="sb-lbl">Imagen del modelo</span>' +
+        '<label class="sb-ai-drop' + (ai.url ? ' has-img' : '') + '">' +
+          (ai.url ? '<img src="' + E(ai.url) + '" alt="Imagen del modelo" />' : '<span>' + ic('image') + 'Elegir imagen (PNG, JPG o WEBP)</span>') +
+          '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-sb-ai-file ' + (ai.busy ? 'disabled ' : '') + '/>' +
+        '</label>' +
+        (ai.url ? '<p class="sb-hint">' + E(ai.name || '') + ' · Toca la imagen para cambiarla.</p>' : '') +
+      '</div>' +
+      '<div class="sb-field"><label class="sb-lbl" for="sb-ai-notes">Indicaciones (opcional)</label>' +
+        '<textarea id="sb-ai-notes" class="sb-input" rows="3" maxlength="1000" data-sb-ai-notes placeholder="Ej.: usa el rosa del modelo para los botones; el menú en negro."' + (ai.busy ? ' disabled' : '') + '>' + E(ai.notes || '') + '</textarea></div>' +
+      '<button type="button" class="sb-btn sb-btn-primary sb-ai-run" data-sb="ai-run"' + (ai.file && !ai.busy ? '' : ' disabled') + '>' +
+        ic('sparkles') + '<span>' + (ai.busy ? 'Armando el diseño…' : (res ? 'Generar otra vez' : 'Generar diseño')) + '</span></button>' +
+      (ai.busy ? '<p class="sb-note" role="status">Claude está mirando la imagen y armando el diseño. Suele tardar de 1 a 3 minutos; no cierres esta ventana.</p>' : '') +
+      (ai.error ? '<p class="sb-note sb-note-warn" role="alert">' + E(ai.error) + '</p>' : '') +
+      (res ? '<div class="sb-note" role="status"><strong>Listo: el diseño está en la vista previa.</strong> Revísalo en escritorio y celular; puedes seguir editándolo. ' +
+          'La web no cambia hasta que pulses <strong>Guardar y publicar</strong>.' +
+          (res.omitted.length ? '<br><br>Quedó fuera porque el negocio no lo tiene:<ul class="sb-ai-list">' + res.omitted.map(o => '<li>' + E(o) + '</li>').join('') + '</ul>' : '') +
+        '</div>' +
+        (ai.before ? '<button type="button" class="sb-back" data-sb="ai-undo">' + ic('refresh') + 'Deshacer (volver a como estaba)</button>' : '') : '') +
+      (page.css && !ai.busy ? '<div class="sb-foot"><button type="button" class="sb-link-danger" data-sb="ai-css-off">' + ic('x') + 'Quitar el estilo propio (dejar solo letras, colores y bloques)</button></div>' : '') +
+    '</div>';
+  },
+
+  aiPick(file) {
+    const ai = this.aiState();
+    ai.error = '';
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { ai.error = 'Elige una imagen PNG, JPG o WEBP.'; this.renderPanel(); return; }
+    if (file.size > 25 * 1024 * 1024) { ai.error = 'La imagen pesa más de 25 MB.'; this.renderPanel(); return; }
+    if (ai.url) URL.revokeObjectURL(ai.url);
+    ai.file = file; ai.name = file.name; ai.url = URL.createObjectURL(file);
+    this.renderPanel();
+  },
+
+  /* La imagen en partes de 1200 px de ancho y hasta 1600 de alto (una captura
+     de página entera se ve mejor así que reducida de golpe). Máximo 6 partes. */
+  async aiSlices(file) {
+    const img = await new Promise((ok, bad) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = () => bad(new Error('No pude leer la imagen.'));
+      i.src = this.st.ai.url;
+    });
+    let w = Math.min(1200, img.naturalWidth);
+    let h = Math.round(img.naturalHeight * w / img.naturalWidth);
+    const PART = 1600, MAXP = 6;
+    if (h > PART * MAXP) { const k = PART * MAXP / h; w = Math.round(w * k); h = PART * MAXP; }
+    const out = [];
+    for (let y = 0; y < h; y += PART) {
+      const ph = Math.min(PART, h - y);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = ph;
+      const g = c.getContext('2d');
+      g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, ph);
+      const sy = y * img.naturalHeight / h, sh = ph * img.naturalHeight / h;
+      g.drawImage(img, 0, sy, img.naturalWidth, sh, 0, 0, w, ph);
+      const data = c.toDataURL('image/jpeg', 0.86).split(',')[1];
+      out.push({ media_type: 'image/jpeg', data });
+    }
+    return out;
+  },
+
+  /* HTML de la vista previa sin textos largos, scripts ni íconos: así Claude
+     conoce las clases reales para su hoja de estilo. */
+  aiSkeleton() {
+    let doc;
+    try { doc = document.getElementById('sb-frame').contentDocument; } catch (e) { return ''; }
+    if (!doc || !doc.body) return '';
+    const body = doc.body.cloneNode(true);
+    body.querySelectorAll('script, style, noscript, template, iframe, video, #blk-fmtbar, .blk-tools, .blk-add-row, [hidden]').forEach(n => n.remove());
+    body.querySelectorAll('svg').forEach(n => { n.innerHTML = ''; });
+    // Listas largas (tarjetas, fotos): solo los 2 primeros de cada grupo
+    body.querySelectorAll('*').forEach(el => {
+      const kids = Array.from(el.children);
+      if (kids.length > 3) kids.slice(2).forEach(k => { if (k.className && k.className === kids[0].className) k.remove(); });
+    });
+    const walk = doc.createTreeWalker(body, 4);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const t = n.nodeValue.replace(/\s+/g, ' ');
+      n.nodeValue = t.length > 40 ? t.slice(0, 40) + '…' : t;
+    }
+    body.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(a => { if (!['class', 'id', 'data-blk'].includes(a.name)) el.removeAttribute(a.name); });
+    });
+    return body.innerHTML.replace(/\s{2,}/g, ' ').slice(0, 60000);
+  },
+
+  aiCatalog() {
+    const types = {};
+    Object.keys(SiteBlocks.TYPES).forEach(k => { types[k] = SiteBlocks.TYPES[k].styles.map(s => s[0]); });
+    const fonts = {};
+    Object.keys(SiteBlocks.FONTS).forEach(k => {
+      const f = SiteBlocks.FONTS[k];
+      fonts[k] = f.label + (f.title ? ' · solo títulos' : f.body ? ' · solo textos' : '');
+    });
+    return { types, fonts };
+  },
+
+  async aiRun() {
+    const st = this.st, ai = this.aiState();
+    if (!st || !ai.file || ai.busy) return;
+    ai.busy = true; ai.error = ''; this.renderPanel();
+    const tenantId = st.tenant.id;
+    try {
+      const images = await this.aiSlices(ai.file);
+      const sess = await DB.client().auth.getSession();
+      const token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+      if (!token) throw new Error('Inicia sesión de nuevo.');
+      const c = window.RESERVALOPE_CONFIG || {};
+      ai.ctrl = new AbortController();
+      const res = await fetch(c.supabaseUrl + '/functions/v1/' + this.AI_FN, {
+        method: 'POST',
+        signal: ai.ctrl.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: c.supabaseKey },
+        body: JSON.stringify({
+          tenant_id: tenantId, images, notes: ai.notes || '',
+          page: SiteBlocks.normalize(st.page) || { blocks: [] },
+          skeleton: this.aiSkeleton(), catalog: this.aiCatalog()
+        })
+      });
+      const raw = await res.text();
+      const line = raw.trim().split('\n').pop() || '';
+      let out = null;
+      try { out = JSON.parse(line); } catch (e) { /* respuesta rara */ }
+      if (res.status === 404 && !out) throw new Error('La función disenar-con-imagen aún no está publicada en Supabase.');
+      if (!out) throw new Error('No hubo respuesta de la función (' + res.status + '). Inténtalo de nuevo.');
+      if (out.error) throw new Error(out.error);
+      if (!this.st || this.st !== st) return;         // se cerró el editor
+      const applied = this.aiApply(out.design);
+      ai.result = { omitted: applied.omitted, usage: out.usage || null };
+      if (applied.dropped) ai.result.omitted.push(applied.dropped + ' bloque(s) que no se pudieron armar');
+      st.view = 'ai';
+      this.touch(true);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      ai.error = (err && err.message) || 'No pude generar el diseño.';
+    } finally {
+      if (this.st === st) { ai.busy = false; ai.ctrl = null; this.renderPanel(); }
+    }
+  },
+
+  /* Lo que devolvió Claude → diseño del editor. Cada bloque nuevo reutiliza,
+     en orden, el bloque del mismo tipo que ya existía (sus fotos, puntos,
+     videos y cuadros de texto); si no había, uno nuevo con lo de siempre. */
+  aiApply(d) {
+    const st = this.st, T = SiteBlocks.TYPES, F = SiteBlocks.FONTS, HEX = SiteBlocks.HEX_RE;
+    if (!d || !Array.isArray(d.blocks)) throw new Error('Claude devolvió un diseño incompleto. Inténtalo de nuevo.');
+    const before = JSON.parse(JSON.stringify(st.page));
+    const pool = {};
+    before.blocks.forEach(b => { (pool[b.type] = pool[b.type] || []).push(b); });
+    const blocks = [];
+    let hero = false, dropped = 0;
+    d.blocks.forEach(g => {
+      if (!g || !T[g.type] || blocks.length >= SiteBlocks.MAX_BLOCKS) { dropped++; return; }
+      if (g.type === 'portada') { if (hero) { dropped++; return; } hero = true; }
+      const base = (pool[g.type] && pool[g.type].shift()) || SiteBlocks.create(g.type);
+      const b = JSON.parse(JSON.stringify(base));
+      delete b.show;
+      if (T[g.type].styles.some(s => s[0] === g.style)) b.style = g.style;
+      if (['normal', 'suave', 'marca', 'color'].includes(g.bg)) b.bg = g.bg;
+      if (b.bg === 'color') { if (typeof g.bgColor === 'string' && HEX.test(g.bgColor)) b.bgColor = g.bgColor; else b.bg = 'normal'; }
+      else delete b.bgColor;
+      ['eyebrow', 'title', 'text', 'btn', 'btn2'].forEach(k => {
+        if (typeof g[k] === 'string' && T[g.type].fields.includes(k)) b[k] = g[k].slice(0, SiteBlocks.MAX[k] || 120);
+      });
+      // El formato por texto del diseño anterior chocaría con el nuevo estilo
+      delete b.fmt;
+      blocks.push(b);
+    });
+    // La portada siempre primero
+    blocks.sort((a, b) => (a.type === 'portada' ? -1 : 0) - (b.type === 'portada' ? -1 : 0));
+    if (!blocks.length) throw new Error('Claude no armó ningún bloque. Prueba con otra imagen.');
+    const th = {};
+    const t = d.theme || {};
+    if (F[t.fontTitle] && !F[t.fontTitle].body) th.fontTitle = t.fontTitle;
+    if (F[t.fontBody] && !F[t.fontBody].title) th.fontBody = t.fontBody;
+    if (HEX.test(t.primary || '')) th.primary = t.primary;
+    if (HEX.test(t.accent || '')) th.accent = t.accent;
+    const page = { blocks };
+    if (Object.keys(th).length) page.theme = th;
+    const css = SiteBlocks.cleanCss(d.css);
+    if (css) page.css = css;
+    st.page = page;
+    // Si los colores no se leen bien, se dejan los del negocio (el editor no dejaría publicar)
+    const chk = this.themeCheck();
+    if (chk && !chk.ok) { delete th.primary; delete th.accent; if (!Object.keys(th).length) delete page.theme; }
+    this.aiState().before = before;
+    st.selected = null;
+    const omitted = (Array.isArray(d.omitted) ? d.omitted : []).filter(o => typeof o === 'string' && o.trim()).slice(0, 12).map(o => o.slice(0, 120));
+    if (d.css && !css) omitted.push('El estilo propio (no cumplía las reglas de seguridad); quedaron letras, colores y bloques');
+    return { omitted, dropped };
+  },
+
+  aiUndo() {
+    const ai = this.aiState();
+    if (!ai.before) return;
+    this.st.page = ai.before;
+    ai.before = null; ai.result = null;
+    this.touch(true);
+  },
+
   basePalette() {
     const tb = typeof TenantBrand !== 'undefined' ? TenantBrand : null;
     return tb ? tb.paletteOf(this.st.tenant) : { primary: '#111418', secondary: '#E4E7EB', tertiary: '#FFFFFF' };
@@ -735,6 +956,10 @@ const SiteBuilder = {
         break;
       }
       case 'theme': st.view = 'theme'; this.renderPanel(); break;
+      case 'ai': if (this.isSA()) { st.view = 'ai'; this.renderPanel(); } break;
+      case 'ai-run': this.aiRun(); break;
+      case 'ai-undo': this.aiUndo(); break;
+      case 'ai-css-off': delete st.page.css; this.touch(true); break;
       case 'fmt': { const sl = btn.getAttribute('data-slot'); st.fmtOpen = st.fmtOpen === sl ? null : sl; this.renderPanel(); break; }
       case 'fmt-unset': { const b = this.block(st.selected); if (b) { this.setFmt(b, btn.getAttribute('data-slot'), btn.getAttribute('data-k'), ''); this.touch(true); } break; }
       case 'fmt-clear': { const b = this.block(st.selected); if (b) { this.fmtPut(b, btn.getAttribute('data-slot'), null); this.touch(true); } break; }
@@ -775,6 +1000,8 @@ const SiteBuilder = {
     const b = this.block(this.st.selected);
     if (el.hasAttribute('data-sb-editor')) { this.st.editor = el.checked; this.st.dirty = true; this.updateSave(); return; }
     if (el.hasAttribute('data-sb-upload')) { if (e.type === 'change') this.upload(el); return; }
+    if (el.hasAttribute('data-sb-ai-file')) { if (e.type === 'change') this.aiPick(el.files && el.files[0]); return; }
+    if (el.hasAttribute('data-sb-ai-notes')) { this.aiState().notes = el.value.slice(0, 1000); return; }
     if (el.hasAttribute('data-sb-theme')) {
       // El selector de color manda "input" mientras se arrastra: el panel se redibuja al soltar
       if (el.tagName === 'SELECT' && e.type !== 'change') return;

@@ -171,3 +171,14 @@ select.sb-input { cursor: pointer; }
   .sb-status { display: none; }
 }
 .set-web-design { margin-bottom: 16px; }
+
+/* Copiar diseño de una imagen (solo superadministrador) */
+.sb-ai-btn .sb-row-ic { color: #F472B6; }
+.sb-ai-drop { position: relative; display: grid; place-items: center; min-height: 120px; max-height: 320px; overflow: hidden; border: 1.5px dashed var(--sb-line-2); border-radius: 12px; background: #0E0F11; color: var(--sb-tx-2); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; padding: 12px; }
+.sb-ai-drop:hover, .sb-ai-drop:focus-within { border-color: var(--sb-ac); }
+.sb-ai-drop span { display: inline-flex; align-items: center; gap: 8px; }
+.sb-ai-drop.has-img { padding: 0; place-items: start center; }
+.sb-ai-drop img { width: 100%; height: auto; display: block; }
+.sb-ai-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.sb-ai-run { width: 100%; margin-top: 18px; }
+.sb-ai-list { margin: 6px 0 0; padding-left: 18px; }

@@ -204,7 +204,29 @@
     const out = { blocks };
     const th = normTheme(page.theme);
     if (th) out.theme = th;
+    const css = cleanCss(page.css);
+    if (css) out.css = css;
     return out;
+  }
+
+  /* Estilo propio de la web (migración 31, "Copiar diseño de una imagen").
+     Mismas reglas que private.web_page_valida: sin url(), @import, "<",
+     barras invertidas, etc. Si no las cumple, no se usa. */
+  const CSS_MAX = 30000;
+  const CSS_BAD = /[<\\]|url\s*\(|@import|@charset|@namespace|@font-face|expression\s*\(|javascript:|behavior\s*:|-moz-binding|image-set\s*\(|src\s*\(/i;
+  function cleanCss(c) {
+    if (typeof c !== 'string') return '';
+    const v = c.trim();
+    if (!v || v.length > CSS_MAX || CSS_BAD.test(v)) return '';
+    return v;
+  }
+  function applyCss(page) {
+    const css = cleanCss(page && page.css);
+    let el = document.getElementById('blk-skin');
+    if (!css) { if (el) el.remove(); document.documentElement.classList.remove('blk-skin'); return; }
+    if (!el) { el = document.createElement('style'); el.id = 'blk-skin'; document.head.appendChild(el); }
+    if (el.textContent !== css) el.textContent = css;
+    document.documentElement.classList.add('blk-skin');
   }
 
   function normFmt(f, T) {
@@ -731,7 +753,7 @@
 
   const SiteBlocks = {
     TYPES, ORDER, BGS, MAX, EXTRA_KINDS, MAX_EXTRAS, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
-    DEFAULT_ITEMS, FREE_MOBILE, normalize, normTheme, normFmt, normPos, template, create, newId, videoInfo, isDark,
+    DEFAULT_ITEMS, FREE_MOBILE, CSS_MAX, cleanCss, normalize, normTheme, normFmt, normPos, template, create, newId, videoInfo, isDark,
 
     /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
        Se aplica sobre los del negocio: TenantBrand ya pintó su paleta y la letra del rubro. */
@@ -754,6 +776,7 @@
       // Letras elegidas en el formato de algún texto
       fmtFonts(normalize(page)).forEach(file => { const w = loadFont(file); if (w) waits.push(w); });
       document.documentElement.classList.toggle('blk-font-title', !!th.fontTitle);
+      applyCss(page);
       // Promesa para no mostrar la página con la letra equivocada (máx. 1,5 s)
       return waits.length ? Promise.race([Promise.all(waits), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
     },
