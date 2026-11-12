@@ -155,11 +155,11 @@ aside.crm-sidebar {
   align-items: flex-end;
   flex-wrap: wrap;
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--line-dark);
 }
-.crm-title { font-size: clamp(2rem, 3.4vw, 2.75rem); font-weight: 500; letter-spacing: -0.035em; margin-top: 4px; line-height: 1.05; }
+.crm-title { font-size: clamp(1.6rem, 2.4vw, 2rem); font-weight: 500; letter-spacing: -0.035em; margin-top: 4px; line-height: 1.05; }
 .crm-lead { font-size: 0.98rem; color: var(--on-dark-lo); max-width: 640px; margin-top: var(--space-2); }
 .crm-topbar-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 
@@ -430,7 +430,7 @@ table.crm-table tbody tr:last-child td { border-bottom: 0; }
   .crm-header .brand-img[data-shape="compact"] { height: 40px; }
   .crm-header .btn-golden span { display: none; }
   .crm-header .btn-golden { width: 44px; min-height: 44px; padding: 0; }
-  .crm-title { font-size: 2rem; }
+  .crm-title { font-size: 1.6rem; }
   .card-head { align-items: flex-start; }
   .card-head .btn-dark { flex-shrink: 0; }
   .segmented { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: calc(var(--space-4) * -1); margin-right: calc(var(--space-4) * -1); padding: 0 var(--space-4); }
@@ -1159,4 +1159,27 @@ a.appt-ref:hover, a.appt-ref:focus-visible { border-color: var(--yellow); }
 @media (max-width: 480px) {
   .sv-opt-item { grid-template-columns: minmax(0, 1fr) 84px auto; }
   .sv-opt-plus { display: none; }
+}
+@media (max-width: 760px) {
+  .row-actions:has(.row-more) { grid-template-columns: 1fr auto; }
+  .row-actions .row-more > summary { width: 48px; min-height: 44px; justify-content: center; padding: 0; }
+}
+
+/* Etiquetas y estados vacíos pequeños dentro de tarjetas */
+.crm-mini-lbl { display: block; font-size: var(--fs-xs); font-weight: 700; color: var(--on-dark-lo); }
+.crm-mini-empty { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--line-dark-strong);
+  border-radius: var(--radius-sm); font-size: var(--fs-xs); color: var(--on-dark-lo); line-height: 1.4; }
+.crm-mini-empty .ic { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Celular: la barra superior no debe ser más ancha que la pantalla.
+   El nombre del negocio se acorta con "…" y los botones no se encogen. */
+.crm-header .brand-logo { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.crm-header .brand-wordmark, .crm-header .crm-brand-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crm-header .header-actions { flex-shrink: 0; }
+@media (max-width: 480px) {
+  .crm-header-inner { gap: var(--space-2); padding: 0 var(--space-3); }
+  .crm-header .header-actions { gap: 6px; }
+  .crm-header .theme-toggle { width: 36px; height: 36px; padding: 0; }
+  .crm-header .tenant-switch select.input-dark { max-width: 84px; }
+  .crm-header .brand-wordmark { font-size: 1.05rem; }
 }

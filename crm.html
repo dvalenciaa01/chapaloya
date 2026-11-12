@@ -474,7 +474,7 @@
             <div class="card-head"><h3>Panel principal</h3></div>
             <p class="card-text">Elige qué tarjetas y secciones ve el equipo en el Panel principal. Las de dinero solo las ve quien tiene el módulo Ventas.</p>
             <div class="dash-cards-list" id="dash-cards-list"></div>
-            <p class="field-hint" id="dash-cards-note" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <p class="field-hint" id="dash-cards-note" data-role="SUPERADMIN" hidden>Por ahora la elección se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveDashCards()"><i data-icon="check"></i>Guardar panel</button></div>
           </div>
           <div class="crm-section-card sch-card crm-custom-card" data-role="SUPERADMIN">
@@ -597,7 +597,7 @@
           <div class="crm-section-card sch-card" id="wa-msgs-card">
             <div class="card-head"><h3>2. Elige qué mensajes se envían</h3></div>
             <div id="wa-warn" class="wa-warn" role="alert" hidden></div>
-            <p class="field-hint wa-mig-note" id="wa-mig-note" hidden>Para que funcionen las respuestas automáticas, la reseña, “te extrañamos” y la lista de espera falta ejecutar la migración 17 en Supabase.</p>
+            <p class="field-hint wa-mig-note" id="wa-mig-note" data-role="SUPERADMIN" hidden>Para que funcionen las respuestas automáticas, la reseña, “te extrañamos” y la lista de espera falta ejecutar la migración 17 en Supabase.</p>
 
             <label class="wa-opt wa-master"><input type="checkbox" id="wa-enabled" class="wa-switch" onchange="CRM.waOptChange()" />
               <span><strong>Mensajes automáticos</strong><small>Enciéndelo para que salgan los mensajes que marques abajo. Apágalo para pausarlos todos.</small></span></label>
@@ -711,7 +711,7 @@
             <label class="field-lbl" for="wa-manual-tpl">Mensaje</label>
             <textarea id="wa-manual-tpl" class="input-dark" rows="4" maxlength="1000" oninput="CRM.waManualDirty = true"></textarea>
             <p class="field-hint">Puedes usar {cliente}, {negocio}, {servicio}, {profesional}, {fecha}, {hora} y {codigo}. Vacío = mensaje de fábrica.</p>
-            <p class="field-hint" id="wa-manual-note" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
+            <p class="field-hint" id="wa-manual-note" data-role="SUPERADMIN" hidden>Por ahora el mensaje se guarda solo en este navegador. Para que valga para todo el equipo falta ejecutar la migración 15 en Supabase.</p>
             <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveWaManual()"><i data-icon="check"></i>Guardar mensaje</button></div>
           </div>
 
