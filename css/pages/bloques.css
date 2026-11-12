@@ -280,7 +280,11 @@
 .blk-preview .blk-free { outline: 1px dashed color-mix(in srgb, #3B82F6 55%, transparent); outline-offset: 4px; }
 .blk-preview .blk-free:hover, .blk-preview .blk-free:focus-within, .blk-preview .blk-free.is-moving { outline: 2px solid #3B82F6; }
 .blk-free.is-moving { opacity: .85; user-select: none; }
-.blk-free-tools { position: absolute; top: -38px; left: -6px; display: none; gap: 2px; padding: 3px; border-radius: 9px; background: #1E3A8A; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); z-index: 2; }
+/* Se arrastra desde cualquier parte del cuadro; al escribir, cursor de texto */
+.blk-preview .blk-free { cursor: move; touch-action: none; }
+.blk-preview .blk-free [data-ed]:not(:focus) { cursor: move; }
+.blk-preview .blk-free [data-ed]:focus { cursor: text; }
+.blk-free-tools { position: absolute; top: -34px; left: -6px; display: none; gap: 2px; padding: 3px; border-radius: 9px; background: #1E3A8A; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); z-index: 2; }
 .blk-preview .blk-free:hover .blk-free-tools, .blk-preview .blk-free:focus-within .blk-free-tools, .blk-preview .blk-free.is-moving .blk-free-tools { display: inline-flex; }
 @media (hover: none) { .blk-preview .blk-selected .blk-free-tools { display: inline-flex; } }
 .blk-free-grip, .blk-free-del { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #FFFFFF; cursor: grab; touch-action: none; }
