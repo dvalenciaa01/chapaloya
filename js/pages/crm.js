@@ -34,6 +34,7 @@ const CRM = {
 
   switchTab(tabId) {
     this.currentTab = tabId;
+    if (tabId === 'schedule' && DB.tenant && !DB.pref('guide:schedule:' + DB.tenant.id)) DB.pref('guide:schedule:' + DB.tenant.id, true);
     document.querySelectorAll('.crm-nav-btn').forEach(b => {
       b.classList.toggle('active', b.getAttribute('data-crm') === tabId);
     });
@@ -488,9 +489,9 @@ const CRM = {
     { key: 'walkins_done', kind: 'kpi', label: 'Walk-in atendidos' },
     { key: 'top_service', kind: 'kpi', label: '{Service} más pedid{o:service}', def: true },
     { key: 'staff_active', kind: 'kpi', label: '{StaffPlural} activ{os:staff}', def: true },
-    { key: 'quick', kind: 'section', label: 'Inicio rápido', def: true },
+    { key: 'quick', kind: 'section', label: 'Primeros pasos', def: true },
     { key: 'live', kind: 'section', label: '{StaffPlural} en vivo', def: true },
-    { key: 'upcoming', kind: 'section', label: 'Próximas {appointmentPlural} de hoy', def: true },
+    { key: 'upcoming', kind: 'section', label: 'Tu día de hoy ({appointmentPlural} y horarios libres)', def: true },
     { key: 'queue_list', kind: 'section', label: 'Cola de espera actual', def: true }
   ],
   dashAllowed(d) {
@@ -579,15 +580,17 @@ const CRM = {
       staff_active: () => kpi(this.vx('{StaffPlural} activ{os:staff}'), DB.state.barberProfiles.length, 'Con portafolio activo', 'color:var(--golden);')
     };
     const shown = this.dashShown();
+    this.renderDashHero(todayAppts);
     const kpiEl = document.getElementById('dashboard-kpis');
     if (kpiEl) {
-      const cards = this.DASH_ITEMS.filter(d => d.kind === 'kpi' && shown.includes(d.key) && this.dashAllowed(d)).map(d => CARD[d.key]());
+      // Citas de hoy y pendientes ya están arriba en grande
+      const cards = this.DASH_ITEMS.filter(d => d.kind === 'kpi' && shown.includes(d.key) && this.dashAllowed(d) && !this.DASH_IN_HERO.includes(d.key)).map(d => CARD[d.key]());
       kpiEl.innerHTML = cards.join('');
       kpiEl.hidden = !cards.length;
     }
     document.querySelectorAll('#crm-pane-dashboard [data-dash]').forEach(el => {
       const key = el.getAttribute('data-dash');
-      el.hidden = !shown.includes(key) || (key === 'quick' && !DB.state.settings.showQuickStart);
+      el.hidden = !shown.includes(key) || (key === 'quick' && (!DB.state.settings.showQuickStart || !this.renderGuide()));
     });
     const split = document.getElementById('dashboard-lists');
     if (split) {
@@ -596,8 +599,10 @@ const CRM = {
       split.classList.toggle('is-single', vis === 1);
     }
 
-    const upcomingToday = todayAppts.filter(a => a.status === 'PROGRAMADA' || a.status === 'CONFIRMADA_WSP')
+    this.renderDashDay(todayAppts);
+    const upcomingAll = todayAppts.filter(a => this.isVigente(a) && !DB.isPastSlot(a.date, a.time))
       .sort((x, y) => (x.time < y.time ? -1 : 1));
+    const upcomingToday = upcomingAll.slice(0, 4);
     const upcomingEl = document.getElementById('dashboard-upcoming-list');
     if (upcomingEl) {
       upcomingEl.innerHTML = upcomingToday.map(a =>
@@ -608,7 +613,8 @@ const CRM = {
           '</div>' +
           '<span class="st-badge st-' + E(a.status) + '">' + E(DB.statusLabel(a.status)) + '</span>' +
         '</div>'
-      ).join('') || '<div class="empty-state">' + ic('calendar') + '<strong>' + this.vx('Sin {appointmentPlural} pendientes') + '</strong>' + this.vx('No hay más {appointmentPlural} para hoy.') + '</div>';
+      ).join('') + (upcomingAll.length > 4 ? '<button type="button" class="dash-more" onclick="CRM.switchTab(\'appointments\')">' + this.vx('Ver ' + (upcomingAll.length - 4) + ' {appointmentPlural} más') + '</button>' : '') ||
+        '<p class="dash-none">' + this.vx('No quedan más {appointmentPlural} por hoy.') + '</p>';
     }
 
     const queueEl = document.getElementById('dashboard-queue-list');
@@ -622,6 +628,178 @@ const CRM = {
         '</div>'
       ).join('') || '<div class="empty-state">' + ic('hourglass') + '<strong>Cola vacía</strong>Nadie esperando en este momento.</div>';
     }
+  },
+
+  /* ---------- Panel: lo más importante de hoy ----------
+     Tres números grandes (citas, ingresos o horarios libres, por confirmar),
+     comparados con el mismo día de la semana pasada. */
+  DASH_IN_HERO: ['appts_today', 'pending'],
+  WEEKDAY_SHORT: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+
+  dashRevenueOn(date, untilMin) {
+    const inDay = (a) => a.date === date && (untilMin == null || DB.toMinutes(a.time) <= untilMin);
+    const appts = DB.visibleAppointments().filter(a => a.status === 'COMPLETADA' && inDay(a)).reduce((s, a) => s + Number(a.price || 0), 0);
+    const own = DB.linkedBarberName();
+    const walk = DB.state.walkIns.filter(w => w.status === 'FINALIZADO' && w.date === date && (!own || w.barber === own)).reduce((s, w) => s + Number(w.price || 0), 0);
+    return appts + walk;
+  },
+
+  dashFreeSlots(date) {
+    const lid = DB.linkedBarberId();
+    const staff = lid ? DB.assignableBarbers().filter(b => b.id === lid) : DB.assignableBarbers();
+    if (!staff.length) return DB.freeSlots(date, null).length;
+    return staff.reduce((n, b) => n + DB.freeSlots(date, b.id).length, 0);
+  },
+
+  renderDashHero(todayAppts) {
+    const el = document.getElementById('dashboard-hero');
+    if (!el) return;
+    const today = DB.todayISO();
+    const lastWeek = DB.addDays(today, -7);
+    const wd = this.WEEKDAY_SHORT[DB.dayOfWeek(lastWeek)];
+    const cur = this.cur();
+    const live = (a) => a.status !== 'CANCELADA';
+    const nToday = todayAppts.filter(live).length;
+    const nBefore = DB.visibleAppointments().filter(a => a.date === lastWeek && live(a)).length;
+    const delta = (now, before, money) => {
+      if (!before && !now) return '';
+      if (!before) return '<span class="dash-delta is-flat">El ' + wd + ' pasado no hubo</span>';
+      const diff = now - before;
+      if (!diff) return '<span class="dash-delta is-flat">Igual que el ' + wd + ' pasado</span>';
+      const txt = money ? Math.round(diff / before * 100) + '%' : String(Math.abs(diff));
+      return '<span class="dash-delta ' + (diff > 0 ? 'is-up' : 'is-down') + '">' + (diff > 0 ? '▲ +' : '▼ ') + (money ? txt.replace('-', '') : txt) +
+        '</span><span class="dash-delta-txt">vs. ' + wd + ' pasado' + (money ? ' a esta hora' : '') + '</span>';
+    };
+    const done = todayAppts.filter(a => a.status === 'COMPLETADA').length;
+    const toCome = todayAppts.filter(a => this.isVigente(a) && !DB.isPastSlot(a.date, a.time)).length;
+    const own = DB.linkedBarberName();
+    const big = (cls, label, val, extra, sub) => '<div class="dash-big ' + cls + '"><div class="dash-big-label">' + label + '</div>' +
+      '<div class="dash-big-val">' + val + '</div><div class="dash-big-cmp">' + (extra || '') + '</div><div class="dash-big-sub">' + sub + '</div></div>';
+    const cards = [];
+    cards.push(big('is-appts', this.vx(own ? 'Mis {appointmentPlural} de hoy' : '{AppointmentPlural} de hoy'), nToday, delta(nToday, nBefore),
+      done + ' completada' + (done === 1 ? '' : 's') + ' · ' + toCome + ' por venir'));
+    if (Auth.can('finance.view')) {
+      const rev = this.dashRevenueOn(today);
+      const revBefore = this.dashRevenueOn(lastWeek, DB.nowMinutes());
+      cards.push(big('is-money', 'Ingresos de hoy', cur + rev.toLocaleString('es-PE'), delta(rev, revBefore, true), this.vx('{AppointmentPlural} completadas y walk-in')));
+    } else {
+      const free = this.dashFreeSlots(today);
+      cards.push(big('is-free', 'Horarios libres hoy', free, '', free ? 'Compártelos para llenarlos' : 'No quedan horarios libres'));
+    }
+    const pend = todayAppts.filter(a => a.status === 'PROGRAMADA' && !DB.isPastSlot(a.date, a.time));
+    cards.push(big('is-pending' + (pend.length ? ' has-pending' : ''), 'Por confirmar', pend.length,
+      pend.length ? '<button type="button" class="dash-big-link" onclick="CRM.switchTab(\'appointments\')">Ver y confirmar' + ic('arrowRight') + '</button>' : '',
+      pend.length ? this.vx('{AppointmentPlural} de hoy sin confirmar') : this.vx('Todas las {appointmentPlural} de hoy están confirmadas')));
+    el.innerHTML = cards.join('');
+  },
+
+  /* Línea de tiempo de hoy: una fila por profesional, con las citas como
+     bloques de color, los descansos rayados y una línea en la hora actual. */
+  renderDashDay(todayAppts) {
+    const el = document.getElementById('dashboard-day');
+    if (!el || !DB.tenant) return;
+    const E = (v) => UI.esc(v);
+    const today = DB.todayISO();
+    const sch = DB.tenant.schedule || DB.normSchedule(null);
+    const exc = DB.exceptionFor(today, null);
+    const ranges = DB.normRanges(exc ? exc.ranges : sch.week[DB.dayOfWeek(today)]);
+    const list = todayAppts.filter(a => a.status !== 'CANCELADA');
+    let lo = Infinity, hi = -Infinity;
+    ranges.forEach(r => { lo = Math.min(lo, DB.toMinutes(r[0])); hi = Math.max(hi, DB.toMinutes(r[1])); });
+    list.forEach(a => { const s = DB.toMinutes(a.time); lo = Math.min(lo, s); hi = Math.max(hi, s + DB.apptDuration(a)); });
+    if (!isFinite(lo)) {
+      el.innerHTML = '<div class="dash-day-closed">' + ic('coffee') + this.vx('Hoy no atiendes y no hay {appointmentPlural}.') + '</div>';
+      this.renderDashFree(0, true);
+      return;
+    }
+    lo = Math.floor(lo / 60) * 60; hi = Math.ceil(hi / 60) * 60;
+    const pct = (m) => ((m - lo) / (hi - lo) * 100).toFixed(2) + '%';
+    const lid = DB.linkedBarberId();
+    let staff = DB.assignableBarbers();
+    if (lid) staff = staff.filter(b => b.id === lid);
+    const rows = staff.length ? staff.map(b => ({ name: b.name, items: list.filter(a => DB.sameBarber(a, b, b.name)) })) : [{ name: '', items: list }];
+    const assigned = new Set(); rows.forEach(r => r.items.forEach(a => assigned.add(a.id)));
+    const rest = list.filter(a => !assigned.has(a.id));
+    if (rest.length) rows.push({ name: 'Sin asignar', items: rest });
+    // descansos: los huecos entre tramos del horario
+    const gaps = [];
+    for (let i = 1; i < ranges.length; i++) gaps.push([DB.toMinutes(ranges[i - 1][1]), DB.toMinutes(ranges[i][0])]);
+    const gapHTML = gaps.filter(g => g[1] > g[0]).map(g => '<span class="dash-day-gap" style="left:' + pct(g[0]) + ';width:calc(' + pct(g[1]) + ' - ' + pct(g[0]) + ')" title="Descanso"></span>').join('');
+    const block = (a) => {
+      const s = DB.toMinutes(a.time), e = s + DB.apptDuration(a);
+      const tip = a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status);
+      return '<button type="button" class="dash-day-appt ag-' + E(a.status) + '" style="left:' + pct(s) + ';width:calc(' + pct(e) + ' - ' + pct(s) + ')"' +
+        ' title="' + E(tip) + '" aria-label="' + E(tip) + '" onclick="CRM.openApptDetail(\'' + E(a.id) + '\')"><span>' + E(String(a.customerName || '').split(' ')[0]) + '</span></button>';
+    };
+    const ticks = [];
+    for (let m = lo; m <= hi; m += 60) ticks.push('<span class="dash-day-tick" style="left:' + pct(m) + '">' + (m / 60) + '</span>');
+    const now = DB.nowMinutes();
+    const nowHTML = now >= lo && now <= hi ? '<span class="dash-day-now" style="left:' + pct(now) + '" title="Ahora ' + DB.fromMinutes(now) + '"></span>' : '';
+    el.innerHTML =
+      '<div class="dash-day-grid' + (rows.length === 1 && !rows[0].name ? ' no-names' : '') + '">' +
+        rows.map(r => '<div class="dash-day-name">' + E(r.name) + '</div>' +
+          '<div class="dash-day-track">' + gapHTML + r.items.map(block).join('') + nowHTML + '</div>').join('') +
+        '<div class="dash-day-name"></div><div class="dash-day-ticks">' + ticks.join('') + '</div>' +
+      '</div>';
+    this.renderDashFree(this.dashFreeSlots(today), !ranges.length);
+  },
+
+  renderDashFree(n, closed) {
+    const el = document.getElementById('dashboard-free');
+    if (!el) return;
+    const url = this.waBookingUrl();
+    if (closed) { el.hidden = true; return; }
+    el.hidden = false;
+    const share = url ? '<a class="btn-dark btn-xs dash-free-wa" href="https://wa.me/?text=' + encodeURIComponent(UI.v('Reserva tu {appointment} aquí: ') + url) + '" target="_blank" rel="noopener" onclick="CRM.guideMark(\'shared\')">' + ic('whatsapp') + 'Compartir por WhatsApp</a>' +
+      '<button type="button" class="btn-dark btn-xs" onclick="CRM.copyBookingLink()">' + ic('copy') + 'Copiar enlace</button>' : '';
+    el.innerHTML = n
+      ? '<div class="dash-free-txt">' + ic('clock') + '<span><strong>Hoy te quedan ' + n + ' horario' + (n === 1 ? '' : 's') + ' libre' + (n === 1 ? '' : 's') + '.</strong> ' + this.vx('Comparte tu enlace para llenarlos.') + '</span></div><div class="dash-free-actions">' + share + '</div>'
+      : '<div class="dash-free-txt">' + ic('checkCircle') + '<span><strong>Hoy ya no quedan horarios libres.</strong></span></div>';
+  },
+
+  async copyBookingLink() {
+    const url = this.waBookingUrl();
+    if (!url) return;
+    try { await navigator.clipboard.writeText(url); UI.toast('Enlace copiado. Pégalo donde quieras compartirlo.'); }
+    catch (e) { UI.toast(url, 'info'); }
+    this.guideMark('shared');
+  },
+
+  /* ---------- Primeros pasos ----------
+     Guía con avance. Devuelve false cuando no hay nada pendiente (se oculta sola). */
+  guideMark(key) {
+    if (!DB.tenant) return;
+    const k = 'guide:' + key + ':' + DB.tenant.id;
+    if (DB.pref(k)) return;
+    DB.pref(k, true);
+    if (this.currentTab === 'dashboard') this.renderDashboard();
+  },
+  renderGuide() {
+    const box = document.getElementById('guide-steps');
+    if (!box || !DB.tenant) return false;
+    const tid = DB.tenant.id;
+    const tabOk = (t) => { const b = document.querySelector('.crm-nav-btn[data-crm="' + t + '"]'); return !!b && !b.closest('[hidden], .perm-hidden'); };
+    const steps = [
+      { tab: 'barbers', done: DB.state.barberProfiles.length > 0, label: this.vx('Agrega a tu equipo'), hint: this.vx('Nombre y foto de cada {staff}'), go: "CRM.switchTab('barbers')" },
+      { tab: 'services', done: DB.state.services.length > 0, label: this.vx('Agrega tus {servicePlural}'), hint: 'Con precio y duración', go: "CRM.switchTab('services')" },
+      { tab: 'schedule', done: !!DB.pref('guide:schedule:' + tid), label: 'Revisa tu horario de atención', hint: 'Días, horas y pausas', go: "CRM.switchTab('schedule')" },
+      { tab: 'whatsapp', done: !!this.waConfig().enabled, label: 'Conecta WhatsApp', hint: this.vx('Confirmaciones y recordatorios automáticos'), go: "CRM.switchTab('whatsapp')" },
+      { tab: null, done: !!DB.pref('guide:shared:' + tid), label: 'Comparte tu enlace de reservas', hint: 'Por WhatsApp, Instagram o donde quieras', go: 'CRM.copyBookingLink()', btn: 'Copiar enlace' }
+    ].filter(s => !s.tab || tabOk(s.tab));
+    if (!this.waBookingUrl()) steps.pop();
+    const ok = steps.filter(s => s.done).length;
+    if (!steps.length || ok === steps.length) return false;
+    const sub = document.getElementById('guide-sub');
+    if (sub) sub.textContent = ok + ' de ' + steps.length + ' listos';
+    const fill = document.getElementById('guide-bar-fill');
+    if (fill) fill.style.width = Math.round(ok / steps.length * 100) + '%';
+    const next = steps.findIndex(s => !s.done);
+    box.innerHTML = steps.map((s, i) => '<li class="guide-step' + (s.done ? ' is-done' : '') + (i === next ? ' is-next' : '') + '">' +
+      '<span class="guide-dot">' + (s.done ? ic('check') : (i + 1)) + '</span>' +
+      '<span class="guide-txt"><strong>' + s.label + '</strong><small>' + s.hint + '</small></span>' +
+      (s.done ? '<span class="guide-ok">Listo</span>' : '<button type="button" class="btn-dark btn-xs" onclick="' + s.go + '">' + (s.btn || 'Ir') + ic('arrowRight') + '</button>') +
+      '</li>').join('');
+    return true;
   },
 
   toggleQuickStart(show) {
