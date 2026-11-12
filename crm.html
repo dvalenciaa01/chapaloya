@@ -170,19 +170,32 @@
             </div>
           </div>
 
-          <div class="crm-kpi-grid-4 dash-kpis" id="dashboard-kpis"></div>
+          <div class="dash-hero" id="dashboard-hero"></div>
 
-          <div class="crm-section-card" id="quick-start-box" data-dash="quick">
+          <div class="crm-section-card dash-guide" id="quick-start-box" data-dash="quick">
             <div class="card-head">
-              <h3>Inicio rápido</h3>
+              <div>
+                <h3>Primeros pasos</h3>
+                <p class="card-sub" id="guide-sub">Deja tu negocio listo para recibir reservas.</p>
+              </div>
               <button type="button" class="btn-dark btn-xs" onclick="CRM.toggleQuickStart(false)"><i data-icon="x"></i>Ocultar</button>
             </div>
-            <div class="quick-actions">
-              <button type="button" class="quick-action" onclick="CRM.switchTab('barbers')"><i data-icon="users"></i><span data-v-fmt="{StaffPlural} y portafolio">Profesionales y portafolio</span></button>
-              <button type="button" class="quick-action" onclick="CRM.openAppointmentModal()"><i data-icon="calendar"></i><span data-v-fmt="Agregar {appointment}">Agregar cita</span></button>
-              <button type="button" class="quick-action" onclick="CRM.openWalkInModal()"><i data-icon="hourglass"></i><span>Agregar walk-in</span></button>
-            </div>
+            <div class="guide-bar" aria-hidden="true"><span id="guide-bar-fill"></span></div>
+            <ol class="guide-steps" id="guide-steps"></ol>
           </div>
+
+          <div class="crm-section-card dash-today" data-dash="upcoming">
+            <div class="card-head">
+              <h3 data-v-fmt="Tu día de hoy">Tu día de hoy</h3>
+              <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')"><span data-v-fmt="Ver {appointmentPlural}">Ver citas</span><i data-icon="arrowRight"></i></button>
+            </div>
+            <div class="dash-day" id="dashboard-day"></div>
+            <div class="dash-free" id="dashboard-free" hidden></div>
+            <h4 class="dash-next-title" data-v-fmt="Próximas {appointmentPlural}">Próximas citas</h4>
+            <div id="dashboard-upcoming-list"></div>
+          </div>
+
+          <div class="crm-kpi-grid-4 dash-kpis dash-kpis-sm" id="dashboard-kpis"></div>
 
           <div class="crm-section-card" data-dash="live">
             <div class="card-head">
@@ -196,13 +209,6 @@
           </div>
 
           <div class="crm-split-2" id="dashboard-lists">
-            <div class="crm-section-card" data-dash="upcoming">
-              <div class="card-head">
-                <h3 data-v-fmt="Próximas {appointmentPlural} de hoy">Próximas citas de hoy</h3>
-                <button type="button" class="btn-dark btn-xs" onclick="CRM.switchTab('appointments')"><span data-v-fmt="Ver {appointmentPlural}">Ver citas</span><i data-icon="arrowRight"></i></button>
-              </div>
-              <div id="dashboard-upcoming-list"></div>
-            </div>
             <div class="crm-section-card" data-dash="queue_list">
               <div class="card-head">
                 <h3>Cola de espera actual</h3>
