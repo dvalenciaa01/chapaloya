@@ -264,6 +264,14 @@
                 <select id="agenda-staff" class="input-dark" onchange="CRM.renderAgenda()"></select>
               </div>
             </div>
+            <div class="agenda-legend" aria-label="Colores de la agenda">
+              <span class="ag-key ag-PROGRAMADA">Programada</span>
+              <span class="ag-key ag-CONFIRMADA_WSP">Confirmada</span>
+              <span class="ag-key ag-COMPLETADA">Completada</span>
+              <span class="ag-key ag-NO_ASISTIO">No asistió</span>
+              <span class="ag-key-hint" data-perm="appointments.create">Toca un espacio libre para agregar una cita</span>
+            </div>
+            <div class="agenda-mtabs" id="agenda-mtabs" role="tablist" aria-label="Elegir profesional" hidden></div>
             <div class="agenda-scroll" id="agenda-grid"></div>
           </section>
           <div id="appt-list-view">

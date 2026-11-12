@@ -982,12 +982,14 @@ const CRM = {
             : '<span class="agenda-card-time">' + E(a.customerName) + ' · ' + E(a.time) + '</span>');
       } else if (size === 'full') {
         body = '<strong class="agenda-card-name">' + E(a.customerName) + this.refBadge(a) + '</strong><span class="agenda-card-meta">' + E(a.service) + price + '</span><span class="agenda-card-time">' + range + st + '</span>';
+      } else if (lanes > 1) {
+        body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + E(a.time) + '</span>';
       } else if (size === 'compact') {
         body = '<strong class="agenda-card-name">' + E(a.customerName) + this.refBadge(a) + '</strong><span class="agenda-card-time">' + range + st + '</span>';
       } else {
         body = '<strong class="agenda-card-name">' + E(a.customerName) + '</strong><span class="agenda-card-time">' + E(a.time) + '</span>';
       }
-      return '<button type="button" class="agenda-card ag-' + E(a.status) + (isNew ? ' is-new' : '') + ' is-' + size + '" style="' + style + '"' +
+      return '<button type="button" class="agenda-card ag-' + E(a.status) + (isNew ? ' is-new' : '') + ' is-' + size + (lanes > 1 ? ' in-lane' : '') + '" style="' + style + '"' +
         ' onclick="CRM.openApptDetail(\'' + E(a.id) + '\')"' +
         ' title="' + E(a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '"' +
         ' aria-label="' + E((isNew ? 'Nueva reserva · ' : '') + a.time + ' · ' + a.customerName + ' · ' + a.service + ' · ' + DB.statusLabel(a.status)) + '">' + body + '</button>';
@@ -997,27 +999,46 @@ const CRM = {
     const colHTML = cols.map(c => {
       const list = appts.filter(a => c.orphan ? !known.has(a.barberId) : a.barberId === c.id)
         .sort((x, z) => DB.toMinutes(x.time) - DB.toMinutes(z.time));
-      const laneEnd = [];
-      const placed = list.map(a => {
+      // Solo las citas que se cruzan entre sí se reparten el ancho (por grupo), las demás usan toda la columna
+      const placed = [];
+      let group = [], groupEnd = -1, laneEnd = [];
+      const flush = () => { const lanes = Math.max(1, laneEnd.length); group.forEach(p => { p.lanes = lanes; placed.push(p); }); group = []; laneEnd = []; };
+      list.forEach(a => {
         const [s, e] = span(a);
+        if (group.length && s >= groupEnd) flush();
         let lane = laneEnd.findIndex(end => end <= s);
         if (lane < 0) { lane = laneEnd.length; laneEnd.push(e); } else laneEnd[lane] = e;
-        return { a, lane };
+        group.push({ a, lane });
+        groupEnd = Math.max(group.length > 1 ? groupEnd : -1, e);
       });
-      const lanes = Math.max(1, laneEnd.length);
+      flush();
       const off = !c.orphan && DB.slotsFor(date, c.id).length === 0;
-      return { c, html: placed.map(p => card(p.a, p.lane, lanes)).join(''), n: list.length, off };
+      return { c, html: placed.map(p => card(p.a, p.lane, p.lanes)).join(''), n: list.length, off };
     });
 
+    const canCreate = Auth.can('appointments.create') && !DB.isPastDate(date);
+    const hint = document.querySelector('#appt-agenda-view .ag-key-hint');
+    if (hint) { hint.textContent = UI.v('Toca un espacio libre para agregar {un:appointment} {appointment}'); hint.hidden = !canCreate; }
+    let mIdx = cols.findIndex(c => c.id === this.agendaMobileStaff);
+    if (mIdx < 0) mIdx = 0;
     grid.innerHTML =
-      '<div class="agenda-grid" style="--agenda-cols:' + cols.length + ';--agenda-hour:' + H + 'px">' +
+      '<div class="agenda-grid' + (cols.length > 1 ? ' has-mtabs' : '') + '" style="--agenda-cols:' + cols.length + ';--agenda-hour:' + H + 'px">' +
         '<div class="agenda-corner"></div>' +
-        colHTML.map(x => '<div class="agenda-col-head' + (x.c.orphan ? ' is-orphan' : '') + '"><span class="agenda-col-name">' + E(x.c.name) + '</span>' +
+        colHTML.map((x, i) => '<div class="agenda-col-head' + (x.c.orphan ? ' is-orphan' : '') + (i === mIdx ? ' is-mobile-active' : '') + '"><span class="agenda-col-name">' + E(x.c.name) + '</span>' +
           '<span class="agenda-col-count">' + (x.off && !x.n ? 'No atiende' : x.n + ' ' + (x.n === 1 ? Vocab.t('appointment') : Vocab.t('appointmentPlural'))) + '</span></div>').join('') +
         '<div class="agenda-times" style="height:' + height + 'px">' + hours.join('') + '</div>' +
         '<div class="agenda-layer" style="height:' + height + 'px">' + offHTML + nowHTML + '</div>' +
-        colHTML.map((x, i) => '<div class="agenda-col' + (x.off ? ' is-off' : '') + '" style="grid-column:' + (i + 2) + ';height:' + height + 'px">' + x.html + '</div>').join('') +
+        colHTML.map((x, i) => '<div class="agenda-col' + (x.off ? ' is-off' : '') + (i === mIdx ? ' is-mobile-active' : '') + '" style="grid-column:' + (i + 2) + ';height:' + height + 'px"' +
+          (canCreate && !x.c.orphan ? ' data-staff="' + E(x.c.id) + '" onclick="CRM.agendaSlotClick(event, this)" onmousemove="CRM.agendaSlotHover(event, this)" onmouseleave="CRM.agendaSlotHover(null, this)"' : '') + '>' +
+          (canCreate && !x.c.orphan ? '<span class="agenda-ghost" aria-hidden="true" hidden></span>' : '') + x.html + '</div>').join('') +
       '</div>';
+    this._agendaGeo = { lo, hi, H, date, step: DB.tenant.schedule ? DB.tenant.schedule.interval : 30 };
+    const tabs = document.getElementById('agenda-mtabs');
+    if (tabs) {
+      tabs.hidden = cols.length < 2;
+      tabs.innerHTML = colHTML.map((x, i) => '<button type="button" role="tab" aria-selected="' + (i === mIdx) + '" class="agenda-mtab' + (i === mIdx ? ' active' : '') + '" onclick="CRM.agendaMobileCol(\'' + E(x.c.id) + '\')">' +
+        E(x.c.name) + '<span>' + x.n + '</span></button>').join('');
+    }
 
     // Al abrir hoy, la hora actual queda a la vista
     if (isToday && this.currentTab === 'appointments' && this._agendaScrolled !== date) {
@@ -1029,6 +1050,42 @@ const CRM = {
       }, 60);
     }
     this.startAgendaClock();
+  },
+
+  // Celular: se ve un profesional a la vez (pestañas sobre la agenda)
+  agendaMobileCol(id) {
+    this.agendaMobileStaff = id;
+    this.renderAgenda();
+  },
+
+  // Minuto (redondeado al intervalo del negocio) del punto tocado en una columna de la agenda
+  agendaSlotAt(ev, col) {
+    const g = this._agendaGeo;
+    if (!g || !ev) return null;
+    const yPx = ev.clientY - col.getBoundingClientRect().top;
+    const m = g.lo + Math.floor((yPx / g.H * 60) / g.step) * g.step;
+    if (m < g.lo || m >= g.hi) return null;
+    return m;
+  },
+
+  agendaSlotHover(ev, col) {
+    const ghost = col.querySelector('.agenda-ghost');
+    if (!ghost) return;
+    const m = ev && !ev.target.closest('.agenda-card') ? this.agendaSlotAt(ev, col) : null;
+    if (m == null) { ghost.hidden = true; return; }
+    const g = this._agendaGeo;
+    ghost.hidden = false;
+    ghost.style.top = ((m - g.lo) / 60 * g.H + 2) + 'px';
+    ghost.style.height = Math.max(26, g.step / 60 * g.H - 4) + 'px';
+    ghost.textContent = '+ ' + DB.fromMinutes(m);
+  },
+
+  // Tocar un espacio vacío abre "Agregar cita" con esa hora y ese profesional
+  agendaSlotClick(ev, col) {
+    if (ev.target.closest('.agenda-card')) return;
+    const m = this.agendaSlotAt(ev, col);
+    if (m == null) return;
+    this.openAppointmentModal({ barberId: col.getAttribute('data-staff'), date: this._agendaGeo.date, time: DB.fromMinutes(m) });
   },
 
   // Línea de la hora actual y resaltado de "Nueva reserva" al día, sin recargar datos
@@ -2667,8 +2724,10 @@ const CRM = {
   closeModal() { ModalComponent.close(); },
 
   /* ---------- Agregar cita ---------- */
-  openAppointmentModal() {
+  // preset (opcional): { barberId, date, time } cuando se toca un espacio libre de la agenda
+  openAppointmentModal(preset) {
     const cur = this.cur();
+    const pre = preset && typeof preset === 'object' && !preset.preventDefault ? preset : {};
     if (!DB.state.services.length || !DB.state.barberProfiles.length) {
       UI.toast(UI.v('Primero registra al menos {un:service} {service} y {un:staff} {staff}.'), 'error');
       return;
@@ -2680,18 +2739,22 @@ const CRM = {
     const showNotes = this.fshow('appointments', 'notes');
     const barbers = DB.assignableBarbers();
     const own = DB.linkedBarberId();
-    const barbOptions = barbers.map(b => '<option value="' + E(b.id) + '">' + E(b.name) + '</option>').join('');
-    const firstDate = DB.firstBookableDate(barbers[0].name, (DB.state.services[0] || {}).duration);
+    const preBarber = own ? null : barbers.find(b => b.id === pre.barberId);
+    const barbOptions = barbers.map(b => '<option value="' + E(b.id) + '"' + (preBarber && preBarber.id === b.id ? ' selected' : '') + '>' + E(b.name) + '</option>').join('');
+    const firstDate = pre.date && !DB.isPastDate(pre.date) ? pre.date : DB.firstBookableDate((preBarber || barbers[0]).name, (DB.state.services[0] || {}).duration);
+    this._apPreTime = pre.time || '';
     ModalComponent.open(
       '<div class="crm-modal-header"><div><span class="card-kicker">Agenda</span><h3>' + this.vx('Agregar {appointment}') + '</h3></div><button type="button" class="btn-dark btn-xs" onclick="CRM.closeModal()" aria-label="Cerrar">' + ic('x') + '</button></div>' +
       '<form onsubmit="CRM.saveAppointmentModal(event)" novalidate>' +
         '<div class="form-grid-2">' +
-          '<div><label class="field-lbl" for="m-ap-name">' + E(Vocab.T('client')) + ' <span class="req">*</span></label><input type="text" id="m-ap-name" class="input-dark" maxlength="80" required /></div>' +
-          (ph.show ? '<div><label class="field-lbl" for="m-ap-phone">Celular' + (ph.required ? ' <span class="req">*</span>' : '') + '</label><input type="tel" id="m-ap-phone" class="input-dark" inputmode="tel" maxlength="16" placeholder="987 654 321"' + (ph.required ? ' required' : '') + ' /></div>' : '') +
+          '<div class="ap-find"><label class="field-lbl" for="m-ap-name">' + E(Vocab.T('client')) + ' <span class="req">*</span></label><input type="text" id="m-ap-name" class="input-dark" maxlength="80" required autocomplete="off" placeholder="' + this.vx('Escribe para buscar o agregar') + '" oninput="CRM.apFind(this)" onfocus="CRM.apFind(this)" aria-controls="m-ap-found" />' +
+            '<div class="ap-found" id="m-ap-found" role="listbox" hidden></div></div>' +
+          (ph.show ? '<div class="ap-find"><label class="field-lbl" for="m-ap-phone">Celular' + (ph.required ? ' <span class="req">*</span>' : '') + '</label><input type="tel" id="m-ap-phone" class="input-dark" inputmode="tel" maxlength="16" placeholder="987 654 321" autocomplete="off" oninput="CRM.apFind(this)"' + (ph.required ? ' required' : '') + ' /></div>' : '') +
           '<div><label class="field-lbl" for="m-ap-service">' + E(Vocab.T('service')) + '</label><select id="m-ap-service" class="input-dark" onchange="CRM.refreshApptSlots()">' + srvOptions + '</select></div>' +
           '<div><label class="field-lbl" for="m-ap-barber">' + E(Vocab.T('staff')) + '</label><select id="m-ap-barber" class="input-dark" onchange="CRM.refreshApptSlots()"' + (own ? ' disabled' : '') + '>' + barbOptions + '</select></div>' +
           '<div><label class="field-lbl" for="m-ap-date">Fecha</label><input type="date" id="m-ap-date" class="input-dark" min="' + DB.todayISO() + '" value="' + E(firstDate) + '" onchange="CRM.refreshApptSlots()" required /></div>' +
-          '<div><label class="field-lbl" for="m-ap-time">Hora</label><select id="m-ap-time" class="input-dark" required></select></div>' +
+          '<div style="grid-column:1/-1;"><span class="field-lbl" id="m-ap-time-lbl">Hora</span><select id="m-ap-time" class="input-dark" required hidden aria-hidden="true" tabindex="-1"></select>' +
+            '<div class="ap-slots" id="m-ap-slots" role="radiogroup" aria-labelledby="m-ap-time-lbl"></div></div>' +
           (showNotes ? '<div style="grid-column:1/-1;"><label class="field-lbl" for="m-ap-notes">Notas</label><textarea id="m-ap-notes" class="input-dark" rows="2" maxlength="500"></textarea></div>' : '') +
         '</div>' +
         CrmConfig.formHTML('appointments', 'm-ap-x-', {}) +
@@ -2699,11 +2762,75 @@ const CRM = {
           '<span>' + this.vx('El {client} acepta recibir la confirmación y los recordatorios por WhatsApp') + '</span></label>' : '') +
         (showPrice ? '<p class="field-hint">' + this.vx('El precio es el {del:service} {service} en el catálogo.') + '</p>' : '') +
         '<p class="field-hint" id="m-ap-note" style="margin-top:10px;"></p>' +
+        '<div class="ap-summary" id="m-ap-summary" aria-live="polite"></div>' +
         '<div class="form-error" id="m-ap-error" role="alert"></div>' +
         '<div class="modal-actions"><button type="button" class="btn-dark" onclick="CRM.closeModal()">Cancelar</button><button type="submit" class="btn-golden">' + ic('check') + this.vx('Guardar {appointment}') + '</button></div>' +
       '</form>'
     );
     this.refreshApptSlots();
+    const form = document.querySelector('#crm-modal-content form');
+    if (form) form.addEventListener('change', () => this.apSummary());
+    setTimeout(() => { const n = document.getElementById('m-ap-name'); if (n) n.focus(); }, 50);
+  },
+
+  /* Buscar {client} ya registrado mientras se escribe el nombre o el celular */
+  apFind(input) {
+    const box = document.getElementById('m-ap-found');
+    if (!box) return;
+    const q = input.value.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const list = (q.length < 2 && digits.length < 3) ? [] : DB.state.customers.filter(c =>
+      (digits.length >= 3 && String(c.phone || '').replace(/\D/g, '').includes(digits)) ||
+      (q.length >= 2 && !/^\d+$/.test(q) && String(c.name || '').toLowerCase().includes(q))).slice(0, 5);
+    const E = (v) => UI.esc(v);
+    if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = '<span class="ap-found-head">' + this.vx('{ClientPlural} registrad{os:client}') + '</span>' + list.map(c =>
+      '<button type="button" role="option" onmousedown="event.preventDefault()" onclick="CRM.apPick(\'' + E(c.id) + '\')">' +
+        '<strong>' + E(c.name) + '</strong><span>' + E(c.phone || 'Sin celular') + '</span></button>').join('');
+    box.hidden = false;
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      document.addEventListener('click', (e) => { const b = document.getElementById('m-ap-found'); if (b && !e.target.closest('.ap-find')) b.hidden = true; });
+    }
+  },
+
+  apPick(id) {
+    const c = DB.state.customers.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('m-ap-name').value = c.name;
+    const ph = document.getElementById('m-ap-phone');
+    if (ph) ph.value = c.phone || '';
+    const box = document.getElementById('m-ap-found');
+    if (box) box.hidden = true;
+    this.apSummary();
+  },
+
+  // La hora se elige con botones; el <select> oculto sigue siendo el valor que se guarda
+  apPickTime(t) {
+    const sel = document.getElementById('m-ap-time');
+    if (!sel) return;
+    sel.value = t;
+    document.querySelectorAll('#m-ap-slots .ap-slot').forEach(b => {
+      const on = b.getAttribute('data-t') === t;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    this.apSummary();
+  },
+
+  // "Corte clásico · 30 min · S/30 · Martín · jue 12 nov 17:30"
+  apSummary() {
+    const box = document.getElementById('m-ap-summary');
+    if (!box) return;
+    const srv = DB.serviceById((document.getElementById('m-ap-service') || {}).value);
+    const b = DB.barberById((document.getElementById('m-ap-barber') || {}).value);
+    const date = (document.getElementById('m-ap-date') || {}).value;
+    const time = (document.getElementById('m-ap-time') || {}).value;
+    const name = ((document.getElementById('m-ap-name') || {}).value || '').trim();
+    if (!srv || !b || !date || !time) { box.hidden = true; return; }
+    const parts = [srv.name, srv.duration ? srv.duration + ' min' : '', this.fshow('appointments', 'price') ? (DB.state.settings.currency || 'S/') + srv.price : '', b.name, this.fmtShortDate(date) + ' ' + time].filter(Boolean);
+    box.hidden = false;
+    box.innerHTML = ic('calendar') + '<span>' + (name ? '<strong>' + UI.esc(name) + '</strong> · ' : '') + UI.esc(parts.join(' · ')) + '</span>';
   },
 
   /* Días pasados, horas que ya pasaron y horarios ocupados quedan bloqueados */
@@ -2724,7 +2851,7 @@ const CRM = {
     if (!DB.freeSlots(dateInp.value, barber, duration).length) {
       const next = DB.firstBookableDate(barber, duration);
       if (next !== dateInp.value) {
-        msg = (DB.slotsFor(dateInp.value, barber, duration).length ? 'No quedan horarios ese día para ' : 'Ese día no atiende ') + barber + '; se muestra el ' + next + '.';
+        msg = (DB.slotsFor(dateInp.value, barber, duration).length ? 'No quedan horarios ese día para ' : 'Ese día no atiende ') + barber + '; se muestra el ' + this.fmtShortDate(next) + '.';
         dateInp.value = next;
       }
     }
@@ -2737,9 +2864,26 @@ const CRM = {
       if (st === 'free' && !first) first = t;
       return '<option value="' + t + '"' + (st !== 'free' ? ' disabled' : '') + '>' + t + (st === 'past' ? ' · Ya pasó' : st === 'busy' ? ' · Ocupado' : '') + '</option>';
     }).join('');
-    const po = prev && timeSel.querySelector('option[value="' + prev + '"]');
-    timeSel.value = (po && !po.disabled) ? prev : (first || '');
+    const want = this._apPreTime || prev;
+    this._apPreTime = '';
+    const po = want && timeSel.querySelector('option[value="' + want + '"]');
+    timeSel.value = (po && !po.disabled) ? want : (first || '');
+    if (want && po && po.disabled) msg = msg || ('Las ' + want + ' ya no están libres; se eligió la primera hora libre.');
+    const chips = document.getElementById('m-ap-slots');
+    if (chips) {
+      const opts = Array.from(timeSel.options);
+      const free = opts.filter(o => !o.disabled).length;
+      chips.innerHTML = opts.length ? opts.map(o => {
+        const busy = o.disabled;
+        const why = /Ya pasó/.test(o.textContent) ? 'Ya pasó' : (busy ? 'Ocupado' : '');
+        return '<button type="button" role="radio" class="ap-slot' + (o.value === timeSel.value ? ' active' : '') + '" data-t="' + o.value + '"' +
+          ' aria-checked="' + (o.value === timeSel.value) + '"' + (busy ? ' disabled title="' + why + '"' : '') + ' onclick="CRM.apPickTime(\'' + o.value + '\')">' + o.value + '</button>';
+      }).join('') : '<p class="sch-exc-empty">No hay horas para ese día.</p>';
+      const lbl = document.getElementById('m-ap-time-lbl');
+      if (lbl) lbl.innerHTML = 'Hora <span class="ap-slots-count">' + (opts.length ? free + (free === 1 ? ' libre' : ' libres') : '') + '</span>';
+    }
     if (note) note.textContent = msg;
+    this.apSummary();
   },
 
   async saveAppointmentModal(e) {
@@ -2781,7 +2925,7 @@ const CRM = {
     this.closeModal();
     const ok = await DB.save();
     this.renderAll();
-    if (ok) UI.toast(UI.v('{Appointment} registrad{o:appointment} para el ') + date + ' a las ' + time + '.');
+    if (ok) UI.toast(UI.v('{Appointment} registrad{o:appointment} para el ') + this.fmtShortDate(date) + ' a las ' + time + '.');
     return ok;
   },
 
