@@ -515,44 +515,59 @@
             </div>
           </div>
           <div class="crm-section-card sch-card">
-            <div class="card-head"><h3>Horario semanal</h3></div>
-            <p class="card-text"><span data-vx="Define qué días y en qué horas se puede reservar. Cada {staff} puede tener sus propios días y horas desde su ficha en">Define qué días y en qué horas se puede reservar. Cada profesional puede tener sus propios días y horas desde su ficha en</span> <strong data-v="StaffPlural">Profesionales</strong>, siempre dentro de este horario.</p>
-            <div class="form-grid-2">
-              <div>
-                <label class="field-lbl" for="set-sch-interval">Una cita empieza cada</label>
-                <select id="set-sch-interval" class="input-dark"></select>
-              </div>
-              <div>
-                <label class="field-lbl" for="set-sch-maxdays">Se puede reservar en la web hasta</label>
-                <div class="sch-inline"><input type="number" id="set-sch-maxdays" class="input-dark" min="1" max="365" step="1" inputmode="numeric" /><span>días adelante</span></div>
+            <div class="card-head"><h3><span class="sch-step-n">1</span>¿Qué días y a qué hora atiendes?</h3></div>
+            <p class="card-text"><span data-vx="Solo se puede reservar dentro de este horario. Cada {staff} puede tener sus propios días y horas desde su ficha en">Solo se puede reservar dentro de este horario. Cada profesional puede tener sus propios días y horas desde su ficha en</span> <strong data-v="StaffPlural">Profesionales</strong>, siempre dentro de este horario.</p>
+            <div id="set-sch-week"></div>
+
+            <div class="sch-sub">
+              <h3><span class="sch-step-n">2</span>¿Cómo se reparten las reservas?</h3>
+              <div class="sch-rules">
+                <div class="sch-rule">
+                  <span class="sch-rule-ic" data-icon="clock"></span>
+                  <div class="sch-rule-body">
+                    <label class="field-lbl" for="set-sch-interval">Se puede reservar cada</label>
+                    <select id="set-sch-interval" class="input-dark" onchange="CRM.renderScheduleHints()"></select>
+                    <p class="sch-rule-hint" id="set-sch-interval-hint"></p>
+                  </div>
+                </div>
+                <div class="sch-rule">
+                  <span class="sch-rule-ic" data-icon="calendar"></span>
+                  <div class="sch-rule-body">
+                    <label class="field-lbl" for="set-sch-maxdays">Se puede reservar con anticipación de hasta</label>
+                    <div class="sch-inline"><input type="number" id="set-sch-maxdays" class="input-dark" min="1" max="365" step="1" inputmode="numeric" oninput="CRM.renderScheduleHints()" /><span>días</span></div>
+                    <p class="sch-rule-hint" id="set-sch-maxdays-hint"></p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div id="set-sch-week"></div>
             <p class="form-error" id="set-sch-error" role="alert"></p>
-            <div class="card-foot"><button type="button" class="btn-golden" onclick="CRM.saveSchedule()"><i data-icon="check"></i>Guardar horario</button></div>
+            <div class="card-foot sch-foot">
+              <span class="sch-unsaved" id="set-sch-unsaved" hidden><i data-icon="alert"></i>Tienes cambios sin guardar</span>
+              <button type="button" class="btn-golden" onclick="CRM.saveSchedule()"><i data-icon="check"></i>Guardar horario</button>
+            </div>
           </div>
 
           <div class="crm-section-card sch-card">
-            <div class="card-head"><h3>Fechas especiales</h3></div>
-            <p class="card-text" data-vx="Feriados, días con otro horario o el día libre de {un:staff} {staff}. Reemplazan al horario semanal solo en esa fecha.">Feriados, días con otro horario o el día libre de un profesional. Reemplazan al horario semanal solo en esa fecha.</p>
+            <div class="card-head"><h3><span class="sch-step-n">3</span>Fechas especiales</h3></div>
+            <p class="card-text" data-vx="Feriados, vacaciones, un día con otro horario o el día libre de {un:staff} {staff}. Solo cambian esa fecha; el resto de la semana sigue igual.">Feriados, vacaciones, un día con otro horario o el día libre de un profesional. Solo cambian esa fecha; el resto de la semana sigue igual.</p>
             <div class="sch-exc-form">
-              <div><label class="field-lbl" for="set-exc-date">Fecha</label><input type="date" id="set-exc-date" class="input-dark" /></div>
-              <div><label class="field-lbl" for="set-exc-who">Para</label><select id="set-exc-who" class="input-dark"></select></div>
-              <div>
-                <label class="field-lbl" for="set-exc-kind">Ese día</label>
-                <select id="set-exc-kind" class="input-dark" onchange="CRM.toggleExceptionHours()">
-                  <option value="closed">No se atiende</option>
-                  <option value="hours">Atiende en otro horario</option>
-                </select>
+              <div class="sch-exc-kind" role="radiogroup" aria-label="Ese día">
+                <label class="sch-seg"><input type="radio" name="set-exc-kind" value="closed" checked onchange="CRM.toggleExceptionHours()" /><span><i data-icon="x"></i><strong>Cerrado</strong><small>No se atiende ese día</small></span></label>
+                <label class="sch-seg"><input type="radio" name="set-exc-kind" value="hours" onchange="CRM.toggleExceptionHours()" /><span><i data-icon="clock"></i><strong>Otro horario</strong><small>Se atiende en horas distintas</small></span></label>
               </div>
-              <div id="set-exc-hours" hidden>
-                <label class="field-lbl" for="set-exc-from">Horario</label>
-                <div class="sch-inline"><input type="time" step="300" id="set-exc-from" class="input-dark sch-time" value="09:00" /><span>a</span><input type="time" step="300" id="set-exc-to" class="input-dark sch-time" value="13:00" /></div>
+              <div class="sch-exc-fields">
+                <div><label class="field-lbl" for="set-exc-date">Fecha</label><input type="date" id="set-exc-date" class="input-dark" /></div>
+                <div><label class="field-lbl" for="set-exc-who">Para</label><select id="set-exc-who" class="input-dark"></select></div>
+                <div id="set-exc-hours" hidden>
+                  <label class="field-lbl" for="set-exc-from">Horario de ese día</label>
+                  <div class="sch-inline"><input type="time" step="300" id="set-exc-from" class="input-dark sch-time" value="09:00" /><span>a</span><input type="time" step="300" id="set-exc-to" class="input-dark sch-time" value="13:00" /></div>
+                </div>
+                <div><label class="field-lbl" for="set-exc-note">Motivo (opcional)</label><input type="text" id="set-exc-note" class="input-dark" maxlength="80" placeholder="Ej. Feriado, vacaciones" /></div>
               </div>
-              <div><label class="field-lbl" for="set-exc-note">Motivo (opcional)</label><input type="text" id="set-exc-note" class="input-dark" maxlength="80" placeholder="Ej. Feriado, vacaciones" /></div>
-              <div class="sch-exc-add"><button type="button" class="btn-golden" onclick="CRM.addException()"><i data-icon="plus"></i>Agregar</button></div>
+              <div class="sch-exc-add"><button type="button" class="btn-golden" onclick="CRM.addException()"><i data-icon="plus"></i>Agregar fecha</button></div>
             </div>
             <p class="form-error" id="set-exc-error" role="alert"></p>
+            <h4 class="sch-exc-title">Próximas fechas especiales</h4>
             <div id="set-exc-list"></div>
           </div>
         </div>
