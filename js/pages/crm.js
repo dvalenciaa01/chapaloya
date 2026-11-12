@@ -139,7 +139,7 @@ const CRM = {
     const mark = (e) => {
       const id = (e.target && e.target.id) || '';
       if (/^set-(owner-name|currency|address|phone|hours|city|lead|ref-photos)$/.test(id)) this.setDirty = true;
-      else if (id.indexOf('set-sch-') === 0 || id.indexOf('set-sch-on-') === 0) this.schDirty = true;
+      else if (id.indexOf('set-sch-') === 0) { this.schDirty = true; this.showSchUnsaved(true); this.renderScheduleHints(); }
       else if (id.indexOf('wa-') === 0 && id !== 'wa-test-num') this.waDirty = true;
     };
     // Configuración, Horario de atención y WhatsApp son apartados separados
@@ -149,7 +149,6 @@ const CRM = {
       pane.dataset.dirtyBound = '1';
       pane.addEventListener('input', mark);
       pane.addEventListener('change', mark);
-      pane.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#set-sch-week .sch-copy')) this.schDirty = true; });
     });
   },
 
@@ -2438,6 +2437,40 @@ const CRM = {
     document.getElementById('set-sch-maxdays').value = sch.maxDays;
     document.getElementById('set-sch-week').innerHTML = ScheduleEditor.html('set-sch', sch.week);
     document.getElementById('set-sch-error').textContent = '';
+    this.showSchUnsaved(false);
+    this.renderScheduleHints();
+  },
+
+  showSchUnsaved(on) {
+    const el = document.getElementById('set-sch-unsaved');
+    if (el) el.hidden = !on;
+  },
+
+  // Ejemplos en palabras debajo de "cada cuánto" y "hasta cuántos días"
+  renderScheduleHints() {
+    const iv = document.getElementById('set-sch-interval');
+    const ivHint = document.getElementById('set-sch-interval-hint');
+    if (iv && ivHint && typeof ScheduleEditor !== 'undefined' && document.getElementById('set-sch-editor')) {
+      const step = Number(iv.value) || 30;
+      const week = ScheduleEditor.peek('set-sch');
+      const d = ScheduleEditor.ORDER.find(x => (week[x] || []).length);
+      if (d == null) ivHint.textContent = 'Activa al menos un día para ver un ejemplo.';
+      else {
+        const r = week[d][0];
+        const toMin = (t) => { const p = t.split(':'); return (+p[0]) * 60 + (+p[1]); };
+        const fmt = (m) => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+        const times = [];
+        for (let m = toMin(r[0]); m < toMin(r[1]) && times.length < 4; m += step) times.push(fmt(m));
+        ivHint.innerHTML = 'Ej. el ' + UI.esc(DB.DAY_NAMES[d].toLowerCase()) + ' las reservas pueden empezar a las <strong>' + UI.esc(times.join(', ')) + '</strong>…';
+      }
+    }
+    const md = document.getElementById('set-sch-maxdays');
+    const mdHint = document.getElementById('set-sch-maxdays-hint');
+    if (md && mdHint) {
+      const n = parseInt(md.value, 10);
+      if (!(n >= 1 && n <= 365)) { mdHint.textContent = 'Escribe un número entre 1 y 365.'; return; }
+      mdHint.innerHTML = 'Hoy se podría reservar hasta el <strong>' + UI.esc(this.fmtLongDate(DB.addDays(DB.todayISO(), n)).toLowerCase()) + '</strong>.';
+    }
   },
 
   async saveSchedule() {
@@ -2453,6 +2486,7 @@ const CRM = {
     const ok = await DB.save();
     if (!ok) return false;
     this.schDirty = false;
+    this.showSchUnsaved(false);
     DB.log('Cambió el horario de atención', 'Antes: ' + before + ' · Ahora: ' + ScheduleEditor.summary(res.week) + ' · cada ' + t.schedule.interval + ' min');
     this.renderAll();
     UI.toast('Horario guardado. La web ya muestra los nuevos horarios.');
@@ -2479,14 +2513,21 @@ const CRM = {
     if (!dateEl.value) dateEl.value = DB.todayISO();
     const items = (DB.state.scheduleExceptions || []).filter(e => e.date >= DB.todayISO())
       .sort((a, b) => a.date.localeCompare(b.date) || this.exceptionWho(a).localeCompare(this.exceptionWho(b), 'es'));
-    if (!items.length) { list.innerHTML = '<p class="sch-exc-empty">No hay fechas especiales próximas.</p>'; return; }
-    list.innerHTML = '<div class="sch-exc-list">' + items.map(e =>
-      '<div class="sch-exc-item">' +
-        '<div><strong>' + UI.esc(this.fmtLongDate(e.date)) + ' · ' + UI.esc(this.exceptionWho(e)) + '</strong>' +
-        '<span>' + (e.ranges.length ? 'Atiende ' + UI.esc(e.ranges.map(r => r[0] + ' a ' + r[1]).join(' y ')) : 'No se atiende') +
-          (e.note ? ' · ' + UI.esc(e.note) : '') + '</span></div>' +
-        '<button type="button" class="btn-dark btn-xs" onclick="CRM.deleteException(\'' + UI.esc(e.id) + '\')" aria-label="Quitar fecha especial">' + ic('trash') + 'Quitar</button>' +
-      '</div>').join('') + '</div>';
+    if (!items.length) { list.innerHTML = '<p class="sch-exc-empty">' + ic('calendar') + 'No hay fechas especiales próximas. Agrega aquí feriados o vacaciones.</p>'; return; }
+    const MON = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    list.innerHTML = '<div class="sch-exc-list">' + items.map(e => {
+      const d = new Date(e.date + 'T12:00:00');
+      const closed = !e.ranges.length;
+      return '<div class="sch-exc-item' + (closed ? ' is-closed' : ' is-hours') + '">' +
+        '<span class="sch-exc-date" aria-hidden="true"><small>' + DB.DAY_NAMES[d.getDay()].slice(0, 3) + '</small><b>' + d.getDate() + '</b><small>' + MON[d.getMonth()] + '</small></span>' +
+        '<div class="sch-exc-info"><strong>' + UI.esc(this.fmtLongDate(e.date)) + '</strong>' +
+          '<span class="sch-exc-tags"><span class="sch-tag ' + (closed ? 'is-closed' : 'is-hours') + '">' +
+            (closed ? 'Cerrado' : 'De ' + UI.esc(e.ranges.map(r => r[0] + ' a ' + r[1]).join(' y '))) + '</span>' +
+            '<span class="sch-tag">' + ic('user') + UI.esc(this.exceptionWho(e)) + '</span>' +
+            (e.note ? '<span class="sch-exc-note">' + UI.esc(e.note) + '</span>' : '') + '</span></div>' +
+        '<button type="button" class="btn-dark btn-xs" onclick="CRM.deleteException(\'' + UI.esc(e.id) + '\')" aria-label="Quitar fecha especial del ' + UI.esc(this.fmtLongDate(e.date)) + '">' + ic('trash') + 'Quitar</button>' +
+      '</div>';
+    }).join('') + '</div>';
   },
 
   fmtLongDate(iso) {
@@ -2497,14 +2538,19 @@ const CRM = {
 
   toggleExceptionHours() {
     const box = document.getElementById('set-exc-hours');
-    if (box) box.hidden = document.getElementById('set-exc-kind').value !== 'hours';
+    if (box) box.hidden = this.exceptionKind() !== 'hours';
+  },
+
+  exceptionKind() {
+    const r = document.querySelector('input[name="set-exc-kind"]:checked');
+    return r ? r.value : 'closed';
   },
 
   async addException() {
     const err = document.getElementById('set-exc-error');
     const date = document.getElementById('set-exc-date').value;
     const barberId = document.getElementById('set-exc-who').value || null;
-    const kind = document.getElementById('set-exc-kind').value;
+    const kind = this.exceptionKind();
     const note = document.getElementById('set-exc-note').value.trim().slice(0, 80);
     if (!date || date < DB.todayISO()) { err.textContent = 'Elige una fecha de hoy en adelante.'; return false; }
     let ranges = [];
