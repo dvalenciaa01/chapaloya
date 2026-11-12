@@ -114,8 +114,7 @@ const SiteBuilder = {
     window.removeEventListener('message', this._onMsg);
     document.removeEventListener('keydown', this._onKey);
     window.removeEventListener('beforeunload', this._onUnload);
-    if (this.st.ai && this.st.ai.url) URL.revokeObjectURL(this.st.ai.url);
-    if (this.st.ai && this.st.ai.ctrl) this.st.ai.ctrl.abort();
+    if (this.st.img && this.st.img.url) URL.revokeObjectURL(this.st.img.url);
     this.st = null;
   },
 
@@ -310,9 +309,9 @@ const SiteBuilder = {
     const el = document.getElementById('sb-panel');
     if (!el || !this.st) return;
     const v = this.st.view;
-    el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML() : v === 'ai' ? this.aiHTML()
+    el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML() : v === 'img' ? this.imgHTML()
       : (v === 'block' && this.block(this.st.selected) ? this.blockFormHTML(this.block(this.st.selected)) : this.listHTML());
-    if (v !== 'block' && v !== 'add' && v !== 'theme' && v !== 'ai') this.st.view = 'list';
+    if (v !== 'block' && v !== 'add' && v !== 'theme' && v !== 'img') this.st.view = 'list';
     this.bindDrag();
   },
 
@@ -348,9 +347,9 @@ const SiteBuilder = {
       '<button type="button" class="sb-type sb-theme-btn" data-sb="theme">' +
         '<span class="sb-row-ic" aria-hidden="true">' + ic('sliders') + '</span><strong>Letra y colores</strong>' +
         '<span>' + E(this.themeSummary()) + '</span></button>' +
-      (this.isSA() ? '<button type="button" class="sb-type sb-theme-btn sb-ai-btn" data-sb="ai">' +
-        '<span class="sb-row-ic" aria-hidden="true">' + ic('sparkles') + '</span><strong>Copiar diseño de una imagen</strong>' +
-        '<span>' + (st.page.css ? 'Esta web tiene un estilo propio copiado de una imagen.' : 'Sube la captura de una web y Claude la arma con los datos del negocio.') + '</span></button>' : '') +
+      '<button type="button" class="sb-type sb-theme-btn sb-img-btn" data-sb="img">' +
+        '<span class="sb-row-ic" aria-hidden="true">' + ic('image') + '</span><strong>Copiar colores de una imagen</strong>' +
+        '<span>Sube la captura de una web y se copian sus colores y fondos, sin costo.</span></button>' +
       '<ol class="sb-list" id="sb-list">' + rows + '</ol>' +
       (st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-add" data-sb="add">' + ic('plus') + '<span>Agregar bloque</span></button>' : '') +
       '<div class="sb-foot">' +
@@ -617,219 +616,228 @@ const SiteBuilder = {
   },
 
   /* ---------------- Letra y colores de toda la web ---------------- */
-  /* ---------------- Copiar diseño de una imagen (solo superadministrador) ----------------
-     Manda la captura a la función disenar-con-imagen (Claude) junto con el
-     diseño actual y el esqueleto de la vista previa. Lo que vuelve se pone en
-     el editor como cualquier cambio: se ve en la vista previa y llega a la web
-     solo con "Guardar y publicar". "Deshacer" vuelve a como estaba. */
-  AI_FN: 'disenar-con-imagen',
-  aiState() { if (!this.st.ai) this.st.ai = { notes: '' }; return this.st.ai; },
+  /* ---------------- Copiar colores y fondos de una imagen (sin IA, sin costo) ----------------
+     Todo pasa en el navegador: la imagen no se sube a ningún lado.
+     1. Se reduce la imagen y se mira fila por fila cuál es su color de fondo.
+     2. Las filas seguidas con el mismo fondo forman "franjas" (secciones del
+        modelo, de arriba abajo). Una franja con muchos colores = foto.
+     3. De todos los píxeles salen el color principal (el oscuro más usado) y
+        el de los botones (el color vivo más usado).
+     4. Al aplicar: colores en "Letra y colores", y el fondo de cada franja al
+        bloque que está en el mismo lugar (el orden de los bloques no cambia).
+        La letra se elige a mano (una imagen no dice qué letra es).
+     Lo aplicado se ve en la vista previa y llega a la web solo con "Guardar y
+     publicar". "Deshacer" vuelve a como estaba. */
+  IMG_FONTS: [
+    ['', 'No cambiar la letra'],
+    ['dm-serif|dm-sans', 'Elegante (títulos con serifa)'],
+    ['bodoni|jost', 'De revista (serifa fina y alta)'],
+    ['cormorant|figtree', 'Fina y delicada'],
+    ['fraunces|source-sans', 'Cálida'],
+    ['urbanist|urbanist', 'Moderna (sin serifa)'],
+    ['outfit|dm-sans', 'Limpia'],
+    ['big-shoulders|inter-tight', 'Deportiva'],
+    ['fredoka|nunito', 'Redondeada']
+  ],
+  imgState() { if (!this.st.img) this.st.img = { font: '' }; return this.st.img; },
 
-  aiHTML() {
-    const E = this.esc.bind(this), ai = this.aiState(), page = this.st.page;
-    const res = ai.result;
+  imgHTML() {
+    const E = this.esc.bind(this), m = this.imgState(), page = this.st.page, an = m.an;
+    const sw = (c, label) => '<span class="sb-img-sw"><i style="background:' + E(c) + '"></i>' + E(label) + '<code>' + E(c.toUpperCase()) + '</code></span>';
     return '<div class="sb-pad">' +
       '<button type="button" class="sb-back" data-sb="back">' + ic('arrowLeft') + 'Bloques</button>' +
-      '<h2 class="sb-h"><span class="sb-row-ic" aria-hidden="true">' + ic('sparkles') + '</span>Copiar diseño de una imagen</h2>' +
-      '<p class="sb-hint">Sube la captura de una web que te guste (puede ser de la página entera). Claude copia sus colores, letras, orden y estilo, y la arma con los ' +
-        E(this.fmt('{servicePlural}')) + ', fotos y datos que este negocio ya tiene. No inventa contenido.</p>' +
+      '<h2 class="sb-h"><span class="sb-row-ic" aria-hidden="true">' + ic('image') + '</span>Copiar colores de una imagen</h2>' +
+      '<p class="sb-hint">Sube la captura de una web que te guste (mejor de la página entera). Se copian sus colores y el fondo de cada sección, de arriba abajo, sobre los bloques que ya tienes. ' +
+        'La imagen no se sube a internet y no tiene costo. El contenido no cambia.</p>' +
       '<div class="sb-field"><span class="sb-lbl">Imagen del modelo</span>' +
-        '<label class="sb-ai-drop' + (ai.url ? ' has-img' : '') + '">' +
-          (ai.url ? '<img src="' + E(ai.url) + '" alt="Imagen del modelo" />' : '<span>' + ic('image') + 'Elegir imagen (PNG, JPG o WEBP)</span>') +
-          '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-sb-ai-file ' + (ai.busy ? 'disabled ' : '') + '/>' +
+        '<label class="sb-img-drop' + (m.url ? ' has-img' : '') + '">' +
+          (m.url ? '<img src="' + E(m.url) + '" alt="Imagen del modelo" />' : '<span>' + ic('image') + 'Elegir imagen (PNG, JPG o WEBP)</span>') +
+          '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-sb-img-file />' +
         '</label>' +
-        (ai.url ? '<p class="sb-hint">' + E(ai.name || '') + ' · Toca la imagen para cambiarla.</p>' : '') +
+        (m.url ? '<p class="sb-hint">' + E(m.name || '') + ' · Toca la imagen para cambiarla.</p>' : '') +
       '</div>' +
-      '<div class="sb-field"><label class="sb-lbl" for="sb-ai-notes">Indicaciones (opcional)</label>' +
-        '<textarea id="sb-ai-notes" class="sb-input" rows="3" maxlength="1000" data-sb-ai-notes placeholder="Ej.: usa el rosa del modelo para los botones; el menú en negro."' + (ai.busy ? ' disabled' : '') + '>' + E(ai.notes || '') + '</textarea></div>' +
-      '<button type="button" class="sb-btn sb-btn-primary sb-ai-run" data-sb="ai-run"' + (ai.file && !ai.busy ? '' : ' disabled') + '>' +
-        ic('sparkles') + '<span>' + (ai.busy ? 'Armando el diseño…' : (res ? 'Generar otra vez' : 'Generar diseño')) + '</span></button>' +
-      (ai.busy ? '<p class="sb-note" role="status">Claude está mirando la imagen y armando el diseño. Suele tardar de 1 a 3 minutos; no cierres esta ventana.</p>' : '') +
-      (ai.error ? '<p class="sb-note sb-note-warn" role="alert">' + E(ai.error) + '</p>' : '') +
-      (res ? '<div class="sb-note" role="status"><strong>Listo: el diseño está en la vista previa.</strong> Revísalo en escritorio y celular; puedes seguir editándolo. ' +
-          'La web no cambia hasta que pulses <strong>Guardar y publicar</strong>.' +
-          (res.omitted.length ? '<br><br>Quedó fuera porque el negocio no lo tiene:<ul class="sb-ai-list">' + res.omitted.map(o => '<li>' + E(o) + '</li>').join('') + '</ul>' : '') +
-        '</div>' +
-        (ai.before ? '<button type="button" class="sb-back" data-sb="ai-undo">' + ic('refresh') + 'Deshacer (volver a como estaba)</button>' : '') : '') +
-      (page.css && !ai.busy ? '<div class="sb-foot"><button type="button" class="sb-link-danger" data-sb="ai-css-off">' + ic('x') + 'Quitar el estilo propio (dejar solo letras, colores y bloques)</button></div>' : '') +
+      (m.error ? '<p class="sb-note sb-note-warn" role="alert">' + E(m.error) + '</p>' : '') +
+      (an ? '<div class="sb-field"><span class="sb-lbl">Lo que encontré</span>' +
+          '<div class="sb-img-sws">' + (an.primary ? sw(an.primary, 'Principal') : '') + (an.accent ? sw(an.accent, 'Botones') : '') +
+        (!an.primary || !an.accent ? '<span class="sb-hint">' + (!an.accent ? 'No hay un color vivo claro para los botones: queda el del negocio. ' : '') + (!an.primary ? 'No hay un color oscuro claro: el principal queda como está.' : '') + '</span>' : '') + '</div>' +
+          '<div class="sb-img-bands" aria-label="Fondos de las secciones, de arriba abajo">' + an.bands.map(b =>
+            '<span style="flex:' + Math.max(1, Math.round(b.share * 100)) + ';background:' + (b.photo ? 'repeating-linear-gradient(45deg,#3a3f46 0 6px,#2a2e33 6px 12px)' : E(b.color)) + '" title="' + (b.photo ? 'Foto' : E(b.color)) + '"></span>').join('') + '</div>' +
+          '<p class="sb-hint">' + an.bands.length + ' secciones de arriba abajo (las rayadas son fotos). Se aplican en orden a tus bloques.</p></div>' +
+        '<div class="sb-field"><label class="sb-lbl" for="sb-img-font">Letra</label>' +
+          '<select id="sb-img-font" class="sb-input" data-sb-img-font>' + this.IMG_FONTS.map(f => '<option value="' + f[0] + '"' + (m.font === f[0] ? ' selected' : '') + '>' + E(f[1]) + '</option>').join('') + '</select>' +
+          '<p class="sb-hint">Elige la que más se parezca a la del modelo. Luego puedes afinarla en "Letra y colores".</p></div>' +
+        '<button type="button" class="sb-btn sb-btn-primary sb-img-run" data-sb="img-apply">' + ic('check') + '<span>Aplicar a la vista previa</span></button>' : '') +
+      (m.applied ? '<p class="sb-note" role="status"><strong>Listo: ya está en la vista previa.</strong> Revísalo en escritorio y celular y ajusta lo que quieras. La web no cambia hasta que pulses <strong>Guardar y publicar</strong>.' +
+          (m.applied.skipped ? '<br>No usé ' + m.applied.skipped + ' color(es) porque no se leían bien con el texto.' : '') + '</p>' +
+        (m.before ? '<button type="button" class="sb-back" data-sb="img-undo">' + ic('refresh') + 'Deshacer (volver a como estaba)</button>' : '') : '') +
+      (page.css ? '<div class="sb-foot"><button type="button" class="sb-link-danger" data-sb="css-off">' + ic('x') + 'Quitar el estilo propio de esta web</button></div>' : '') +
     '</div>';
   },
 
-  aiPick(file) {
-    const ai = this.aiState();
-    ai.error = '';
+  async imgPick(file) {
+    const m = this.imgState();
+    m.error = ''; m.an = null; m.applied = null;
     if (!file) return;
-    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { ai.error = 'Elige una imagen PNG, JPG o WEBP.'; this.renderPanel(); return; }
-    if (file.size > 25 * 1024 * 1024) { ai.error = 'La imagen pesa más de 25 MB.'; this.renderPanel(); return; }
-    if (ai.url) URL.revokeObjectURL(ai.url);
-    ai.file = file; ai.name = file.name; ai.url = URL.createObjectURL(file);
-    this.renderPanel();
-  },
-
-  /* La imagen en partes de 1200 px de ancho y hasta 1600 de alto (una captura
-     de página entera se ve mejor así que reducida de golpe). Máximo 6 partes. */
-  async aiSlices(file) {
-    const img = await new Promise((ok, bad) => {
-      const i = new Image();
-      i.onload = () => ok(i);
-      i.onerror = () => bad(new Error('No pude leer la imagen.'));
-      i.src = this.st.ai.url;
-    });
-    let w = Math.min(1200, img.naturalWidth);
-    let h = Math.round(img.naturalHeight * w / img.naturalWidth);
-    const PART = 1600, MAXP = 6;
-    if (h > PART * MAXP) { const k = PART * MAXP / h; w = Math.round(w * k); h = PART * MAXP; }
-    const out = [];
-    for (let y = 0; y < h; y += PART) {
-      const ph = Math.min(PART, h - y);
-      const c = document.createElement('canvas');
-      c.width = w; c.height = ph;
-      const g = c.getContext('2d');
-      g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, ph);
-      const sy = y * img.naturalHeight / h, sh = ph * img.naturalHeight / h;
-      g.drawImage(img, 0, sy, img.naturalWidth, sh, 0, 0, w, ph);
-      const data = c.toDataURL('image/jpeg', 0.86).split(',')[1];
-      out.push({ media_type: 'image/jpeg', data });
-    }
-    return out;
-  },
-
-  /* HTML de la vista previa sin textos largos, scripts ni íconos: así Claude
-     conoce las clases reales para su hoja de estilo. */
-  aiSkeleton() {
-    let doc;
-    try { doc = document.getElementById('sb-frame').contentDocument; } catch (e) { return ''; }
-    if (!doc || !doc.body) return '';
-    const body = doc.body.cloneNode(true);
-    body.querySelectorAll('script, style, noscript, template, iframe, video, #blk-fmtbar, .blk-tools, .blk-add-row, [hidden]').forEach(n => n.remove());
-    body.querySelectorAll('svg').forEach(n => { n.innerHTML = ''; });
-    // Listas largas (tarjetas, fotos): solo los 2 primeros de cada grupo
-    body.querySelectorAll('*').forEach(el => {
-      const kids = Array.from(el.children);
-      if (kids.length > 3) kids.slice(2).forEach(k => { if (k.className && k.className === kids[0].className) k.remove(); });
-    });
-    const walk = doc.createTreeWalker(body, 4);
-    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-      const t = n.nodeValue.replace(/\s+/g, ' ');
-      n.nodeValue = t.length > 40 ? t.slice(0, 40) + '…' : t;
-    }
-    body.querySelectorAll('*').forEach(el => {
-      Array.from(el.attributes).forEach(a => { if (!['class', 'id', 'data-blk'].includes(a.name)) el.removeAttribute(a.name); });
-    });
-    return body.innerHTML.replace(/\s{2,}/g, ' ').slice(0, 60000);
-  },
-
-  aiCatalog() {
-    const types = {};
-    Object.keys(SiteBlocks.TYPES).forEach(k => { types[k] = SiteBlocks.TYPES[k].styles.map(s => s[0]); });
-    const fonts = {};
-    Object.keys(SiteBlocks.FONTS).forEach(k => {
-      const f = SiteBlocks.FONTS[k];
-      fonts[k] = f.label + (f.title ? ' · solo títulos' : f.body ? ' · solo textos' : '');
-    });
-    return { types, fonts };
-  },
-
-  async aiRun() {
-    const st = this.st, ai = this.aiState();
-    if (!st || !ai.file || ai.busy) return;
-    ai.busy = true; ai.error = ''; this.renderPanel();
-    const tenantId = st.tenant.id;
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { m.error = 'Elige una imagen PNG, JPG o WEBP.'; this.renderPanel(); return; }
+    if (m.url) URL.revokeObjectURL(m.url);
+    m.name = file.name; m.url = URL.createObjectURL(file);
     try {
-      const images = await this.aiSlices(ai.file);
-      const sess = await DB.client().auth.getSession();
-      const token = sess && sess.data && sess.data.session && sess.data.session.access_token;
-      if (!token) throw new Error('Inicia sesión de nuevo.');
-      const c = window.RESERVALOPE_CONFIG || {};
-      ai.ctrl = new AbortController();
-      const res = await fetch(c.supabaseUrl + '/functions/v1/' + this.AI_FN, {
-        method: 'POST',
-        signal: ai.ctrl.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: c.supabaseKey },
-        body: JSON.stringify({
-          tenant_id: tenantId, images, notes: ai.notes || '',
-          page: SiteBlocks.normalize(st.page) || { blocks: [] },
-          skeleton: this.aiSkeleton(), catalog: this.aiCatalog()
-        })
+      const img = await new Promise((ok, bad) => {
+        const i = new Image();
+        i.onload = () => ok(i);
+        i.onerror = () => bad(new Error('No pude leer la imagen.'));
+        i.src = m.url;
       });
-      const raw = await res.text();
-      const line = raw.trim().split('\n').pop() || '';
-      let out = null;
-      try { out = JSON.parse(line); } catch (e) { /* respuesta rara */ }
-      if (res.status === 404 && !out) throw new Error('La función disenar-con-imagen aún no está publicada en Supabase.');
-      if (!out) throw new Error('No hubo respuesta de la función (' + res.status + '). Inténtalo de nuevo.');
-      if (out.error) throw new Error(out.error);
-      if (!this.st || this.st !== st) return;         // se cerró el editor
-      const applied = this.aiApply(out.design);
-      ai.result = { omitted: applied.omitted, usage: out.usage || null };
-      if (applied.dropped) ai.result.omitted.push(applied.dropped + ' bloque(s) que no se pudieron armar');
-      st.view = 'ai';
-      this.touch(true);
+      m.an = this.imgAnalyze(img);
     } catch (err) {
-      if (err && err.name === 'AbortError') return;
-      ai.error = (err && err.message) || 'No pude generar el diseño.';
-    } finally {
-      if (this.st === st) { ai.busy = false; ai.ctrl = null; this.renderPanel(); }
+      m.error = (err && err.message) || 'No pude leer la imagen.';
     }
+    if (this.st && this.st.img === m) this.renderPanel();
   },
 
-  /* Lo que devolvió Claude → diseño del editor. Cada bloque nuevo reutiliza,
-     en orden, el bloque del mismo tipo que ya existía (sus fotos, puntos,
-     videos y cuadros de texto); si no había, uno nuevo con lo de siempre. */
-  aiApply(d) {
-    const st = this.st, T = SiteBlocks.TYPES, F = SiteBlocks.FONTS, HEX = SiteBlocks.HEX_RE;
-    if (!d || !Array.isArray(d.blocks)) throw new Error('Claude devolvió un diseño incompleto. Inténtalo de nuevo.');
-    const before = JSON.parse(JSON.stringify(st.page));
-    const pool = {};
-    before.blocks.forEach(b => { (pool[b.type] = pool[b.type] || []).push(b); });
-    const blocks = [];
-    let hero = false, dropped = 0;
-    d.blocks.forEach(g => {
-      if (!g || !T[g.type] || blocks.length >= SiteBlocks.MAX_BLOCKS) { dropped++; return; }
-      if (g.type === 'portada') { if (hero) { dropped++; return; } hero = true; }
-      const base = (pool[g.type] && pool[g.type].shift()) || SiteBlocks.create(g.type);
-      const b = JSON.parse(JSON.stringify(base));
-      delete b.show;
-      if (T[g.type].styles.some(s => s[0] === g.style)) b.style = g.style;
-      if (['normal', 'suave', 'marca', 'color'].includes(g.bg)) b.bg = g.bg;
-      if (b.bg === 'color') { if (typeof g.bgColor === 'string' && HEX.test(g.bgColor)) b.bgColor = g.bgColor; else b.bg = 'normal'; }
-      else delete b.bgColor;
-      ['eyebrow', 'title', 'text', 'btn', 'btn2'].forEach(k => {
-        if (typeof g[k] === 'string' && T[g.type].fields.includes(k)) b[k] = g[k].slice(0, SiteBlocks.MAX[k] || 120);
-      });
-      // El formato por texto del diseño anterior chocaría con el nuevo estilo
-      delete b.fmt;
-      blocks.push(b);
+  /* Colores (0-255) → utilidades */
+  _hex(r, g, b) { return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase(); },
+  _lum(r, g, b) { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); },
+  _sat(r, g, b) { const mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx === 0 ? 0 : (mx - mn) / mx; },
+  _dist(a, b) { return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]); },
+
+  imgAnalyze(img) {
+    const W = 160;
+    const H = Math.max(1, Math.min(4000, Math.round(img.naturalHeight * W / img.naturalWidth)));
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
+    g.drawImage(img, 0, 0, W, H);
+    const px = g.getImageData(0, 0, W, H).data;
+    const Q = v => v >> 4;                       // 16 niveles por canal
+    const key = (r, gg, b) => (Q(r) << 8) | (Q(gg) << 4) | Q(b);
+    const all = new Map();                        // clave → [n, r, g, b] (sumas)
+    // 1. Fondo de cada fila: el color más repetido y qué parte de la fila ocupa
+    const rows = [];
+    for (let y = 0; y < H; y++) {
+      const cnt = new Map();
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4, r = px[i], gg = px[i + 1], b = px[i + 2], k = key(r, gg, b);
+        const e = cnt.get(k) || [0, 0, 0, 0]; e[0]++; e[1] += r; e[2] += gg; e[3] += b; cnt.set(k, e);
+        const a = all.get(k) || [0, 0, 0, 0]; a[0]++; a[1] += r; a[2] += gg; a[3] += b; all.set(k, a);
+      }
+      let best = null;
+      cnt.forEach(e => { if (!best || e[0] > best[0]) best = e; });
+      rows.push({ c: [best[1] / best[0], best[2] / best[0], best[3] / best[0]], share: best[0] / W });
+    }
+    // 2. Franjas: filas seguidas con el mismo fondo; una fila con poco de un solo color es foto
+    let bands = [];
+    rows.forEach(r => {
+      const photo = r.share < 0.45;
+      const last = bands[bands.length - 1];
+      if (last && last.photo === photo && (photo || this._dist(last.c, r.c) < 30)) {
+        last.n++;
+        if (!photo) last.c = last.c.map((v, j) => v + (r.c[j] - v) / last.n);
+      } else bands.push({ c: r.c.slice(), n: 1, photo });
     });
-    // La portada siempre primero
-    blocks.sort((a, b) => (a.type === 'portada' ? -1 : 0) - (b.type === 'portada' ? -1 : 0));
-    if (!blocks.length) throw new Error('Claude no armó ningún bloque. Prueba con otra imagen.');
-    const th = {};
-    const t = d.theme || {};
-    if (F[t.fontTitle] && !F[t.fontTitle].body) th.fontTitle = t.fontTitle;
-    if (F[t.fontBody] && !F[t.fontBody].title) th.fontBody = t.fontBody;
-    if (HEX.test(t.primary || '')) th.primary = t.primary;
-    if (HEX.test(t.accent || '')) th.accent = t.accent;
-    const page = { blocks };
-    if (Object.keys(th).length) page.theme = th;
-    const css = SiteBlocks.cleanCss(d.css);
-    if (css) page.css = css;
-    st.page = page;
-    // Si los colores no se leen bien, se dejan los del negocio (el editor no dejaría publicar)
-    const chk = this.themeCheck();
-    if (chk && !chk.ok) { delete th.primary; delete th.accent; if (!Object.keys(th).length) delete page.theme; }
-    this.aiState().before = before;
-    st.selected = null;
-    const omitted = (Array.isArray(d.omitted) ? d.omitted : []).filter(o => typeof o === 'string' && o.trim()).slice(0, 12).map(o => o.slice(0, 120));
-    if (d.css && !css) omitted.push('El estilo propio (no cumplía las reglas de seguridad); quedaron letras, colores y bloques');
-    return { omitted, dropped };
+    // Franjas muy delgadas (líneas, textos sueltos) se unen a la anterior
+    const minRows = Math.max(3, Math.round(H * 0.025));
+    const merged = [];
+    bands.forEach(b => {
+      const last = merged[merged.length - 1];
+      if (last && (b.n < minRows || (!b.photo && !last.photo && this._dist(last.c, b.c) < 30))) { last.n += b.n; return; }
+      merged.push(b);
+    });
+    if (merged.length > 1 && merged[0].n < minRows) { merged[1].n += merged[0].n; merged.shift(); }
+    // La primera franja delgada de arriba es el menú: no es una sección
+    let nav = null;
+    if (merged.length > 2 && merged[0].n < H * 0.08 && !merged[0].photo) nav = merged.shift();
+    // Una foto en medio de la página (tarjetas, galería) es parte de su sección, no un fondo.
+    // Solo la primera franja (la portada) puede ser foto.
+    const secs = [];
+    merged.forEach((b, i) => {
+      const last = secs[secs.length - 1];
+      if (b.photo && i > 0 && last) { last.n += b.n; return; }
+      if (last && !last.photo && !b.photo && this._dist(last.c, b.c) < 30) { last.n += b.n; return; }
+      secs.push(Object.assign({}, b));
+    });
+    // La última franja oscura es el pie de página (la web ya lo pinta con el color principal)
+    let foot = null;
+    if (secs.length > 2) {
+      const l = secs[secs.length - 1];
+      if (!l.photo && this._lum(...l.c) < 0.08) foot = secs.pop();
+    }
+    const used = secs.reduce((n, b) => n + b.n, 0) || 1;
+    bands = secs.slice(0, 24).map(b => ({ color: b.photo ? null : this._hex(b.c[0], b.c[1], b.c[2]), c: b.c, photo: b.photo, share: b.n / used }));
+    // 3. Paleta: el oscuro más usado y el color vivo más usado
+    const colors = [];
+    all.forEach(a => { colors.push({ n: a[0], c: [a[1] / a[0], a[2] / a[0], a[3] / a[0]] }); });
+    colors.sort((a, b) => b.n - a.n);
+    const total = W * H;
+    const vivid = colors.find(x => x.n > total * 0.002 && this._sat(...x.c) > 0.35 && Math.max(...x.c) > 90);
+    const darkBar = [nav, foot].find(x => x && this._lum(...x.c) < 0.08);
+    let dark = darkBar ? { c: darkBar.c } : colors.find(x => x.n > total * 0.003 && this._lum(...x.c) < 0.06);
+    // Sin color vivo o sin oscuro claro, ese color no se cambia
+    return { primary: dark ? this._hex(...dark.c) : null, accent: vivid ? this._hex(...vivid.c) : null, bands };
   },
 
-  aiUndo() {
-    const ai = this.aiState();
-    if (!ai.before) return;
-    this.st.page = ai.before;
-    ai.before = null; ai.result = null;
+  imgApply() {
+    const st = this.st, m = this.imgState(), an = m.an;
+    if (!an) return;
+    const before = JSON.parse(JSON.stringify(st.page));
+    let skipped = 0;
+    const th = Object.assign({}, st.page.theme || {});
+    if (an.primary) th.primary = an.primary;
+    if (an.accent) th.accent = an.accent;
+    if (m.font) { const f = m.font.split('|'); th.fontTitle = f[0]; th.fontBody = f[1]; }
+    st.page.theme = th;
+    const chk = this.themeCheck();
+    if (chk && !chk.ok) {
+      // Sin el principal (suele ser el que falla); si igual no se lee, los del negocio
+      delete th.primary; skipped++;
+      const chk2 = this.themeCheck();
+      if (chk2 && !chk2.ok) { delete th.accent; skipped++; }
+    }
+    const prim = th.primary ? [parseInt(th.primary.slice(1, 3), 16), parseInt(th.primary.slice(3, 5), 16), parseInt(th.primary.slice(5, 7), 16)] : null;
+    const blocks = st.page.blocks.filter(b => b.show !== false);
+    // Cada bloque toma la sección del modelo que está a la misma altura (en proporción).
+    // Una sección de color que no le tocó a ningún bloque pasa al bloque más cercano.
+    // La portada se queda con la primera sección; el resto se reparte en las demás.
+    const heroFirst = blocks.length > 1 && blocks[0].type === 'portada' && an.bands.length > 1;
+    const off = heroFirst ? 1 : 0;
+    const rest = an.bands.slice(off), tot = rest.reduce((n, b) => n + b.share, 0) || 1;
+    const N = blocks.length - off, starts = [];
+    rest.reduce((y, b) => { starts.push(y); return y + b.share / tot; }, 0);
+    const at = pos => { let k = 0; starts.forEach((y, j) => { if (y <= pos) k = j; }); return k + off; };
+    const pick = blocks.map((b, i) => (heroFirst && i === 0 ? 0 : at((i - off + 0.5) / N)));
+    an.bands.forEach((band, j) => {
+      if (band.photo || pick.includes(j) || (this._lum(...band.c) > 0.9 && this._sat(...band.c) < 0.06)) return;
+      if (j < off) return;
+      const mid = starts[j - off] + band.share / tot / 2;
+      let best = -1, bd = 2;
+      blocks.forEach((b, i) => {
+        if (b.type === 'portada' || i < off) return;
+        const d = Math.abs((i - off + 0.5) / N - mid);
+        if (d < bd) { bd = d; best = i; }
+      });
+      if (best >= 0) pick[best] = j;
+    });
+    blocks.forEach((b, i) => {
+      const band = an.bands[pick[i]];
+      if (!band) return;
+      if (b.type === 'portada') return;            // la portada sigue con su foto o su estilo
+      if (band.photo) { b.bg = 'normal'; delete b.bgColor; return; }
+      const [r, g, bl] = band.c;
+      if (this._lum(r, g, bl) > 0.9 && this._sat(r, g, bl) < 0.06) { b.bg = 'normal'; delete b.bgColor; }
+      else if (prim && this._dist(prim, band.c) < 40) { b.bg = 'marca'; delete b.bgColor; }
+      else { b.bg = 'color'; b.bgColor = band.color; }
+    });
+    m.before = before;
+    m.applied = { skipped };
+    this.touch(true);
+  },
+
+  imgUndo() {
+    const m = this.imgState();
+    if (!m.before) return;
+    this.st.page = m.before;
+    m.before = null; m.applied = null;
     this.touch(true);
   },
 
@@ -956,10 +964,10 @@ const SiteBuilder = {
         break;
       }
       case 'theme': st.view = 'theme'; this.renderPanel(); break;
-      case 'ai': if (this.isSA()) { st.view = 'ai'; this.renderPanel(); } break;
-      case 'ai-run': this.aiRun(); break;
-      case 'ai-undo': this.aiUndo(); break;
-      case 'ai-css-off': delete st.page.css; this.touch(true); break;
+      case 'img': st.view = 'img'; this.renderPanel(); break;
+      case 'img-apply': this.imgApply(); break;
+      case 'img-undo': this.imgUndo(); break;
+      case 'css-off': delete st.page.css; this.touch(true); break;
       case 'fmt': { const sl = btn.getAttribute('data-slot'); st.fmtOpen = st.fmtOpen === sl ? null : sl; this.renderPanel(); break; }
       case 'fmt-unset': { const b = this.block(st.selected); if (b) { this.setFmt(b, btn.getAttribute('data-slot'), btn.getAttribute('data-k'), ''); this.touch(true); } break; }
       case 'fmt-clear': { const b = this.block(st.selected); if (b) { this.fmtPut(b, btn.getAttribute('data-slot'), null); this.touch(true); } break; }
@@ -1000,8 +1008,8 @@ const SiteBuilder = {
     const b = this.block(this.st.selected);
     if (el.hasAttribute('data-sb-editor')) { this.st.editor = el.checked; this.st.dirty = true; this.updateSave(); return; }
     if (el.hasAttribute('data-sb-upload')) { if (e.type === 'change') this.upload(el); return; }
-    if (el.hasAttribute('data-sb-ai-file')) { if (e.type === 'change') this.aiPick(el.files && el.files[0]); return; }
-    if (el.hasAttribute('data-sb-ai-notes')) { this.aiState().notes = el.value.slice(0, 1000); return; }
+    if (el.hasAttribute('data-sb-img-file')) { if (e.type === 'change') this.imgPick(el.files && el.files[0]); return; }
+    if (el.hasAttribute('data-sb-img-font')) { if (e.type === 'change') this.imgState().font = this.IMG_FONTS.some(f => f[0] === el.value) ? el.value : ''; return; }
     if (el.hasAttribute('data-sb-theme')) {
       // El selector de color manda "input" mientras se arrastra: el panel se redibuja al soltar
       if (el.tagName === 'SELECT' && e.type !== 'change') return;

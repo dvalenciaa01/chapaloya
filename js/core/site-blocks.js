@@ -209,7 +209,7 @@
     return out;
   }
 
-  /* Estilo propio de la web (migración 31, "Copiar diseño de una imagen").
+  /* Estilo propio de la web (migración 31, lo agrega Claude al copiar un diseño).
      Mismas reglas que private.web_page_valida: sin url(), @import, "<",
      barras invertidas, etc. Si no las cumple, no se usa. */
   const CSS_MAX = 30000;

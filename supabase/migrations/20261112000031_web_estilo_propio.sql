@@ -4,8 +4,9 @@
 -- tenants.web_page acepta una clave nueva:
 --   css   texto con reglas de estilo (hasta 30 000 caracteres) que la web
 --         aplica encima del diseño por bloques en todas sus páginas.
---         Lo arma "Copiar diseño de una imagen" en Diseñar web
---         (función disenar-con-imagen) y se puede quitar desde ahí.
+--         Lo agrega Claude por chat cuando copia el diseño de una imagen
+--         (receta "copiar-diseno-imagen"); se quita en Diseñar web →
+--         Copiar colores de una imagen → "Quitar el estilo propio".
 -- Por seguridad se rechaza: url(), @import, @font-face, "<", barras
 -- invertidas, expression(), javascript:, behavior y -moz-binding. Así el
 -- estilo no puede cargar nada de otros sitios ni salirse de su etiqueta.
@@ -45,7 +46,7 @@ begin
   if jsonb_typeof(v) <> 'object' or octet_length(v::text) > 98304 then return false; end if;
   if exists (select 1 from jsonb_object_keys(v) k where k not in ('blocks', 'theme', 'css')) then return false; end if;
 
-  -- css: estilo propio de la web (lo arma "Copiar diseño de una imagen").
+  -- css: estilo propio de la web (lo agrega Claude por chat al copiar un diseño de una imagen).
   -- Solo reglas de estilo: sin url() (no carga nada de afuera), sin @import,
   -- sin "<" (no puede cerrar la etiqueta <style>) y sin barras invertidas
   -- (no se pueden esconder esas palabras con escapes).
