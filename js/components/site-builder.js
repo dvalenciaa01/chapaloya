@@ -13,6 +13,11 @@
    Desde la 24: quitar cualquier texto del bloque ("" = no se muestra) y
    agregar cuadros de texto extra (b.extras) con su propio formato.
 
+   Desde la 32: también las demás páginas (Servicios, Equipo, Galería, Mi
+   cita, Reservar), cada una con sus bloques en web_page.pages[<página>] y un
+   bloque fijo "Contenido de la página". Arriba del panel se elige qué página
+   se diseña; la vista previa abre esa página.
+
    Lo abren:
      - el superadministrador: consola → negocio → Diseñar web
        (además decide si el negocio puede editar su web: tenants.web_editor)
@@ -35,7 +40,9 @@ const SiteBuilder = {
   canEdit(t) {
     if (!t || typeof Auth === 'undefined' || !Auth.user) return false;
     if (this.isSA()) return true;
-    return Auth.user.role === 'ADMIN' && Auth.user.tenantId === t.id && t.webEditor !== false && Auth.can('settings');
+    // El permiso del módulo Configuración se llama 'settings.manage' (Auth.GRANT_MAP).
+    // Antes se preguntaba por 'settings', que no existe: el dueño nunca veía el botón.
+    return Auth.user.role === 'ADMIN' && Auth.user.tenantId === t.id && t.webEditor !== false && Auth.can('settings.manage');
   },
 
   open(tenant, opts) {
@@ -51,8 +58,12 @@ const SiteBuilder = {
     const fresh = !SiteBlocks.active(saved);
     this.st = {
       tenant: t, opts: opts || {}, saved, fresh,
-      page: fresh ? SiteBlocks.template({ site: (t.crmConfig && t.crmConfig.site) || {}, solo: false }) : JSON.parse(JSON.stringify(saved)),
+      // Sin Inicio por bloques se parte del Inicio de siempre (las demás páginas y la letra se conservan)
+      page: Object.assign(saved ? JSON.parse(JSON.stringify(saved)) : {}, fresh ? { blocks: SiteBlocks.template({ site: (t.crmConfig && t.crmConfig.site) || {}, solo: false }).blocks } : null),
       editor: t.webEditor !== false,
+      // Página que se diseña y páginas que aún tienen el diseño inicial sin tocar
+      // (esas no se guardan: la web las sigue mostrando como siempre)
+      pg: 'inicio', untouched: new Set(fresh ? ['inicio'] : []),
       selected: null, fmtOpen: null, view: 'list', device: 'desktop', dirty: false, saving: false, ready: false, info: null
     };
     const E = this.esc.bind(this);
@@ -62,7 +73,7 @@ const SiteBuilder = {
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', 'Diseñar web de ' + t.name);
-    const src = Routes.web(t.slug, null, { preview: 1 });
+    const src = this.pageSrc('inicio');
     root.innerHTML =
       '<header class="sb-top">' +
         '<div class="sb-top-id"><span class="sb-kicker">Diseñar web</span><strong>' + E(t.name) + '</strong></div>' +
@@ -138,8 +149,8 @@ const SiteBuilder = {
       this.st.ready = true;
       this.st.info = e.data.info || {};
       // Diseño inicial: con una sola persona, "Galería" en vez de "Equipo"
-      if (this.st.fresh && !this.st.dirty && this.st.info.solo) {
-        this.st.page.blocks.forEach(b => { if (b.type === 'equipo') b.type = 'galeria'; });
+      if (this.st.pg === 'inicio' && this.st.untouched.has('inicio') && this.st.fresh && this.st.info.solo) {
+        this.blocks().forEach(b => { if (b.type === 'equipo') b.type = 'galeria'; });
       }
       const ld = document.getElementById('sb-loading');
       if (ld) ld.hidden = true;
@@ -216,7 +227,7 @@ const SiteBuilder = {
     setTimeout(() => this.st && this.post({ cmd: 'select', id, scroll: false }), 150);
   },
   moveBlock(id, target, after) {
-    const list = this.st.page.blocks;
+    const list = this.blocks();
     const from = list.findIndex(b => b.id === id);
     if (from < 0 || id === target || list.findIndex(b => b.id === target) < 0) return;
     const [b] = list.splice(from, 1);
@@ -261,6 +272,7 @@ const SiteBuilder = {
       b[slot] = value.slice(0, M[slot]);
       field = '[data-sb-field="' + slot + '"]';
     }
+    this.st.untouched.delete(this.st.pg);
     this.st.dirty = true;
     this.updateSave();
     // El panel muestra el mismo texto (sin redibujarlo, para no perder nada)
@@ -274,6 +286,7 @@ const SiteBuilder = {
     const r = this.edTarget(key);
     if (!r || !['bold', 'italic', 'size', 'align', 'color'].includes(k)) return;
     this.setFmt(r.b, r.fslot, k, v);
+    this.st.untouched.delete(this.st.pg);
     this.st.dirty = true;
     this.updateSave();
     if (this.st.selected === r.b.id && this.st.view === 'block') this.renderPanel();
@@ -286,8 +299,64 @@ const SiteBuilder = {
   },
 
   /* ---------------- Datos ---------------- */
-  block(id) { return this.st && this.st.page.blocks.find(b => b.id === id); },
+  block(id) { return this.st && this.blocks().find(b => b.id === id); },
+  // Bloques de la página que se está diseñando
+  blocks() {
+    const st = this.st;
+    if (st.pg === 'inicio') return st.page.blocks;
+    st.page.pages = st.page.pages || {};
+    if (!st.page.pages[st.pg]) st.page.pages[st.pg] = SiteBlocks.pageTemplate(st.pg);
+    return st.page.pages[st.pg].blocks;
+  },
+  // Páginas que se pueden diseñar: las del menú (Personalizar CRM → Web) o las de siempre
+  pageList() {
+    const t = this.st.tenant, P = SiteBlocks.PAGES;
+    const secs = (t.crmConfig && t.crmConfig.site && Array.isArray(t.crmConfig.site.sections)) ? t.crmConfig.site.sections : null;
+    const out = [{ key: 'inicio', label: 'Inicio' }];
+    const seen = new Set(['inicio']);
+    if (secs) {
+      const ini = secs.find(x => x.type === 'inicio');
+      if (ini && ini.label) out[0].label = ini.label;
+      secs.forEach(x => {
+        if (!P[x.type] || seen.has(x.type)) return;
+        // Varias secciones de servicios (p. ej. Modelos) comparten la página de servicios
+        const all = secs.filter(y => y.type === x.type);
+        const main = all.find(y => !y.cat) || all[0];
+        seen.add(x.type);
+        out.push({ key: x.type, label: all.length > 1 ? all.map(y => y.label).join(' / ') : main.label, off: !all.some(y => y.show !== false) });
+      });
+    }
+    SiteBlocks.PAGE_KEYS.forEach(k => {
+      if (seen.has(k) || k === 'galeria') return;     // la galería solo si está en el menú
+      seen.add(k);
+      out.push({ key: k, label: k === 'equipo' && this.st.info && this.st.info.solo ? 'Galería' : this.fmt(P[k].label) });
+    });
+    return out;
+  },
+  pageLabel(k) { const x = this.pageList().find(p => p.key === k); return x ? x.label : 'Inicio'; },
+  pageSrc(k) {
+    const t = this.st ? this.st.tenant : null;
+    const file = k === 'inicio' ? null : SiteBlocks.PAGES[k].file;
+    return Routes.web(t.slug, file, { preview: 1 });
+  },
+  // Cambiar de página: la vista previa abre esa página (sus cambios no se pierden)
+  switchPage(k) {
+    const st = this.st;
+    if (!st || k === st.pg || (k !== 'inicio' && !SiteBlocks.PAGES[k])) return;
+    if (k !== 'inicio' && !(st.page.pages && st.page.pages[k])) {
+      st.page.pages = st.page.pages || {};
+      st.page.pages[k] = SiteBlocks.pageTemplate(k);
+      st.untouched.add(k);
+    }
+    st.pg = k; st.selected = null; st.view = 'list'; st.fmtOpen = null; st.ready = false;
+    const ld = document.getElementById('sb-loading');
+    if (ld) ld.hidden = false;
+    const f = document.getElementById('sb-frame');
+    if (f) f.src = this.pageSrc(k);
+    this.renderPanel();
+  },
   touch(structural) {
+    if (this.st.untouched) this.st.untouched.delete(this.st.pg);
     this.st.dirty = true;
     this.updateSave();
     if (structural) this.renderPanel();
@@ -316,30 +385,34 @@ const SiteBuilder = {
 
   listHTML() {
     const E = this.esc.bind(this), st = this.st, T = SiteBlocks.TYPES;
-    const rows = st.page.blocks.map((b, i) => {
+    const rows = this.blocks().map((b, i) => {
       const def = T[b.type];
       const name = (b.title && b.title.trim()) || this.fmt(def.def.title || '') || def.label;
       const hidden = b.show === false;
-      return '<li class="sb-row' + (st.selected === b.id ? ' is-sel' : '') + (hidden ? ' is-off' : '') + '" draggable="true" data-id="' + E(b.id) + '">' +
+      const fixed = !!def.fixed;
+      return '<li class="sb-row' + (fixed ? ' is-fixed' : '') + (st.selected === b.id ? ' is-sel' : '') + (hidden ? ' is-off' : '') + '" draggable="true" data-id="' + E(b.id) + '">' +
         '<span class="sb-grip" aria-hidden="true">⋮⋮</span>' +
         '<button type="button" class="sb-row-main" data-sb="edit" data-id="' + E(b.id) + '">' +
           '<span class="sb-row-ic" aria-hidden="true">' + ic(def.icon) + '</span>' +
-          '<span class="sb-row-txt"><strong>' + E(def.label) + '</strong><span>' + E(name === def.label ? def.desc : name) + '</span></span>' +
+          '<span class="sb-row-txt"><strong>' + E(def.label) + '</strong><span>' + E(fixed ? this.fmt(SiteBlocks.PAGES[st.pg].core) : (name === def.label ? def.desc : name)) + '</span></span>' +
         '</button>' +
         '<span class="sb-row-tools">' +
           '<button type="button" class="sb-icon" data-sb="up" data-id="' + E(b.id) + '" aria-label="Subir ' + E(def.label) + '"' + (i === 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + '</button>' +
-          '<button type="button" class="sb-icon" data-sb="down" data-id="' + E(b.id) + '" aria-label="Bajar ' + E(def.label) + '"' + (i === st.page.blocks.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + '</button>' +
-          '<button type="button" class="sb-icon" data-sb="toggle" data-id="' + E(b.id) + '" aria-pressed="' + (!hidden) + '" aria-label="' + (hidden ? 'Mostrar ' : 'Ocultar ') + E(def.label) + '">' + ic(hidden ? 'lock' : 'eye') + '</button>' +
+          '<button type="button" class="sb-icon" data-sb="down" data-id="' + E(b.id) + '" aria-label="Bajar ' + E(def.label) + '"' + (i === this.blocks().length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + '</button>' +
+          (fixed ? '' : '<button type="button" class="sb-icon" data-sb="toggle" data-id="' + E(b.id) + '" aria-pressed="' + (!hidden) + '" aria-label="' + (hidden ? 'Mostrar ' : 'Ocultar ') + E(def.label) + '">' + ic(hidden ? 'lock' : 'eye') + '</button>') +
         '</span>' +
       '</li>';
     }).join('');
     const info = st.info;
     const notes = [];
-    if (st.fresh) notes.push('Este es tu Inicio actual convertido en bloques. La web no cambia hasta que pulses <strong>Guardar y publicar</strong>.');
+    const home = st.pg === 'inicio';
+    if (st.untouched.has(st.pg)) notes.push('Esta es la página ' + E(this.pageLabel(st.pg)) + ' de siempre convertida en bloques. La web no cambia hasta que la modifiques y pulses <strong>Guardar y publicar</strong>.');
     if (info && !info.services) notes.push('Aún no hay ' + E(this.fmt('{servicePlural}')) + ' activos en el CRM: el bloque de ' + E(this.fmt('{servicePlural}')) + ' mostrará un aviso.');
     if (info && !info.contact) notes.push('Para el bloque de contacto, completa dirección, teléfono u horario en CRM → Configuración.');
     return '<div class="sb-pad">' +
-      '<h2 class="sb-h">Bloques del Inicio</h2>' +
+      this.pagePickHTML() +
+      '<h2 class="sb-h">Bloques de ' + E(this.pageLabel(st.pg)) + '</h2>' +
+      (home ? '' : '<p class="sb-hint">El bloque <strong>Contenido de la página</strong> es lo propio de esta página y sale del CRM: puedes moverlo y poner bloques arriba o abajo, pero no quitarlo.</p>') +
       '<p class="sb-hint">Escribe directamente sobre la página: haz clic en cualquier texto para cambiarlo y en un bloque para moverlo, duplicarlo u ocultarlo. Con el <strong>+</strong> entre bloques agregas uno nuevo. ' +
         E(this.fmt('Los {servicePlural}, el equipo, las fotos y los datos de contacto salen del CRM: si los cambias allí, la web se actualiza sola.')) + '</p>' +
       notes.map(n => '<p class="sb-note">' + n + '</p>').join('') +
@@ -347,17 +420,30 @@ const SiteBuilder = {
         '<span class="sb-row-ic" aria-hidden="true">' + ic('sliders') + '</span><strong>Letra y colores</strong>' +
         '<span>' + E(this.themeSummary()) + '</span></button>' +
       '<ol class="sb-list" id="sb-list">' + rows + '</ol>' +
-      (st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-add" data-sb="add">' + ic('plus') + '<span>Agregar bloque</span></button>' : '') +
+      (this.blocks().length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-add" data-sb="add">' + ic('plus') + '<span>Agregar bloque</span></button>' : '') +
       '<div class="sb-foot">' +
         (this.isSA() ? '<label class="sb-check"><input type="checkbox" data-sb-editor ' + (st.editor ? 'checked' : '') + ' /><span>El negocio puede diseñar su web desde su CRM</span></label>' : '') +
-        (SiteBlocks.active(st.saved) ? '<button type="button" class="sb-link-danger" data-sb="reset">' + ic('refresh') + 'Volver al diseño de siempre</button>' : '') +
+        (this.hasDesign(st.saved, st.pg) || !st.untouched.has(st.pg) ? '<button type="button" class="sb-link-danger" data-sb="reset">' + ic('refresh') + (home ? 'Volver al Inicio de siempre' : 'Volver a esta página de siempre') + '</button>' : '') +
       '</div>' +
     '</div>';
   },
 
+  // ¿Esa página tiene diseño por bloques (guardado)?
+  hasDesign(page, k) { const bl = page ? SiteBlocks.blocksOf(page, k) : null; return !!(bl && bl.length); },
+  // Selector de página arriba del panel
+  pagePickHTML() {
+    const E = this.esc.bind(this), st = this.st;
+    const list = this.pageList();
+    return '<div class="sb-field sb-page-pick"><label class="sb-lbl" for="sb-page">Página que diseñas</label>' +
+      '<select id="sb-page" class="sb-input" data-sb-page>' + list.map(p =>
+        '<option value="' + E(p.key) + '"' + (p.key === st.pg ? ' selected' : '') + '>' + E(p.label) +
+        (this.hasDesign(st.page, p.key) && !st.untouched.has(p.key) ? ' · con diseño' : '') + (p.off ? ' (oculta en el menú)' : '') + '</option>').join('') +
+      '</select><p class="sb-hint">La letra y los colores valen para todas las páginas.</p></div>';
+  },
+
   addHTML() {
     const E = this.esc.bind(this), T = SiteBlocks.TYPES;
-    const hasHero = this.st.page.blocks.some(b => b.type === 'portada');
+    const hasHero = this.blocks().some(b => b.type === 'portada');
     return '<div class="sb-pad">' +
       '<button type="button" class="sb-back" data-sb="back">' + ic('arrowLeft') + 'Bloques</button>' +
       '<h2 class="sb-h">Agregar bloque</h2>' +
@@ -376,7 +462,17 @@ const SiteBuilder = {
 
   blockFormHTML(b) {
     const E = this.esc.bind(this), T = SiteBlocks.TYPES[b.type], M = SiteBlocks.MAX;
-    const def = (k) => this.fmt(T.def[k] || '');
+    if (T.fixed) {
+      return '<div class="sb-pad">' +
+        '<button type="button" class="sb-back" data-sb="back">' + ic('arrowLeft') + 'Bloques</button>' +
+        '<h2 class="sb-h"><span class="sb-row-ic" aria-hidden="true">' + ic(T.icon) + '</span>' + E(T.label) + '</h2>' +
+        '<p class="sb-hint"><strong>' + E(this.fmt(SiteBlocks.PAGES[this.st.pg].core)) + '.</strong> ' + E(T.desc) + '</p>' +
+        '<p class="sb-hint">Usa las flechas o arrástralo para cambiar su lugar. Para cambiar lo que muestra, ve al CRM (' +
+          E(this.fmt('{ServicePlural}, Profesionales, Horario')) + ').</p>' +
+      '</div>';
+    }
+    const pd = this.st.pg !== 'inicio' && b.type === 'portada' ? ((this.st.info && this.st.info.pageDef) || {}) : null;
+    const def = (k) => (pd && pd[k] != null ? pd[k] : this.fmt(T.def[k] || ''));
     const f = [];
     const field = (k, label, opts) => {
       const o = opts || {};
@@ -419,7 +515,7 @@ const SiteBuilder = {
     }
 
     if (T.fields.includes('eyebrow')) f.push(field('eyebrow', 'Texto pequeño sobre el título'));
-    if (T.fields.includes('title')) f.push(field('title', 'Título', b.type === 'portada' ? { ph: this.st.tenant.name } : null));
+    if (T.fields.includes('title')) f.push(field('title', 'Título', b.type === 'portada' ? { ph: (pd && pd.title) || this.st.tenant.name } : null));
     if (T.fields.includes('text')) f.push(field('text', b.type === 'texto' ? 'Texto' : 'Descripción', { area: true, rows: b.type === 'texto' ? 7 : 3, hint: b.type === 'texto' ? 'Deja una línea en blanco para separar párrafos.' : '' }));
     if (T.fields.includes('text')) f.push(this.extrasHTML(b));
 
@@ -462,7 +558,7 @@ const SiteBuilder = {
       f.join('') +
       '<div class="sb-block-actions">' +
         '<button type="button" class="sb-btn sb-btn-ghost" data-sb="toggle" data-id="' + E(b.id) + '">' + ic(b.show === false ? 'eye' : 'lock') + '<span>' + (b.show === false ? 'Mostrar en la web' : 'Ocultar en la web') + '</span></button>' +
-        (b.type !== 'portada' && this.st.page.blocks.length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="dup" data-id="' + E(b.id) + '">' + ic('plus') + '<span>Duplicar</span></button>' : '') +
+        (b.type !== 'portada' && this.blocks().length < SiteBlocks.MAX_BLOCKS ? '<button type="button" class="sb-btn sb-btn-ghost" data-sb="dup" data-id="' + E(b.id) + '">' + ic('plus') + '<span>Duplicar</span></button>' : '') +
         '<button type="button" class="sb-btn sb-btn-danger" data-sb="del" data-id="' + E(b.id) + '">' + ic('trash') + '<span>Eliminar</span></button>' +
       '</div>' +
     '</div>';
@@ -683,8 +779,10 @@ const SiteBuilder = {
     const btn = e.target.closest('[data-sb]');
     if (!btn || !this.st || btn.disabled) return;
     const act = btn.getAttribute('data-sb'), id = btn.getAttribute('data-id');
-    const st = this.st, list = st.page.blocks;
+    const st = this.st, list = this.blocks();
     const idx = id ? list.findIndex(b => b.id === id) : -1;
+    // El contenido propio de la página no se oculta, duplica ni elimina
+    if (['toggle', 'dup', 'del'].includes(act) && idx >= 0 && SiteBlocks.TYPES[list[idx].type].fixed) return;
     switch (act) {
       case 'close': this.close(); break;
       case 'save': this.save(); break;
@@ -761,10 +859,10 @@ const SiteBuilder = {
   },
 
   async remove(idx) {
-    const b = this.st.page.blocks[idx];
+    const b = this.blocks()[idx];
     const ok = await UI.confirm({ title: '¿Eliminar el bloque ' + SiteBlocks.TYPES[b.type].label + '?', message: 'Se quita del diseño. Los datos del CRM no se tocan. Si te arrepientes, cierra sin guardar.', confirmText: 'Eliminar', danger: true });
     if (!ok || !this.st) return;
-    this.st.page.blocks.splice(idx, 1);
+    this.blocks().splice(idx, 1);
     this.st.selected = null; this.st.view = 'list';
     this.touch(true);
   },
@@ -773,6 +871,7 @@ const SiteBuilder = {
     const el = e.target;
     if (!this.st) return;
     const b = this.block(this.st.selected);
+    if (el.hasAttribute('data-sb-page')) { if (e.type === 'change') this.switchPage(el.value); return; }
     if (el.hasAttribute('data-sb-editor')) { this.st.editor = el.checked; this.st.dirty = true; this.updateSave(); return; }
     if (el.hasAttribute('data-sb-upload')) { if (e.type === 'change') this.upload(el); return; }
     if (el.hasAttribute('data-sb-theme')) {
@@ -871,7 +970,7 @@ const SiteBuilder = {
       const li = e.target.closest('.sb-row');
       if (!dragId || !li || !this.st) return;
       e.preventDefault();
-      const list = this.st.page.blocks;
+      const list = this.blocks();
       const from = list.findIndex(b => b.id === dragId);
       const r = li.getBoundingClientRect();
       const before = e.clientY < r.top + r.height / 2;
@@ -970,7 +1069,9 @@ const SiteBuilder = {
     const m = String((error && (error.message || error.details)) || error || '');
     if (/web_page|web_editor/.test(m) && /column|columna|schema cache/i.test(m)) return 'Falta aplicar la migración 21 en Supabase (constructor de la web). Pídele al superadministrador que la ejecute.';
     // Letra, colores, Video, Fotos o color de fondo con la base aún en la migración 21
-    const free = !!(this.st && this.st.page.blocks.some(b => (b.extras || []).some(x => x.pos)));
+    const free = !!(this.st && this.blocks().some(b => (b.extras || []).some(x => x.pos)));
+    const pages = !!(this.st && this.st.page.pages && Object.keys(this.st.page.pages).some(k => !this.st.untouched.has(k)));
+    if (pages && /tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta el diseño de las demás páginas: falta aplicar la migración 32 en Supabase. Pídele al superadministrador que la ejecute.';
     if (free && /tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta cuadros de texto en posición libre: falta aplicar la migración 28 en Supabase. Pídele al superadministrador que la ejecute.';
     if (/tenants_web_page_valida|check constraint/i.test(m)) return 'La base aún no acepta letra, colores, fotos ni videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
     if (/mime type|invalid_mime_type|not supported/i.test(m) && /video/i.test(m)) return 'Aún no se pueden subir videos: falta aplicar la migración 22 en Supabase. Pídele al superadministrador que la ejecute.';
@@ -989,8 +1090,10 @@ const SiteBuilder = {
   async save() {
     const st = this.st;
     if (!st || st.saving) return;
-    const page = SiteBlocks.normalize(st.page) || { blocks: [] };
-    if (!page.blocks.some(b => b.show !== false)) { UI.toast('Deja al menos un bloque visible, o usa "Volver al diseño de siempre".', 'error'); return; }
+    const page = SiteBlocks.normalize(this.toSave()) || { blocks: [] };
+    const empty = Object.entries(Object.assign({ inicio: page }, page.pages || {}))
+      .find(([, pg]) => pg.blocks.length && !pg.blocks.some(b => b.show !== false && !SiteBlocks.TYPES[b.type].fixed));
+    if (empty && empty[0] === 'inicio') { UI.toast('Deja al menos un bloque visible en el Inicio, o usa "Volver al Inicio de siempre".', 'error'); return; }
     const chk = this.themeCheck();
     if (chk && !chk.ok) { UI.toast('Los colores elegidos no se leen bien: ' + chk.error + ' Cámbialos en "Letra y colores".', 'error'); return; }
     st.saving = true; this.updateSave();
@@ -1002,8 +1105,8 @@ const SiteBuilder = {
       st.tenant.hasWebPage = true;
       if ('web_editor' in patch) st.tenant.webEditor = patch.web_editor;
       st.saved = JSON.parse(JSON.stringify(page));
-      st.page = JSON.parse(JSON.stringify(page));
-      st.fresh = false; st.dirty = false;
+      // Lo que no se guardó (páginas sin tocar) sigue en el editor tal cual
+      st.fresh = !page.blocks.length; st.dirty = false;
       this.renderPanel();
       UI.toast('Diseño publicado. Ya se ve en la web.');
       if (st.opts.onSaved) st.opts.onSaved(st.tenant);
@@ -1014,20 +1117,41 @@ const SiteBuilder = {
     }
   },
 
-  async resetDesign() {
-    const ok = await UI.confirm({ title: '¿Volver al diseño de siempre?', message: 'La web vuelve a mostrar el Inicio de siempre y se borra este diseño por bloques. Los datos del CRM no se tocan.', confirmText: 'Volver al de siempre', danger: true });
-    if (!ok || !this.st) return;
+  /* Lo que se guarda: las páginas con diseño inicial sin tocar no van (siguen como siempre) */
+  toSave() {
     const st = this.st;
-    st.saving = true; this.updateSave();
-    try {
-      await this.write({ web_page: null });
-      st.tenant.webPage = null;
-      UI.toast('Listo: la web volvió al diseño de siempre.');
-      if (st.opts.onSaved) st.opts.onSaved(st.tenant);
-      this.close(true);
-    } catch (err) {
-      UI.toast(this.errMsg(err), 'error');
-      if (this.st) { this.st.saving = false; this.updateSave(); }
+    const page = JSON.parse(JSON.stringify(st.page));
+    if (st.untouched.has('inicio') && !this.hasDesign(st.saved, 'inicio')) page.blocks = [];
+    if (page.pages) {
+      Object.keys(page.pages).forEach(k => { if (st.untouched.has(k) && !this.hasDesign(st.saved, k)) delete page.pages[k]; });
+      if (!Object.keys(page.pages).length) delete page.pages;
     }
+    return page;
+  },
+
+  /* Volver a la página de siempre (solo la que se está diseñando; se publica al guardar) */
+  async resetDesign() {
+    const st = this.st;
+    const home = st.pg === 'inicio', name = this.pageLabel(st.pg);
+    const ok = await UI.confirm({ title: '¿Volver a ' + name + ' de siempre?', message: 'Se quita el diseño por bloques de esta página (las demás páginas no cambian). Los datos del CRM no se tocan. Se publica al pulsar "Guardar y publicar".', confirmText: 'Volver a la de siempre', danger: true });
+    if (!ok || !this.st) return;
+    if (home) {
+      st.page.blocks = SiteBlocks.template({ site: (st.tenant.crmConfig && st.tenant.crmConfig.site) || {}, solo: !!(st.info && st.info.solo) }).blocks;
+      if (st.info && st.info.solo) st.page.blocks.forEach(b => { if (b.type === 'equipo') b.type = 'galeria'; });
+      st.fresh = true;
+    } else {
+      st.page.pages[st.pg] = SiteBlocks.pageTemplate(st.pg);
+    }
+    st.untouched.add(st.pg);
+    // Si estaba guardada con diseño, al guardar se quita
+    if (this.hasDesign(st.saved, st.pg)) {
+      if (home) st.saved.blocks = []; else delete st.saved.pages[st.pg];
+      st.dirty = true;
+    }
+    st.selected = null; st.view = 'list';
+    this.updateSave();
+    this.renderPanel();
+    this.pushPreview();
+    UI.toast(st.dirty ? 'Listo. Pulsa "Guardar y publicar" para que la web lo muestre.' : 'Listo.');
   }
 };

@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/pages/rubros.css" />
   <link rel="stylesheet" href="css/pages/boutique.css" />
   <link rel="stylesheet" href="css/pages/rosa.css" />
+  <link rel="stylesheet" href="css/pages/bloques.css" />
 </head>
 <body data-page="galeria">
 
@@ -49,7 +50,7 @@
 
   <main id="main" tabindex="-1">
     <section id="pub-galeria" class="page-view">
-      <section class="page-hero on-brand">
+      <section class="page-hero on-brand" data-page-std>
         <div class="container">
           <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Galería</span></nav>
           <span class="eyebrow">Nuestros trabajos</span>
@@ -58,14 +59,14 @@
         </div>
       </section>
 
-      <section class="section" aria-labelledby="gal-list-title">
+      <section class="section" aria-labelledby="gal-list-title" data-page-core>
         <div class="container">
           <h2 id="gal-list-title" class="sr-only">Fotos de trabajos</h2>
           <div id="pub-gallery-page"></div>
         </div>
       </section>
 
-      <section class="cta-band on-brand" aria-labelledby="cta-title">
+      <section class="cta-band on-brand" aria-labelledby="cta-title" data-page-std>
         <div class="container cta-band-inner">
           <div>
             <h2 id="cta-title" data-v-fmt="¿Listo para reservar tu {appointment}?">¿Listo para reservar tu cita?</h2>
