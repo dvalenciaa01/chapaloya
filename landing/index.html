@@ -917,7 +917,7 @@ footer .word{color:var(--night-ink)}
 </svg>
 
 <div class="shell">
-<header class="nav">
+<header class="nav" data-lc-sec="menu" data-lc-name="Menú superior">
   <div class="wrap">
     <a class="brand" href="#inicio" aria-label="Reservalope, inicio">
       <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="40" height="40"></span>
@@ -925,38 +925,38 @@ footer .word{color:var(--night-ink)}
     </a>
     <nav aria-label="Principal">
       <ul>
-        <li><a href="#rubros">Rubros</a></li>
-        <li><a href="#plataforma">Producto</a></li>
-        <li><a href="#videos">Videos</a></li>
-        <li><a href="#reservas">Cómo se reserva</a></li>
-        <li><a href="#whatsapp">WhatsApp</a></li>
-                <li><a href="#preguntas">Preguntas</a></li>
+        <li><a href="#rubros" data-lc="menu.link1">Rubros</a></li>
+        <li><a href="#plataforma" data-lc="menu.link2">Producto</a></li>
+        <li><a href="#videos" data-lc="menu.link3">Videos</a></li>
+        <li><a href="#reservas" data-lc="menu.link4">Cómo se reserva</a></li>
+        <li><a href="#whatsapp" data-lc="menu.link5">WhatsApp</a></li>
+                <li><a href="#preguntas" data-lc="menu.link6">Preguntas</a></li>
       </ul>
     </nav>
     <div class="actions">
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar a modo oscuro"><svg class="t-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="t-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
-      <a class="btn btn-primary btn-sm" href="#demo">Solicitar prueba</a>
+      <a class="btn btn-primary btn-sm" href="#demo" data-lc="menu.btn">Solicitar prueba</a>
     </div>
   </div>
 </header>
 
 <main id="inicio">
-  <section class="hero">
+  <section class="hero" data-lc-sec="portada" data-lc-name="Portada" data-lc-fixed>
     <div class="wrap">
     <div class="hero-card hero-grid">
       <span class="hero-bg" aria-hidden="true"><span class="deco hero-ring" data-par="-.12"></span><span class="deco hero-dot" data-par=".2"></span></span>
       <div class="hero-copy">
-        <h1>Agenda fácil.<svg class="spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0c.7 6.4 5.6 11.3 12 12-6.4.7-11.3 5.6-12 12-.7-6.4-5.6-11.3-12-12C6.4 11.3 11.3 6.4 12 0Z"/></svg> <em>Negocios que crecen.</em></h1>
-        <p class="lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
+        <h1><span data-lc="portada.title" data-lc-hint="Primera línea del título">Agenda fácil.</span><svg class="spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0c.7 6.4 5.6 11.3 12 12-6.4.7-11.3 5.6-12 12-.7-6.4-5.6-11.3-12-12C6.4 11.3 11.3 6.4 12 0Z"/></svg> <em data-lc="portada.title2" data-lc-hint="Segunda línea del título (en color)">Negocios que crecen.</em></h1>
+        <p class="lead" data-lc="portada.lead">Reservalope es la plataforma de reservas para barberías, peluquerías, consultorios médicos y cualquier negocio que trabaja con citas. Tu negocio tiene su propia web de reservas con su marca, un panel para todo el equipo y avisos por WhatsApp para ti y tus clientes.</p>
         <svg class="scribble hero-arrow draw" viewBox="0 0 240 250" aria-hidden="true"><path pathLength="1" d="M214 8c22 58 6 118-44 146-34 19-66 9-62-12 4-20 40-20 52 10 16 40-16 78-118 84"/><path pathLength="1" d="M58 222l-20 14 20 14"/></svg>
         <div class="cta-row">
-          <a class="btn btn-primary" href="#demo">Solicitar una prueba <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost" href="#reservas">Ver cómo funciona</a>
+          <a class="btn btn-primary" href="#demo" data-lc="portada.cta1">Solicitar una prueba <svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost" href="#reservas" data-lc="portada.cta2">Ver cómo funciona</a>
         </div>
         <ul class="assure">
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Web de reservas con tu logo y colores</li>
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Sin citas cruzadas</li>
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg>Reportes en PDF y Excel</li>
+          <li data-lc="portada.check1"><svg aria-hidden="true"><use href="#i-check"/></svg>Web de reservas con tu logo y colores</li>
+          <li data-lc="portada.check2"><svg aria-hidden="true"><use href="#i-check"/></svg>Sin citas cruzadas</li>
+          <li data-lc="portada.check3"><svg aria-hidden="true"><use href="#i-check"/></svg>Reportes en PDF y Excel</li>
         </ul>
       </div>
 
@@ -1048,12 +1048,12 @@ footer .word{color:var(--night-ink)}
   </div>
   </section>
 
-  <section class="rubros" id="rubros">
+  <section class="rubros" id="rubros" data-lc-sec="rubros" data-lc-name="Rubros">
     <div class="wrap">
       <div class="head wide">
-        <span class="eyebrow">Para cada rubro</span>
-        <h2 class="h2">Tu web no se parece <span class="hl">a la de al lado.</span></h2>
-        <p class="lead">Cada rubro tiene su propio estilo: cambian la tipografía, las formas y los detalles de la web de reservas. Los colores siempre son los de tu marca, y las palabras se adaptan: barbero, doctor, terapeuta; cliente o paciente.</p>
+        <span class="eyebrow" data-lc="rubros.eyebrow">Para cada rubro</span>
+        <h2 class="h2" data-lc="rubros.title">Tu web no se parece <span class="hl">a la de al lado.</span></h2>
+        <p class="lead" data-lc="rubros.lead">Cada rubro tiene su propio estilo: cambian la tipografía, las formas y los detalles de la web de reservas. Los colores siempre son los de tu marca, y las palabras se adaptan: barbero, doctor, terapeuta; cliente o paciente.</p>
       </div>
       <ul class="spec">
         <li class="sp sp-barberia" data-rubro="barberia"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">01</span><svg aria-hidden="true"><use href="#i-scissors"/></svg><span class="sp-name">Barbería</span><span class="sp-note">Cartel de taller clásico</span></button></li>
@@ -1067,60 +1067,60 @@ footer .word{color:var(--night-ink)}
         <li class="sp sp-tatuajes" data-rubro="tatuajes"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">09</span><svg aria-hidden="true"><use href="#i-needle"/></svg><span class="sp-name">Tatuajes</span><span class="sp-note">Hoja de flash</span></button></li>
         <li class="sp sp-fitness" data-rubro="fitness"><button type="button" class="sp-btn" aria-expanded="false" aria-controls="rub-prev"><span class="sp-n">10</span><svg aria-hidden="true"><use href="#i-dumbbell"/></svg><span class="sp-name">Fitness</span><span class="sp-note">Cartel deportivo</span></button></li>
       </ul>
-      <p class="rub-note"><span>¿Tu negocio es otro? También funciona con un estilo neutro para cualquier negocio con citas.</span><a class="tlink" href="#demo">Solicitar una prueba para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
+      <p class="rub-note"><span data-lc="rubros.note">¿Tu negocio es otro? También funciona con un estilo neutro para cualquier negocio con citas.</span><a class="tlink" href="#demo" data-lc="rubros.link">Solicitar una prueba para tu negocio <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
     </div>
   </section>
 
-  <section id="problema">
+  <section id="problema" data-lc-sec="problema" data-lc-name="El problema" data-lc-itemname="Problema">
     <div class="wrap prob">
       <div class="head" style="margin-bottom:0">
-        <span class="eyebrow">El problema</span>
-        <h2 class="h2">Tu recepción es tu celular. <span class="soft">Y tienes las manos ocupadas.</span></h2>
-        <p class="lead">Tu tiempo también importa. Reservalope ordena la agenda para que tú te dediques a atender.</p>
+        <span class="eyebrow" data-lc="problema.eyebrow">El problema</span>
+        <h2 class="h2" data-lc="problema.title">Tu recepción es tu celular. <span class="soft">Y tienes las manos ocupadas.</span></h2>
+        <p class="lead" data-lc="problema.lead">Tu tiempo también importa. Reservalope ordena la agenda para que tú te dediques a atender.</p>
       </div>
       <span class="deco prob-ring" aria-hidden="true"><i></i></span>
       <ul class="pains">
-        <li><span class="pi"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h3>Los mensajes llegan en plena atención</h3><p>Con una web de reservas, el cliente elige servicio, profesional y hora sin esperar tu respuesta.</p></div></li>
-        <li><span class="pi"><svg aria-hidden="true"><use href="#i-hole"/></svg></span><div><h3>Las citas se cruzan</h3><p>Solo se ofrecen horarios libres. No se puede reservar un horario ocupado ni uno que ya pasó.</p></div></li>
-        <li><span class="pi"><svg aria-hidden="true"><use href="#i-userx"/></svg></span><div><h3>Los clientes se olvidan</h3><p>El recordatorio por WhatsApp les llega antes de la cita y pueden confirmar su asistencia desde el mismo chat.</p></div></li>
+        <li data-lc-item="problema.i1"><span class="pi"><svg aria-hidden="true"><use href="#i-phone"/></svg></span><div><h3 data-lc="problema.i1.title">Los mensajes llegan en plena atención</h3><p data-lc="problema.i1.text">Con una web de reservas, el cliente elige servicio, profesional y hora sin esperar tu respuesta.</p></div></li>
+        <li data-lc-item="problema.i2"><span class="pi"><svg aria-hidden="true"><use href="#i-hole"/></svg></span><div><h3 data-lc="problema.i2.title">Las citas se cruzan</h3><p data-lc="problema.i2.text">Solo se ofrecen horarios libres. No se puede reservar un horario ocupado ni uno que ya pasó.</p></div></li>
+        <li data-lc-item="problema.i3"><span class="pi"><svg aria-hidden="true"><use href="#i-userx"/></svg></span><div><h3 data-lc="problema.i3.title">Los clientes se olvidan</h3><p data-lc="problema.i3.text">El recordatorio por WhatsApp les llega antes de la cita y pueden confirmar su asistencia desde el mismo chat.</p></div></li>
       </ul>
     </div>
   </section>
 
-  <section id="plataforma">
+  <section id="plataforma" data-lc-sec="plataforma" data-lc-name="La plataforma" data-lc-itemname="Pieza">
     <div class="wrap">
       <svg class="scribble plat-squiggle draw" viewBox="0 0 300 120" aria-hidden="true"><path pathLength="1" d="M4 96c34-6 52-40 70-64 16-22 40-26 50-4 12 26-14 52-28 40-16-14 18-46 52-46 40 0 54 50 92 52 22 1 40-12 56-30"/></svg>
       <div class="head wide">
-        <span class="eyebrow">La plataforma</span>
-        <h2 class="h2">Tres piezas. <span class="hl">Una sola agenda.</span></h2>
-        <p class="lead">La web de reservas, el panel del equipo y los mensajes de WhatsApp trabajan con la misma información. Una cita creada en cualquiera de ellos aparece en todos.</p>
+        <span class="eyebrow" data-lc="plataforma.eyebrow">La plataforma</span>
+        <h2 class="h2" data-lc="plataforma.title">Tres piezas. <span class="hl">Una sola agenda.</span></h2>
+        <p class="lead" data-lc="plataforma.lead">La web de reservas, el panel del equipo y los mensajes de WhatsApp trabajan con la misma información. Una cita creada en cualquiera de ellos aparece en todos.</p>
       </div>
       <div class="trio">
-        <article class="prod">
-          <span class="tagline">Para tus clientes</span>
-          <h3>Web de reservas con tu marca</h3>
+        <article class="prod" data-lc-item="plataforma.i1">
+          <span class="tagline" data-lc="plataforma.i1.eyebrow">Para tus clientes</span>
+          <h3 data-lc="plataforma.i1.title">Web de reservas con tu marca</h3>
           <div class="vis" aria-hidden="true">
             <div class="urlbar"><svg><use href="#i-link"/></svg><span>reservalope.com/navaja-norte</span></div>
             <div class="svc-row"><b>Corte Clásico / Fade</b><span>30 min · S/ 32</span></div>
             <div class="svc-row"><b>Corte de Cabello + Barba</b><span>45 min · S/ 45</span></div>
             <div class="svc-row"><b>Perfilado de Barba</b><span>20 min · S/ 20</span></div>
           </div>
-          <p>Inicio, servicios, profesionales con portafolio, reserva y consulta de cita. Usa tu nombre, tu logo, tus 3 colores y tus datos de contacto.</p>
+          <p data-lc="plataforma.i1.text">Inicio, servicios, profesionales con portafolio, reserva y consulta de cita. Usa tu nombre, tu logo, tus 3 colores y tus datos de contacto.</p>
         </article>
-        <article class="prod">
-          <span class="tagline">Para ti y tu equipo</span>
-          <h3>Panel del negocio</h3>
+        <article class="prod" data-lc-item="plataforma.i2">
+          <span class="tagline" data-lc="plataforma.i2.eyebrow">Para ti y tu equipo</span>
+          <h3 data-lc="plataforma.i2.title">Panel del negocio</h3>
           <div class="vis" aria-hidden="true">
             <div class="svc-row"><b>Citas</b><span>Hoy</span></div>
             <div class="svc-row"><b>Cola walk-in</b><span>Sin cita</span></div>
             <div class="svc-row"><b>Ventas y clientes</b><span>Historial</span></div>
             <div class="svc-row"><b>Reportes</b><span>PDF · Excel</span></div>
           </div>
-          <p>Citas, cola de clientes sin cita, profesionales, servicios, ventas, clientes y reportes, con permisos según el rol de cada persona.</p>
+          <p data-lc="plataforma.i2.text">Citas, cola de clientes sin cita, profesionales, servicios, ventas, clientes y reportes, con permisos según el rol de cada persona.</p>
         </article>
-        <article class="prod">
-          <span class="tagline">En automático</span>
-          <h3>WhatsApp que confirma y recuerda</h3>
+        <article class="prod" data-lc-item="plataforma.i3">
+          <span class="tagline" data-lc="plataforma.i3.eyebrow">En automático</span>
+          <h3 data-lc="plataforma.i3.title">WhatsApp que confirma y recuerda</h3>
           <div class="vis" aria-hidden="true">
             <div class="wa-mini">
               <div>Hola Sebastián, por favor confirma tu asistencia a tu cita del martes 20 a las 11:00 con Luis.</div>
@@ -1128,51 +1128,51 @@ footer .word{color:var(--night-ink)}
               <div>Asistencia confirmada. ¡Te esperamos!</div>
             </div>
           </div>
-          <p>Confirmación de asistencia al reservar, recordatorios antes de la cita y aviso a tu equipo cuando una cita se crea, se cancela o se reprograma.</p>
+          <p data-lc="plataforma.i3.text">Confirmación de asistencia al reservar, recordatorios antes de la cita y aviso a tu equipo cuando una cita se crea, se cancela o se reprograma.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <section id="videos">
+  <section id="videos" data-lc-sec="videos" data-lc-name="Videos" data-lc-itemname="Video">
     <div class="wrap">
       <div class="head wide">
-        <span class="eyebrow">En video</span>
-        <h2 class="h2">Míralo funcionar <span class="hl">en un minuto.</span></h2>
-        <p class="lead">Una presentación de Reservalope y dos reservas de principio a fin: una en un spa y otra en una barbería, hasta el recordatorio por WhatsApp.</p>
+        <span class="eyebrow" data-lc="videos.eyebrow">En video</span>
+        <h2 class="h2" data-lc="videos.title">Míralo funcionar <span class="hl">en un minuto.</span></h2>
+        <p class="lead" data-lc="videos.lead">Una presentación de Reservalope y dos reservas de principio a fin: una en un spa y otra en una barbería, hasta el recordatorio por WhatsApp.</p>
       </div>
       <div class="vids">
-        <figure class="vid main">
+        <figure class="vid main" data-lc-item="videos.i1">
           <div class="vid-frame">
-            <video preload="none" playsinline poster="../assets/videos/reservalope-presentacion.jpg" aria-label="Presentación de Reservalope"><source src="../assets/videos/reservalope-presentacion.mp4" type="video/mp4"></video>
-            <button type="button" class="vid-play" aria-label="Reproducir la presentación de Reservalope"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">1:00</span></button>
+            <video data-lc="videos.i1.video">preload="none" playsinline poster="../assets/videos/reservalope-presentacion.jpg" aria-label="Presentación de Reservalope"><source src="../assets/videos/reservalope-presentacion.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la presentación de Reservalope"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur" data-lc="videos.i1.dur">1:00</span></button>
           </div>
-          <figcaption><b>Reservalope en 60 segundos</b><span>Web de reservas, panel y WhatsApp trabajando juntos.</span></figcaption>
+          <figcaption><b data-lc="videos.i1.title">Reservalope en 60 segundos</b><span data-lc="videos.i1.text">Web de reservas, panel y WhatsApp trabajando juntos.</span></figcaption>
         </figure>
-        <figure class="vid">
+        <figure class="vid" data-lc-item="videos.i2">
           <div class="vid-frame">
-            <video preload="none" playsinline poster="../assets/videos/reservalope-flujo-spa.jpg" aria-label="Reserva en un spa de principio a fin"><source src="../assets/videos/reservalope-flujo-spa.mp4" type="video/mp4"></video>
-            <button type="button" class="vid-play" aria-label="Reproducir la reserva en un spa"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">0:54</span></button>
+            <video data-lc="videos.i2.video">preload="none" playsinline poster="../assets/videos/reservalope-flujo-spa.jpg" aria-label="Reserva en un spa de principio a fin"><source src="../assets/videos/reservalope-flujo-spa.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la reserva en un spa"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur" data-lc="videos.i2.dur">0:54</span></button>
           </div>
-          <figcaption><b>Una reserva en un spa</b><span>Del enlace del negocio a la cita confirmada.</span></figcaption>
+          <figcaption><b data-lc="videos.i2.title">Una reserva en un spa</b><span data-lc="videos.i2.text">Del enlace del negocio a la cita confirmada.</span></figcaption>
         </figure>
-        <figure class="vid">
+        <figure class="vid" data-lc-item="videos.i3">
           <div class="vid-frame">
-            <video preload="none" playsinline poster="../assets/videos/reservalope-flujo-barberia.jpg" aria-label="Reserva en una barbería de principio a fin"><source src="../assets/videos/reservalope-flujo-barberia.mp4" type="video/mp4"></video>
-            <button type="button" class="vid-play" aria-label="Reproducir la reserva en una barbería"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur">0:54</span></button>
+            <video data-lc="videos.i3.video">preload="none" playsinline poster="../assets/videos/reservalope-flujo-barberia.jpg" aria-label="Reserva en una barbería de principio a fin"><source src="../assets/videos/reservalope-flujo-barberia.mp4" type="video/mp4"></video>
+            <button type="button" class="vid-play" aria-label="Reproducir la reserva en una barbería"><i><svg aria-hidden="true"><use href="#i-play"/></svg></i><span class="dur" data-lc="videos.i3.dur">0:54</span></button>
           </div>
-          <figcaption><b>Una reserva en una barbería</b><span>Servicio, barbero y hora, y el aviso llega al equipo.</span></figcaption>
+          <figcaption><b data-lc="videos.i3.title">Una reserva en una barbería</b><span data-lc="videos.i3.text">Servicio, barbero y hora, y el aviso llega al equipo.</span></figcaption>
         </figure>
       </div>
     </div>
   </section>
 
-  <section id="reservas">
+  <section id="reservas" data-lc-sec="reservas" data-lc-name="Pruébalo aquí" data-lc-itemname="Punto">
     <div class="wrap">
       <div class="head wide">
-        <span class="eyebrow">Pruébalo aquí</span>
-        <h2 class="h2">Reservado en tres pasos. <span class="hl">En tu agenda al instante.</span></h2>
-        <p class="lead">Elige un servicio, un barbero y una hora libre, y pulsa Reservar. La cita aparece en la agenda del negocio en ese momento. Usamos los servicios y el equipo de Navaja Norte, la barbería de demostración del sistema.</p>
+        <span class="eyebrow" data-lc="reservas.eyebrow">Pruébalo aquí</span>
+        <h2 class="h2" data-lc="reservas.title">Reservado en tres pasos. <span class="hl">En tu agenda al instante.</span></h2>
+        <p class="lead" data-lc="reservas.lead">Elige un servicio, un barbero y una hora libre, y pulsa Reservar. La cita aparece en la agenda del negocio en ese momento. Usamos los servicios y el equipo de Navaja Norte, la barbería de demostración del sistema.</p>
       </div>
       <div class="rv">
         <div class="booker">
@@ -1202,26 +1202,26 @@ footer .word{color:var(--night-ink)}
         </div>
       </div>
       <ul class="rv-points">
-        <li><h3><svg class="i" aria-hidden="true"><use href="#i-hand"/></svg>Sin cuenta ni contraseña</h3><p>El cliente deja su nombre y su celular, y listo.</p></li>
-        <li><h3><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Solo horarios reales</h3><p>No se puede reservar un horario ocupado, un día que ya pasó ni fuera del horario de atención.</p></li>
-        <li><h3><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Consulta con código</h3><p>Cada reserva tiene un código para que el cliente vea su cita en “Mi cita”.</p></li>
+        <li data-lc-item="reservas.i1"><h3 data-lc="reservas.i1.title"><svg class="i" aria-hidden="true"><use href="#i-hand"/></svg>Sin cuenta ni contraseña</h3><p data-lc="reservas.i1.text">El cliente deja su nombre y su celular, y listo.</p></li>
+        <li data-lc-item="reservas.i2"><h3 data-lc="reservas.i2.title"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Solo horarios reales</h3><p data-lc="reservas.i2.text">No se puede reservar un horario ocupado, un día que ya pasó ni fuera del horario de atención.</p></li>
+        <li data-lc-item="reservas.i3"><h3 data-lc="reservas.i3.title"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Consulta con código</h3><p data-lc="reservas.i3.text">Cada reserva tiene un código para que el cliente vea su cita en “Mi cita”.</p></li>
       </ul>
     </div>
   </section>
 
-  <section class="band" id="whatsapp">
+  <section class="band" id="whatsapp" data-lc-sec="whatsapp" data-lc-name="WhatsApp" data-lc-itemname="Punto">
     <div class="wrap wa-grid">
       <div>
         <div class="head" style="margin-bottom:0">
-          <span class="eyebrow">WhatsApp</span>
-          <h2 class="h2">Cada cita se confirma y se recuerda <span class="hl">sin que escribas nada.</span></h2>
-          <p class="lead">Cuando se crea, cancela o reprograma una cita, Reservalope prepara los mensajes que tocan y los envía a su hora.</p>
+          <span class="eyebrow" data-lc="whatsapp.eyebrow">WhatsApp</span>
+          <h2 class="h2" data-lc="whatsapp.title">Cada cita se confirma y se recuerda <span class="hl">sin que escribas nada.</span></h2>
+          <p class="lead" data-lc="whatsapp.lead">Cuando se crea, cancela o reprograma una cita, Reservalope prepara los mensajes que tocan y los envía a su hora.</p>
         </div>
         <ul class="rules">
-          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-qr"/></svg></span><div><h3>Desde el número de tu negocio</h3><p>Se vincula con un código QR, igual que WhatsApp Web.</p></div></li>
-          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><h3>Recordatorios a tu medida</h3><p>Vienen dos listos, un día antes y dos horas antes. Puedes cambiar los textos y agregar los que necesites.</p></div></li>
-          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></span><div><h3>Respeta las horas de descanso</h3><p>No se envía nada en horas de silencio, por defecto de 21:00 a 8:00.</p></div></li>
-          <li><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg></span><div><h3>Tu equipo se entera</h3><p>Avisos de cita nueva, cancelada o reprogramada a los números o al grupo que elijas.</p></div></li>
+          <li data-lc-item="whatsapp.i1"><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-qr"/></svg></span><div><h3 data-lc="whatsapp.i1.title">Desde el número de tu negocio</h3><p data-lc="whatsapp.i1.text">Se vincula con un código QR, igual que WhatsApp Web.</p></div></li>
+          <li data-lc-item="whatsapp.i2"><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg></span><div><h3 data-lc="whatsapp.i2.title">Recordatorios a tu medida</h3><p data-lc="whatsapp.i2.text">Vienen dos listos, un día antes y dos horas antes. Puedes cambiar los textos y agregar los que necesites.</p></div></li>
+          <li data-lc-item="whatsapp.i3"><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></span><div><h3 data-lc="whatsapp.i3.title">Respeta las horas de descanso</h3><p data-lc="whatsapp.i3.text">No se envía nada en horas de silencio, por defecto de 21:00 a 8:00.</p></div></li>
+          <li data-lc-item="whatsapp.i4"><span class="ri"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg></span><div><h3 data-lc="whatsapp.i4.title">Tu equipo se entera</h3><p data-lc="whatsapp.i4.text">Avisos de cita nueva, cancelada o reprogramada a los números o al grupo que elijas.</p></div></li>
         </ul>
       </div>
       <div class="inbox" aria-label="Ejemplo: mensajes que genera una cita">
@@ -1237,72 +1237,72 @@ footer .word{color:var(--night-ink)}
     </div>
   </section>
 
-  <section id="panel">
+  <section id="panel" data-lc-sec="panel" data-lc-name="El panel" data-lc-itemname="Módulo">
     <div class="wrap">
       <div class="head wide">
-        <span class="eyebrow">El panel</span>
-        <h2 class="h2">Todo tu negocio <span class="soft">en un solo lugar.</span></h2>
+        <span class="eyebrow" data-lc="panel.eyebrow">El panel</span>
+        <h2 class="h2" data-lc="panel.title">Todo tu negocio <span class="soft">en un solo lugar.</span></h2>
       </div>
       <div class="mods">
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><h3>Citas</h3><p>Crea, confirma, reprograma y cancela citas desde el celular o la computadora.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-hour"/></svg><div><h3>Cola walk-in</h3><p>Ordena a los clientes que llegan sin cita.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-card"/></svg><div><h3>Profesionales y portafolio</h3><p>Cada uno con sus especialidades, sus trabajos y su horario.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg><div><h3>Servicios</h3><p>Precio, duración y categoría de cada servicio.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-cash"/></svg><div><h3>Ventas y clientes</h3><p>Lo que se vendió y el historial de cada cliente.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><div><h3>Reportes</h3><p>Filtra por periodo, profesional, servicio, estado o canal, y descarga en PDF con tu marca o en Excel.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><div><h3>Usuarios y roles</h3><p>El administrador crea al personal. Quien está vinculado a un profesional ve solo sus citas.</p></div></div>
-        <div class="mod"><svg class="i" aria-hidden="true"><use href="#i-hist"/></svg><div><h3>Historial de actividad</h3><p>Queda registrado quién hizo cada cambio.</p></div></div>
+        <div class="mod" data-lc-item="panel.i1"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><h3 data-lc="panel.i1.title">Citas</h3><p data-lc="panel.i1.text">Crea, confirma, reprograma y cancela citas desde el celular o la computadora.</p></div></div>
+        <div class="mod" data-lc-item="panel.i2"><svg class="i" aria-hidden="true"><use href="#i-hour"/></svg><div><h3 data-lc="panel.i2.title">Cola walk-in</h3><p data-lc="panel.i2.text">Ordena a los clientes que llegan sin cita.</p></div></div>
+        <div class="mod" data-lc-item="panel.i3"><svg class="i" aria-hidden="true"><use href="#i-card"/></svg><div><h3 data-lc="panel.i3.title">Profesionales y portafolio</h3><p data-lc="panel.i3.text">Cada uno con sus especialidades, sus trabajos y su horario.</p></div></div>
+        <div class="mod" data-lc-item="panel.i4"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg><div><h3 data-lc="panel.i4.title">Servicios</h3><p data-lc="panel.i4.text">Precio, duración y categoría de cada servicio.</p></div></div>
+        <div class="mod" data-lc-item="panel.i5"><svg class="i" aria-hidden="true"><use href="#i-cash"/></svg><div><h3 data-lc="panel.i5.title">Ventas y clientes</h3><p data-lc="panel.i5.text">Lo que se vendió y el historial de cada cliente.</p></div></div>
+        <div class="mod" data-lc-item="panel.i6"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><div><h3 data-lc="panel.i6.title">Reportes</h3><p data-lc="panel.i6.text">Filtra por periodo, profesional, servicio, estado o canal, y descarga en PDF con tu marca o en Excel.</p></div></div>
+        <div class="mod" data-lc-item="panel.i7"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><div><h3 data-lc="panel.i7.title">Usuarios y roles</h3><p data-lc="panel.i7.text">El administrador crea al personal. Quien está vinculado a un profesional ve solo sus citas.</p></div></div>
+        <div class="mod" data-lc-item="panel.i8"><svg class="i" aria-hidden="true"><use href="#i-hist"/></svg><div><h3 data-lc="panel.i8.title">Historial de actividad</h3><p data-lc="panel.i8.text">Queda registrado quién hizo cada cambio.</p></div></div>
       </div>
     </div>
   </section>
 
-  <section id="empezar">
+  <section id="empezar" data-lc-sec="empezar" data-lc-name="Cómo empezar" data-lc-itemname="Paso">
     <div class="wrap">
       <div class="two one">
         <div class="panel">
-          <span class="eyebrow">Cómo empezar</span>
-          <h3>Así activas Reservalope</h3>
+          <span class="eyebrow" data-lc="empezar.eyebrow">Cómo empezar</span>
+          <h3 data-lc="empezar.title">Así activas Reservalope</h3>
           <ol class="seq">
-            <li><div><h4>Solicita tu prueba</h4><p>Déjanos tus datos y te contactamos.</p></div></li>
-            <li><div><h4>Creamos tu negocio</h4><p>Con tu nombre, tu logo y tus 3 colores.</p></div></li>
-            <li><div><h4>Cargas tu información</h4><p>Servicios, profesionales, horarios y días especiales.</p></div></li>
-            <li><div><h4>Compartes tu enlace</h4><p>Tus clientes reservan desde tu propia web de reservas.</p></div></li>
+            <li data-lc-item="empezar.i1"><div><h4 data-lc="empezar.i1.title">Solicita tu prueba</h4><p data-lc="empezar.i1.text">Déjanos tus datos y te contactamos.</p></div></li>
+            <li data-lc-item="empezar.i2"><div><h4 data-lc="empezar.i2.title">Creamos tu negocio</h4><p data-lc="empezar.i2.text">Con tu nombre, tu logo y tus 3 colores.</p></div></li>
+            <li data-lc-item="empezar.i3"><div><h4 data-lc="empezar.i3.title">Cargas tu información</h4><p data-lc="empezar.i3.text">Servicios, profesionales, horarios y días especiales.</p></div></li>
+            <li data-lc-item="empezar.i4"><div><h4 data-lc="empezar.i4.title">Compartes tu enlace</h4><p data-lc="empezar.i4.text">Tus clientes reservan desde tu propia web de reservas.</p></div></li>
           </ol>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="preguntas">
+  <section id="preguntas" data-lc-sec="preguntas" data-lc-name="Preguntas frecuentes" data-lc-itemname="Pregunta">
     <div class="wrap faq-grid">
       <div class="head" style="margin:0">
-        <span class="eyebrow">Preguntas frecuentes</span>
-        <h2 class="h2">Preguntas, <span class="soft">respuestas claras.</span></h2>
-        <p class="lead">¿Te queda otra duda? Escríbenos desde el formulario de abajo.</p>
+        <span class="eyebrow" data-lc="preguntas.eyebrow">Preguntas frecuentes</span>
+        <h2 class="h2" data-lc="preguntas.title">Preguntas, <span class="soft">respuestas claras.</span></h2>
+        <p class="lead" data-lc="preguntas.lead">¿Te queda otra duda? Escríbenos desde el formulario de abajo.</p>
       </div>
       <div class="faq">
-        <details open><summary>¿Mis clientes tienen que crear una cuenta?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>No. Reservan desde la web de tu negocio con su nombre y su celular, y reciben un código para consultar su cita en “Mi cita”.</p></details>
-        <details><summary>¿Desde qué número salen los mensajes de WhatsApp?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Desde el número de tu negocio. Se vincula escaneando un código QR, como WhatsApp Web.</p></details>
-        <details><summary>¿Puedo cambiar los mensajes y los recordatorios?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. Editas los textos con datos de la cita (cliente, servicio, profesional, fecha, hora, dirección y código), eliges con cuánta anticipación sale cada recordatorio y defines las horas de silencio.</p></details>
-        <details><summary>¿Sirve si tengo varios profesionales?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. Cada profesional tiene su agenda, su horario y su portafolio, y el cliente elige con quién atenderse.</p></details>
-        <details><summary>¿Puedo atender a clientes que llegan sin cita?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p>Sí. La cola walk-in del panel ordena a quienes llegan sin reserva.</p></details>
+        <details open data-lc-item="preguntas.i1"><summary data-lc="preguntas.i1.q">¿Mis clientes tienen que crear una cuenta?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p data-lc="preguntas.i1.a">No. Reservan desde la web de tu negocio con su nombre y su celular, y reciben un código para consultar su cita en “Mi cita”.</p></details>
+        <details data-lc-item="preguntas.i2"><summary data-lc="preguntas.i2.q">¿Desde qué número salen los mensajes de WhatsApp?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p data-lc="preguntas.i2.a">Desde el número de tu negocio. Se vincula escaneando un código QR, como WhatsApp Web.</p></details>
+        <details data-lc-item="preguntas.i3"><summary data-lc="preguntas.i3.q">¿Puedo cambiar los mensajes y los recordatorios?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p data-lc="preguntas.i3.a">Sí. Editas los textos con datos de la cita (cliente, servicio, profesional, fecha, hora, dirección y código), eliges con cuánta anticipación sale cada recordatorio y defines las horas de silencio.</p></details>
+        <details data-lc-item="preguntas.i4"><summary data-lc="preguntas.i4.q">¿Sirve si tengo varios profesionales?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p data-lc="preguntas.i4.a">Sí. Cada profesional tiene su agenda, su horario y su portafolio, y el cliente elige con quién atenderse.</p></details>
+        <details data-lc-item="preguntas.i5"><summary data-lc="preguntas.i5.q">¿Puedo atender a clientes que llegan sin cita?<svg aria-hidden="true"><use href="#i-plus"/></svg></summary><p data-lc="preguntas.i5.a">Sí. La cola walk-in del panel ordena a quienes llegan sin reserva.</p></details>
       </div>
     </div>
   </section>
 
-  <section id="demo">
+  <section id="demo" data-lc-sec="demo" data-lc-name="Solicitar prueba (formulario)" data-lc-fixed>
     <div class="wrap">
       <div class="closer">
         <span class="deco closer-blob" aria-hidden="true"></span>
         <svg class="scribble closer-squiggle draw" viewBox="0 0 220 90" aria-hidden="true"><path pathLength="1" d="M4 70c26 0 34-56 64-56 26 0 18 46 44 46 30 0 30-52 58-52 20 0 32 18 46 30"/></svg>
         <div class="closer-copy">
           <span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="56" height="56"></span>
-          <h2>Agenda fácil. Negocios que crecen.</h2>
-          <p>Déjanos tus datos y te ayudamos a probar Reservalope en tu negocio.</p>
+          <h2 data-lc="demo.title">Agenda fácil. Negocios que crecen.</h2>
+          <p data-lc="demo.lead">Déjanos tus datos y te ayudamos a probar Reservalope en tu negocio.</p>
           <ul>
-            <li><svg aria-hidden="true"><use href="#i-check"/></svg>La web de reservas con la marca de tu negocio</li>
-            <li><svg aria-hidden="true"><use href="#i-check"/></svg>El panel para tu equipo y los reportes</li>
-            <li><svg aria-hidden="true"><use href="#i-check"/></svg>Las confirmaciones y recordatorios por WhatsApp</li>
+            <li data-lc="demo.check1"><svg aria-hidden="true"><use href="#i-check"/></svg>La web de reservas con la marca de tu negocio</li>
+            <li data-lc="demo.check2"><svg aria-hidden="true"><use href="#i-check"/></svg>El panel para tu equipo y los reportes</li>
+            <li data-lc="demo.check3"><svg aria-hidden="true"><use href="#i-check"/></svg>Las confirmaciones y recordatorios por WhatsApp</li>
           </ul>
           <div class="mailbox"><span>También puedes escribirnos a</span><a id="contacto-mail" href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a><button type="button" class="chip-ctl" id="copy-mail">Copiar correo</button></div>
           <div class="igbox"><span>O pídela por Instagram</span><a class="chip-ctl ig-btn" id="ig-dm" href="https://ig.me/m/vexa.studiope" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-ig"/></svg>Enviar mensaje a @vexa.studiope</a><small id="ig-hint">Al abrir el chat copiamos tu mensaje: solo pégalo y envíalo.</small></div>
@@ -1319,23 +1319,23 @@ footer .word{color:var(--night-ink)}
           <div class="field"><label for="f-wa">Celular (WhatsApp)</label><input id="f-wa" name="celular" type="tel" inputmode="tel" autocomplete="tel" placeholder="987 654 321" required><span class="err" id="e-wa"></span></div>
           <div class="field full"><label for="f-mail">Correo electrónico</label><input id="f-mail" name="email" type="email" autocomplete="email" required><span class="err" id="e-mail"></span></div>
           <input type="text" id="f-honey" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
-          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit">Solicitar prueba</button><span class="err" id="f-error" role="alert"></span></div>
+          <div class="field full"><button class="btn btn-primary" type="submit" id="f-submit" data-lc="demo.btn">Solicitar prueba</button><span class="err" id="f-error" role="alert"></span></div>
         </form>
       </div>
     </div>
   </section>
 </main>
 
-<footer>
+<footer data-lc-sec="pie" data-lc-name="Pie de página" data-lc-fixed>
   <div class="wrap">
     <div class="foot">
       <div>
         <a class="brand" href="#inicio" aria-label="Reservalope, inicio"><span class="iso"><img src="../assets/icons/reservalope-isotipo.webp" alt="" width="40" height="40"></span><span class="word">reserva<span>lope</span></span></a>
-        <p>Agenda fácil. Negocios que crecen.</p>
+        <p data-lc="pie.lead">Agenda fácil. Negocios que crecen.</p>
       </div>
-      <div><h4>Producto</h4><ul><li><a href="#plataforma">Plataforma</a></li><li><a href="#reservas">Reservas</a></li><li><a href="#whatsapp">WhatsApp</a></li><li><a href="#panel">Panel</a></li></ul></div>
-      <div><h4>Ideal para</h4><ul><li><a href="#rubros">Barberías y salones</a></li><li><a href="#rubros">Spas y nail bars</a></li><li><a href="#rubros">Consultorios y clínicas</a></li><li><a href="#rubros">Veterinarias, tatuajes y fitness</a></li></ul></div>
-      <div><h4>Contacto</h4><ul><li><a href="#demo">Solicitar prueba</a></li><li><a href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a></li><li><a href="https://www.instagram.com/vexa.studiope/" target="_blank" rel="noopener">Instagram: @vexa.studiope</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
+      <div><h4 data-lc="pie.col1">Producto</h4><ul><li><a href="#plataforma">Plataforma</a></li><li><a href="#reservas">Reservas</a></li><li><a href="#whatsapp">WhatsApp</a></li><li><a href="#panel">Panel</a></li></ul></div>
+      <div><h4 data-lc="pie.col2">Ideal para</h4><ul><li><a href="#rubros">Barberías y salones</a></li><li><a href="#rubros">Spas y nail bars</a></li><li><a href="#rubros">Consultorios y clínicas</a></li><li><a href="#rubros">Veterinarias, tatuajes y fitness</a></li></ul></div>
+      <div><h4 data-lc="pie.col3">Contacto</h4><ul><li><a href="#demo">Solicitar prueba</a></li><li><a href="mailto:vexastudio.contacto@gmail.com">vexastudio.contacto@gmail.com</a></li><li><a href="https://www.instagram.com/vexa.studiope/" target="_blank" rel="noopener">Instagram: @vexa.studiope</a></li><li><a href="#preguntas">Preguntas frecuentes</a></li></ul></div>
     </div>
     <div class="legal"><span>© 2026 Reservalope</span></div>
   </div>
@@ -1343,16 +1343,19 @@ footer .word{color:var(--night-ink)}
 </div>
 
 <script src="../js/config.js"></script>
+<script src="../js/core/landing-content.js"></script>
 <script>
 (function(){
   const single=(wrap,btn)=>{wrap.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));btn.setAttribute('aria-pressed','true')};
 
-  /* Preloader: se va cuando la página terminó de cargar (o a los 4 s como máximo) */
+  /* Preloader: se va cuando la página terminó de cargar y llegaron los textos editados en /admin → Landing
+     (js/core/landing-content.js, máximo 1,5 s), o a los 4 s como máximo */
   const pre=document.getElementById('preloader'), shown=Date.now();
   let ready;
   const loaded=new Promise(r=>{ready=r});
   const hidePre=()=>{if(!pre||pre.classList.contains('done'))return;pre.classList.add('done');document.documentElement.classList.remove('is-loading');setTimeout(()=>pre.remove(),600);ready()};
-  const onLoad=()=>setTimeout(hidePre,Math.max(0,700-(Date.now()-shown)));
+  const LC=window.LandingContent||{ready:Promise.resolve(),editing:false};
+  const onLoad=()=>LC.ready.then(()=>setTimeout(hidePre,Math.max(0,700-(Date.now()-shown))));
   if(document.readyState==='complete') onLoad(); else addEventListener('load',onLoad);
   setTimeout(hidePre,4000);
 
@@ -1610,7 +1613,7 @@ footer .word{color:var(--night-ink)}
   };
   const fallo=msg=>{
     document.getElementById('f-error').textContent=msg;
-    submit.disabled=false; submit.textContent='Solicitar prueba';
+    submit.disabled=false; submit.textContent=submit.dataset.txt||submit.textContent;
   };
   form.addEventListener('submit',e=>{
     e.preventDefault();
@@ -1619,7 +1622,7 @@ footer .word{color:var(--night-ink)}
     if(bad.length){document.getElementById(bad[0][0]).focus();return}
     if(submit.disabled) return;
     const tipo='prueba';
-    submit.disabled=true; submit.textContent='Enviando…';
+    submit.dataset.txt=submit.textContent; submit.disabled=true; submit.textContent='Enviando…';
     if(document.getElementById('f-honey').value) return listo(tipo);   // bot: no se guarda ni se envía
     guardar().then(g=>{
       if(g.error) return fallo(g.error);
@@ -1648,10 +1651,10 @@ footer .word{color:var(--night-ink)}
         const w=document.createElement('span');w.className='w';const inner=document.createElement('span');inner.textContent=part;inner.style.setProperty('--wi',wi++);w.appendChild(inner);frag.appendChild(w);
       });
       n.replaceWith(frag);
-    }else if(n.nodeType===1&&n.tagName==='EM') split(n);
+    }else if(n.nodeType===1&&(n.tagName==='EM'||n.hasAttribute('data-lc'))) split(n);
   })};
-  split(h1);
-  loaded.then(()=>requestAnimationFrame(()=>{h1.classList.add('in');heroCard.classList.add('in');heroCard.querySelectorAll('.draw').forEach(d=>setTimeout(()=>d.classList.add('in'),900))}));
+  // El titular se parte en palabras cuando ya están los textos editados (en el editor no se parte)
+  loaded.then(()=>requestAnimationFrame(()=>{if(!LC.editing){split(h1);void h1.offsetWidth}h1.classList.add('in');heroCard.classList.add('in');heroCard.querySelectorAll('.draw').forEach(d=>setTimeout(()=>d.classList.add('in'),900))}));
 
   const revealSel='.head,.spec>li,.rub-note,.pains>li,.prod,.booker,.cal,.rv-points>li,.rules>li,.inbox,.mods>.mod,.panel>.eyebrow,.panel>h3,.seq>li,.vid,.faq>details,.closer,.foot>div,.legal';
   const groups=new Map();

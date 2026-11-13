@@ -118,7 +118,7 @@ const Reservalope = {
       const id = h.split('/')[1];
       return this.show('reports', id && DB.tenantById(id) ? id : 'ALL');
     }
-    const valid = ['dashboard', 'tenants', 'alerts', 'leads', 'users', 'audit', 'platform'];
+    const valid = ['dashboard', 'tenants', 'alerts', 'leads', 'landing', 'users', 'audit', 'platform'];
     this.show(valid.includes(h) ? h : 'dashboard');
   },
 
@@ -158,6 +158,7 @@ const Reservalope = {
     else if (this.pane === 'detail') this.renderDetail();
     else if (this.pane === 'alerts') this.renderAlerts();
     else if (this.pane === 'leads') this.renderLeads();
+    else if (this.pane === 'landing') this.renderLanding();
     else if (this.pane === 'users') AdminUI.renderUsers();
     else if (this.pane === 'audit') AdminUI.renderAudit(false);
     else if (this.pane === 'platform') this.renderPlatform();
@@ -713,6 +714,41 @@ const Reservalope = {
     a.download = 'solicitudes-reservalope-' + DB.todayISO() + '.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+
+  /* ---------------- Landing (migración 29) ----------------
+     La edición se hace en js/components/landing-editor.js; aquí solo se
+     muestra qué está cambiado y cuándo se publicó. */
+  landingInfo: null,
+
+  async renderLanding(force) {
+    const box = document.getElementById('rl-landing-info');
+    const view = document.getElementById('rl-landing-view');
+    if (view) view.setAttribute('href', Routes.home());
+    if (!box) return;
+    if (!this.landingInfo || force) {
+      box.innerHTML = '<p class="card-text">Cargando…</p>';
+      const { data, error } = await DB.client().from('landing_contenido').select('contenido, updated_at').eq('id', 1).maybeSingle();
+      this.landingInfo = error ? { error: LandingEditor.errMsg(error) } : (data || { contenido: {}, updated_at: null });
+      if (this.pane !== 'landing') return;
+    }
+    const L = this.landingInfo;
+    if (L.error) {
+      box.innerHTML = '<div class="empty-state">' + ic('alert') + '<strong>No se pudo leer la landing</strong>' + UI.esc(L.error) + '</div>';
+      return;
+    }
+    const c = L.contenido || {};
+    const n = Object.keys(c.text || {}).length, v = Object.keys(c.media || {}).length, h = (c.hidden || []).length;
+    const parts = [];
+    if (n) parts.push(n + (n === 1 ? ' texto cambiado' : ' textos cambiados'));
+    if (v) parts.push(v + (v === 1 ? ' video cambiado' : ' videos cambiados'));
+    if (h) parts.push(h + (h === 1 ? ' sección o punto oculto' : ' secciones o puntos ocultos'));
+    if (c.seo && (c.seo.title || c.seo.description)) parts.push('título para Google cambiado');
+    box.innerHTML =
+      '<div class="card-head"><div><h3>Estado</h3><p class="card-sub">' +
+        (parts.length ? UI.esc(parts.join(' · ')) : 'La landing usa los textos originales.') + '</p></div></div>' +
+      '<p class="card-text">' + (L.updated_at && parts.length ? 'Última publicación: ' + UI.esc(UI.fmtDateTime(L.updated_at)) + '.' : '') +
+        ' En el editor, toca cualquier texto de la vista previa para cambiarlo. Lo que escribas entre *asteriscos* en un título se ve resaltado. La animación de la portada, la demo de reservas y el formulario siguen funcionando igual.</p>';
   },
 
   /* ---------------- Plataforma ---------------- */

@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/pages/reports.css" />
   <link rel="stylesheet" href="css/pages/reservalope.css" />
   <link rel="stylesheet" href="css/pages/site-builder.css" />
+  <link rel="stylesheet" href="css/pages/landing-editor.css" />
   <script>
     /* Redirección inmediata si no hay sesión */
     (function () {
@@ -88,6 +89,9 @@
             <button type="button" class="crm-nav-btn" data-rl="leads" onclick="Reservalope.go('leads')">
               <span class="crm-nav-label"><i data-icon="message"></i>Solicitudes</span>
               <span class="crm-nav-count" id="rl-badge-leads">0</span>
+            </button>
+            <button type="button" class="crm-nav-btn" data-rl="landing" onclick="Reservalope.go('landing')">
+              <span class="crm-nav-label"><i data-icon="edit"></i>Landing</span>
             </button>
             <button type="button" class="crm-nav-btn" data-rl="users" onclick="Reservalope.go('users')">
               <span class="crm-nav-label"><i data-icon="shield"></i>Usuarios y accesos</span>
@@ -251,6 +255,22 @@
           </div>
         </div>
 
+        <!-- ================= LANDING (reservalope.com) ================= -->
+        <div class="crm-pane" id="rl-pane-landing">
+          <div class="crm-topbar">
+            <div>
+              <span class="eyebrow-golden">Ventas</span>
+              <h1 class="crm-title">Landing de Reservalope</h1>
+              <p class="crm-lead">Cambia los textos, los videos y las secciones que se ven en reservalope.com, sin tocar código. Los cambios se publican al pulsar Guardar y publicar.</p>
+            </div>
+            <div class="crm-topbar-actions">
+              <a class="btn-dark" id="rl-landing-view" href="landing/" target="_blank" rel="noopener"><i data-icon="external"></i>Ver landing</a>
+              <button type="button" class="btn-golden" onclick="LandingEditor.open()"><i data-icon="edit"></i>Editar landing</button>
+            </div>
+          </div>
+          <div class="crm-section-card rl-landing-card" id="rl-landing-info"></div>
+        </div>
+
         <!-- ================= USUARIOS (global) ================= -->
         <div class="crm-pane" id="rl-pane-users">
           <div class="crm-topbar">
@@ -356,6 +376,7 @@
   <script src="js/pages/admin.js"></script>
   <script src="js/core/site-blocks.js"></script>
   <script src="js/components/site-builder.js"></script>
+  <script src="js/components/landing-editor.js"></script>
   <script src="js/pages/reservalope.js"></script>
 </body>
 </html>
