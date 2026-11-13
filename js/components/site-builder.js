@@ -77,6 +77,8 @@ const SiteBuilder = {
     root.innerHTML =
       '<header class="sb-top">' +
         '<div class="sb-top-id"><span class="sb-kicker">Diseñar web</span><strong>' + E(t.name) + '</strong></div>' +
+        // Página que se diseña: siempre a la vista (también mientras se edita un bloque)
+        '<label class="sb-page-top"><span class="sb-kicker">Página</span><select id="sb-page" class="sb-input" data-sb-page aria-label="Página que diseñas"></select></label>' +
         '<div class="sb-devices" role="group" aria-label="Tamaño de la vista previa">' +
           '<button type="button" class="sb-dev is-on" data-sb="device" data-v="desktop" aria-pressed="true">' + ic('dashboard') + '<span>Escritorio</span></button>' +
           '<button type="button" class="sb-dev" data-sb="device" data-v="mobile" aria-pressed="false">' + ic('phone') + '<span>Celular</span></button>' +
@@ -162,6 +164,11 @@ const SiteBuilder = {
         if (this.st.selected !== id) this.st.fmtOpen = null;
         this.st.selected = id; this.st.view = 'block'; this.renderPanel(); this.post({ cmd: 'select', id, scroll: false });
       }
+    } else if (e.data.cmd === 'nav') {
+      // Clic en el menú de la vista previa: diseñar esa página (lo hecho en las demás se conserva)
+      const k = String(e.data.page || '');
+      if (this.pageList().some(p => p.key === k)) this.switchPage(k);
+      else if (k && k !== this.st.pg && SiteBlocks.PAGES[k]) this.switchPage(k);
     } else if (e.data.cmd === 'act') {
       this.fromPreview(String(e.data.act || ''), String(e.data.id || ''), String(e.data.x || ''));
     } else if (e.data.cmd === 'xpos') {
@@ -380,6 +387,7 @@ const SiteBuilder = {
     el.innerHTML = v === 'add' ? this.addHTML() : v === 'theme' ? this.themeHTML()
       : (v === 'block' && this.block(this.st.selected) ? this.blockFormHTML(this.block(this.st.selected)) : this.listHTML());
     if (v !== 'block' && v !== 'add' && v !== 'theme') this.st.view = 'list';
+    this.renderPagePick();
     this.bindDrag();
   },
 
@@ -410,7 +418,6 @@ const SiteBuilder = {
     if (info && !info.services) notes.push('Aún no hay ' + E(this.fmt('{servicePlural}')) + ' activos en el CRM: el bloque de ' + E(this.fmt('{servicePlural}')) + ' mostrará un aviso.');
     if (info && !info.contact) notes.push('Para el bloque de contacto, completa dirección, teléfono u horario en CRM → Configuración.');
     return '<div class="sb-pad">' +
-      this.pagePickHTML() +
       '<h2 class="sb-h">Bloques de ' + E(this.pageLabel(st.pg)) + '</h2>' +
       (home ? '' : '<p class="sb-hint">El bloque <strong>Contenido de la página</strong> es lo propio de esta página y sale del CRM: puedes moverlo y poner bloques arriba o abajo, pero no quitarlo.</p>') +
       '<p class="sb-hint">Escribe directamente sobre la página: haz clic en cualquier texto para cambiarlo y en un bloque para moverlo, duplicarlo u ocultarlo. Con el <strong>+</strong> entre bloques agregas uno nuevo. ' +
@@ -430,15 +437,15 @@ const SiteBuilder = {
 
   // ¿Esa página tiene diseño por bloques (guardado)?
   hasDesign(page, k) { const bl = page ? SiteBlocks.blocksOf(page, k) : null; return !!(bl && bl.length); },
-  // Selector de página arriba del panel
-  pagePickHTML() {
+  // Selector de página (barra de arriba)
+  renderPagePick() {
+    const sel = document.getElementById('sb-page');
+    if (!sel || !this.st) return;
     const E = this.esc.bind(this), st = this.st;
-    const list = this.pageList();
-    return '<div class="sb-field sb-page-pick"><label class="sb-lbl" for="sb-page">Página que diseñas</label>' +
-      '<select id="sb-page" class="sb-input" data-sb-page>' + list.map(p =>
-        '<option value="' + E(p.key) + '"' + (p.key === st.pg ? ' selected' : '') + '>' + E(p.label) +
-        (this.hasDesign(st.page, p.key) && !st.untouched.has(p.key) ? ' · con diseño' : '') + (p.off ? ' (oculta en el menú)' : '') + '</option>').join('') +
-      '</select><p class="sb-hint">La letra y los colores valen para todas las páginas.</p></div>';
+    sel.innerHTML = this.pageList().map(p =>
+      '<option value="' + E(p.key) + '"' + (p.key === st.pg ? ' selected' : '') + '>' + E(p.label) +
+      (this.hasDesign(st.page, p.key) && !st.untouched.has(p.key) ? ' · con diseño' : '') + (p.off ? ' (oculta en el menú)' : '') + '</option>').join('');
+    sel.value = st.pg;
   },
 
   addHTML() {
