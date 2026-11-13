@@ -171,3 +171,19 @@ select.sb-input { cursor: pointer; }
   .sb-status { display: none; }
 }
 .set-web-design { margin-bottom: 16px; }
+
+/* Copiar colores de una imagen (sin IA) */
+.sb-img-btn .sb-row-ic { color: #F472B6; }
+.sb-img-drop { position: relative; display: grid; place-items: center; min-height: 120px; max-height: 320px; overflow: hidden; border: 1.5px dashed var(--sb-line-2); border-radius: 12px; background: #0E0F11; color: var(--sb-tx-2); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; padding: 12px; }
+.sb-img-drop:hover, .sb-img-drop:focus-within { border-color: var(--sb-ac); }
+.sb-img-drop span { display: inline-flex; align-items: center; gap: 8px; }
+.sb-img-drop.has-img { padding: 0; place-items: start center; }
+.sb-img-drop img { width: 100%; height: auto; display: block; }
+.sb-img-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.sb-img-run { width: 100%; margin-top: 18px; }
+.sb-img-sws { display: flex; gap: 14px; flex-wrap: wrap; }
+.sb-img-sw { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sb-tx-2); }
+.sb-img-sw i { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--sb-line-2); }
+.sb-img-sw code { font-size: 12px; color: var(--sb-tx-3); }
+.sb-img-bands { display: flex; flex-direction: column; height: 180px; width: 70px; margin-top: 12px; border: 1px solid var(--sb-line-2); border-radius: 8px; overflow: hidden; }
+.sb-img-bands span { display: block; min-height: 3px; }
