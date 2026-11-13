@@ -15,6 +15,14 @@
 
    Sin diseño guardado (web_page null o sin bloques) la web es la de siempre.
 
+   Las demás páginas (migración 32): web_page.pages = { servicios | equipo |
+   galeria | mi-cita | reservar: { blocks } }. Cada una lleva sus bloques y un
+   bloque fijo "pagina" (exactamente uno) que es el contenido propio de esa
+   página (lista de servicios, perfiles, galería, búsqueda de la cita o
+   formulario): el HTML lo marca con data-page-core y aquí solo se mueve dentro
+   del bloque. Lo de siempre de la página (encabezado, "Cómo funciona", franja
+   final) va marcado data-page-std y se oculta mientras la página tiene diseño.
+
    Textos: un campo que no está = texto por defecto (con las palabras del
    rubro, p. ej. "Nuestros {servicePlural}"). Un botón con texto "" = oculto.
    ========================================================================== */
@@ -86,8 +94,27 @@
       styles: [['cuadricula', 'Cuadrícula'], ['mosaico', 'Mosaico'], ['carrusel', 'Carrusel']],
       fields: ['eyebrow', 'title', 'text', 'images', 'btn'],
       def: { eyebrow: '', title: '', text: '', btn: '' }
+    },
+    // Solo en las demás páginas (no en el Inicio): su contenido propio. No se agrega ni se quita.
+    pagina: {
+      label: 'Contenido de la página', icon: 'store', fixed: true,
+      desc: 'Lo propio de esta página, con los datos del CRM. Puedes poner bloques arriba o abajo, pero no quitarlo.',
+      styles: [['normal', 'Normal']], fields: [], def: {}
     }
   };
+  /* Páginas del sitio que se diseñan aparte del Inicio (migración 32).
+     core = qué es su contenido propio (bloque "pagina"); steps/cta = qué
+     tenía la página de siempre, para que el diseño inicial se vea igual. */
+  const PAGE_KEYS = ['servicios', 'equipo', 'galeria', 'mi-cita', 'reservar'];
+  const PAGES = {
+    servicios: { label: '{ServicePlural}', file: 'servicios.html', core: 'La lista de {servicePlural} con precio y duración', steps: true, cta: true },
+    equipo: { label: 'Equipo', file: 'barberos.html', core: 'Los perfiles del equipo con sus trabajos', cta: true },
+    galeria: { label: 'Galería', file: 'galeria.html', core: 'Las fotos de trabajos del equipo', cta: true },
+    'mi-cita': { label: 'Mi {appointment}', file: 'consultar-cita.html', core: 'La búsqueda de la {appointment} con celular y código' },
+    reservar: { label: 'Reservar {appointment}', file: 'reservar.html', core: 'El formulario para reservar' }
+  };
+  // <body data-page> → página
+  const PAGE_OF = { inicio: 'inicio', servicios: 'servicios', barberos: 'equipo', galeria: 'galeria', 'mi-cita': 'mi-cita', reservar: 'reservar' };
   const ORDER = ['portada', 'servicios', 'equipo', 'galeria', 'ventajas', 'reservar', 'contacto', 'texto', 'video', 'fotos'];
   const BGS = [['normal', 'Claro'], ['suave', 'Suave'], ['marca', 'Color de marca'], ['color', 'Otro color']];
   /* Tipos de letra (todas alojadas en el sitio, css/fonts/). file = hoja que las carga.
@@ -149,12 +176,38 @@
   /* Deja un diseño con la forma exacta que acepta la base (lo que no la tenga se descarta) */
   function normalize(page) {
     if (!page || typeof page !== 'object' || !Array.isArray(page.blocks)) return null;
+    const out = { blocks: normBlocks(page.blocks, false) };
+    const th = normTheme(page.theme);
+    if (th) out.theme = th;
+    if (page.pages && typeof page.pages === 'object' && !Array.isArray(page.pages)) {
+      const pages = {};
+      PAGE_KEYS.forEach(k => {
+        const pg = page.pages[k];
+        if (pg && typeof pg === 'object' && Array.isArray(pg.blocks)) pages[k] = { blocks: normBlocks(pg.blocks, true) };
+      });
+      if (Object.keys(pages).length) out.pages = pages;
+    }
+    return out;
+  }
+
+  /* Bloques de una página. sub = página distinta del Inicio: lleva exactamente
+     un bloque "pagina" (si falta se pone después de la portada); en el Inicio no va. */
+  function normBlocks(list, sub) {
     const ids = new Set();
-    let hero = false;
+    let hero = false, core = false;
     const blocks = [];
-    page.blocks.forEach(b => {
+    list.forEach(b => {
       if (!b || typeof b !== 'object' || !TYPES[b.type] || blocks.length >= MAX_BLOCKS) return;
       if (b.type === 'portada') { if (hero) return; hero = true; }
+      if (b.type === 'pagina') {
+        if (!sub || core) return;
+        core = true;
+        let cid = typeof b.id === 'string' && /^[a-z0-9]{4,16}$/.test(b.id) ? b.id : newId();
+        while (ids.has(cid)) cid = newId();
+        ids.add(cid);
+        blocks.push({ id: cid, type: 'pagina' });
+        return;
+      }
       const T = TYPES[b.type];
       let id = typeof b.id === 'string' && /^[a-z0-9]{4,16}$/.test(b.id) ? b.id : newId();
       while (ids.has(id)) id = newId();
@@ -201,10 +254,13 @@
       }
       blocks.push(o);
     });
-    const out = { blocks };
-    const th = normTheme(page.theme);
-    if (th) out.theme = th;
-    return out;
+    if (sub && !core) {
+      if (blocks.length >= MAX_BLOCKS) blocks.length = MAX_BLOCKS - 1;
+      let cid = newId();
+      while (ids.has(cid)) cid = newId();
+      blocks.splice(blocks.length && blocks[0].type === 'portada' ? 1 : 0, 0, { id: cid, type: 'pagina' });
+    }
+    return blocks;
   }
 
   function normFmt(f, T) {
@@ -312,6 +368,23 @@
     return { blocks };
   }
 
+  /* Diseño inicial de otra página: la de siempre convertida en bloques
+     (encabezado de color, su contenido y, si la tenía, la franja para reservar) */
+  function pageTemplate(key) {
+    const P = PAGES[key] || {};
+    const blocks = [{ id: newId(), type: 'portada', style: 'centrado', bg: 'marca', btn: '', btn2: '' }, { id: newId(), type: 'pagina' }];
+    if (P.steps) {
+      blocks.push({ id: newId(), type: 'ventajas', bg: 'suave', eyebrow: 'Cómo funciona', title: 'Reserva en 3 pasos', text: '',
+        items: [
+          { icon: 'tag', title: 'Elige {service}', text: 'Revisa precios y duración, y selecciona lo que necesitas.' },
+          { icon: 'user', title: 'Escoge {staff} y hora', text: 'Solo te mostramos los horarios realmente libres.' },
+          { icon: 'checkCircle', title: 'Confirma tu reserva', text: 'Recibes tu código al instante y puedes consultar tu {appointment} cuando quieras.' }
+        ] });
+    }
+    if (P.cta) blocks.push({ id: newId(), type: 'reservar', bg: 'marca' });
+    return { blocks };
+  }
+
   function create(type) {
     const b = { id: newId(), type };
     if (type === 'ventajas') b.items = DEFAULT_ITEMS(true).slice(0, 3).map(x => Object.assign({}, x));
@@ -331,7 +404,11 @@
   const href = (page) => (PB() ? PB().href(page) : page);
   const secOff = (type) => !!(PB() && PB().secOff(type));
   // Texto del bloque o el de por defecto
-  const txt = (b, k) => (b[k] != null && (b[k] === '' || String(b[k]).trim()) ? b[k] : fmt(TYPES[b.type].def[k] || ''));
+  /* Textos de siempre de la página que se está dibujando (los de su encabezado):
+     la portada de otra página los usa cuando no se escribió otro */
+  let PAGE_DEF = null;
+  const txt = (b, k) => (b[k] != null && (b[k] === '' || String(b[k]).trim()) ? b[k]
+    : (b.type === 'portada' && PAGE_DEF && PAGE_DEF[k] != null ? PAGE_DEF[k] : fmt(TYPES[b.type].def[k] || '')));
 
   /* ---- Formato por texto: todos los valores ya vienen validados (normFmt) ---- */
   const fmtOf = (b, slot) => (b.fmt && b.fmt[slot]) || null;
@@ -413,7 +490,9 @@
   // Fuentes que usan los formatos del diseño (para cargarlas)
   function fmtFonts(page) {
     const set = new Set();
-    ((page && page.blocks) || []).forEach(b => {
+    const all = ((page && page.blocks) || []).slice();
+    if (page && page.pages) Object.keys(page.pages).forEach(k => { all.push(...((page.pages[k] && page.pages[k].blocks) || [])); });
+    all.forEach(b => {
       Object.keys(b.fmt || {}).forEach(k => { const f = b.fmt[k]; if (f && FONTS[f.font]) set.add(FONTS[f.font].file); });
       (b.extras || []).forEach(x => { if (x.fmt && FONTS[x.fmt.font]) set.add(FONTS[x.fmt.font].file); });
     });
@@ -435,11 +514,11 @@
 
   function heroHTML(b, t) {
     const style = b.style || 'foto-fondo';
-    const title = b.title === '' ? '' : ((b.title && b.title.trim()) ? b.title : (t.name || ''));
+    const title = b.title === '' ? '' : ((b.title && b.title.trim()) ? b.title : ((PAGE_DEF && PAGE_DEF.title) || t.name || ''));
     const img = b.image || '';
     const eb = txt(b, 'eyebrow');
     const btn = txt(b, 'btn'), btn2 = txt(b, 'btn2');
-    const city = t.city ? ' · ' + t.city : '';
+    const city = t.city && !PAGE_DEF ? ' · ' + t.city : '';
     const body = '<div class="blk-hero-copy reveal">' +
       (eb ? '<span class="blk-kicker">' + (EDIT ? T(b, 'eyebrow', eb) + esc(city) : T(b, 'eyebrow', eb + city)) + '</span>' : '') +
       (title ? '<h1 class="blk-hero-title"' + AL(b, 'title') + '>' + T(b, 'title', title) + '</h1>' : '') +
@@ -706,6 +785,8 @@
   const RENDER = { video: videoHTML, fotos: photosHTML, portada: heroHTML, servicios: servicesHTML, equipo: teamHTML, galeria: galleryHTML, ventajas: perksHTML, reservar: ctaHTML, contacto: contactHTML, texto: textHTML };
 
   function blockHTML(b, t, preview) {
+    // Contenido propio de la página: aquí solo va el lugar donde se mueve (renderPage)
+    if (b.type === 'pagina') return '<section class="blk blk-pagina" data-blk="' + esc(b.id) + '"><div class="blk-core-slot" data-blk-core-slot></div></section>';
     let inner = '';
     try { inner = RENDER[b.type](b, t); } catch (e) { console.error('[SiteBlocks]', b.type, e); inner = ''; }
     // Un bloque sin datos (equipo o galería vacíos) no se ve en la web; en la vista previa, un aviso
@@ -732,6 +813,96 @@
   const SiteBlocks = {
     TYPES, ORDER, BGS, MAX, EXTRA_KINDS, MAX_EXTRAS, MAX_BLOCKS, ICON_CHOICES, IMG_RE, FONTS, HEX_RE, MAX_IMAGES, FMT_SIZES, FMT_ALIGN, FMT_SLOTS,
     DEFAULT_ITEMS, FREE_MOBILE, normalize, normTheme, normFmt, normPos, template, create, newId, videoInfo, isDark,
+    PAGE_KEYS, PAGES, pageTemplate,
+
+    /* ---------------- Páginas (migración 32) ---------------- */
+    // Página abierta: 'inicio', 'servicios', 'equipo', 'galeria', 'mi-cita', 'reservar' o null
+    pageKey() { return PAGE_OF[document.body && document.body.getAttribute('data-page')] || null; },
+    // Bloques de una página del diseño (null = esa página sin diseño)
+    blocksOf(page, key) {
+      if (!page) return null;
+      if (!key || key === 'inicio') return Array.isArray(page.blocks) ? page.blocks : null;
+      const pg = page.pages && page.pages[key];
+      return pg && Array.isArray(pg.blocks) ? pg.blocks : null;
+    },
+    // Textos del encabezado de siempre (ya con las palabras del rubro y el nombre de la sección)
+    readPageDef(view) {
+      const hero = view.querySelector('.page-hero');
+      if (!hero) return {};
+      const vis = (el) => {
+        let s = '';
+        el.childNodes.forEach(n => {
+          if (n.nodeType === 3) s += n.textContent;
+          else if (n.nodeType === 1 && !n.hidden && getComputedStyle(n).display !== 'none') s += vis(n);
+        });
+        return s;
+      };
+      const pick = (sel) => { const el = hero.querySelector(sel); return el ? vis(el).replace(/\s+/g, ' ').trim() : ''; };
+      return { eyebrow: pick('.eyebrow'), title: pick('h1'), text: pick(':scope > .container > p') };
+    },
+    /* Dibuja otra página con sus bloques. El contenido propio (data-page-core)
+       se mueve al bloque "pagina" y vuelve a su lugar antes de cada redibujo. */
+    renderPage(page, key, opts) {
+      const view = document.querySelector('main .page-view');
+      const core = view && view.querySelector('[data-page-core]');
+      if (!view || !core || typeof DB === 'undefined' || !DB.tenant) return false;
+      const preview = !!(opts && opts.preview);
+      if (!this._coreMark) {
+        this._coreMark = document.createComment(' contenido de la página ');
+        core.parentNode.insertBefore(this._coreMark, core);
+        this._pageDef = this.readPageDef(view);
+        // Lo que vive en el encabezado de siempre y hace falta igual (filtro del equipo)
+        this._keep = Array.from(view.querySelectorAll('[data-page-std] [data-page-keep]')).map(el => {
+          const m = document.createComment(''); el.parentNode.insertBefore(m, el); return { el, m };
+        });
+      }
+      let root = document.getElementById('pub-blocks');
+      if (!root) {
+        root = document.createElement('div');
+        root.id = 'pub-blocks';
+        root.className = 'pub-blocks';
+        view.insertBefore(root, view.firstChild);
+      }
+      if (root.contains(core)) this._coreMark.parentNode.insertBefore(core, this._coreMark.nextSibling);
+      const blocks = this.blocksOf(page, key);
+      const on = !!(blocks && blocks.length);
+      view.classList.toggle('has-blocks', on);
+      view.querySelectorAll('[data-page-std]').forEach(el => { el.hidden = on; });
+      root.hidden = !on;
+      if (!on) {
+        (this._keep || []).forEach(k => k.m.parentNode.insertBefore(k.el, k.m.nextSibling));
+        root.innerHTML = '';
+        return false;
+      }
+      const t = DB.tenant;
+      EDIT = preview && !!this._previewOn;
+      PAGE_DEF = this._pageDef || {};
+      try {
+        root.innerHTML = blocks.filter(b => b.show !== false || preview)
+          .map(b => {
+            const h = blockHTML(b, t, preview);
+            return b.show === false ? h.replace('<section class="', '<section class="blk-hidden ') : h;
+          }).join('');
+      } finally { EDIT = false; PAGE_DEF = null; }
+      if (TB() && t.slug) TB().rewriteLinks(t.slug, root);
+      const slot = root.querySelector('[data-blk-core-slot]');
+      if (slot) {
+        slot.appendChild(core);
+        const box = core.querySelector('.container') || core;
+        (this._keep || []).slice().reverse().forEach(k => box.insertBefore(k.el, box.firstChild));
+      }
+      if (preview && this._previewOn) this.decorate(root, { blocks });
+      if (document.documentElement.getAttribute('data-look') === 'rosa') rosaDecor(root, preview && !!this._previewOn);
+      if (!root._zoomBound) {
+        root._zoomBound = true;
+        root.addEventListener('click', (e) => {
+          const z = e.target.closest('[data-blk-zoom]');
+          if (z && !this._previewOn && !core.contains(z)) zoom(z.getAttribute('data-blk-zoom'));
+        });
+      }
+      if (SU() && SU().observeReveal) SU().observeReveal(root);
+      return true;
+    },
 
     /* ---------------- Tipo de letra y colores (toda la web, todas las páginas) ----------------
        Se aplica sobre los del negocio: TenantBrand ya pintó su paleta y la letra del rubro. */
@@ -763,6 +934,8 @@
 
     /* Dibuja el Inicio con bloques (index.html). Devuelve true si lo hizo. */
     render(page, opts) {
+      const key = this.pageKey();
+      if (key && key !== 'inicio') return this.renderPage(page, key, opts);
       const root = document.getElementById('pub-blocks');
       const home = document.getElementById('pub-inicio');
       if (!root || !home || typeof DB === 'undefined' || !DB.tenant) return false;
@@ -847,6 +1020,7 @@
           services: st.services.length, staff: st.barberProfiles.length,
           works: st.barberProfiles.reduce((n, b) => n + b.works.length, 0),
           solo: !!(PB() && PB().isSolo()), waEnabled: !!DB.tenant.waEnabled,
+          page: this.pageKey() || 'inicio', pageDef: this._pageDef || null,
           contact: !!(DB.tenant.address || DB.tenant.phone || DB.tenant.hours)
         }
       });
@@ -910,13 +1084,15 @@
       bar.className = 'blk-tools';
       bar.setAttribute('role', 'toolbar');
       bar.setAttribute('aria-label', 'Acciones del bloque ' + def.label);
+      const fixed = !!def.fixed;
       bar.innerHTML = '<span class="blk-tool blk-tool-grip" draggable="true" data-ed-grip="' + esc(id) + '" title="Arrastra para mover" aria-hidden="true">⋮⋮</span>' +
         '<span class="blk-tool-name">' + esc(def.label) + '</span>' +
         btn('up', 'arrowLeft', 'Subir bloque', i === 0) + btn('down', 'arrowRight', 'Bajar bloque', i === p.length - 1) +
+        (fixed ? '' :
         ((b.extras || []).length < MAX_EXTRAS ? '<button type="button" class="blk-tool blk-tool-txt" data-ed-act="xadd" data-id="' + esc(id) + '" aria-label="Agregar un cuadro de texto" title="Agregar un cuadro de texto que puedes mover a cualquier lugar">T+</button>' : '') +
         (b.type !== 'portada' && p.length < MAX_BLOCKS ? btn('dup', 'plus', 'Duplicar bloque') : '') +
         btn('toggle', hidden ? 'eye' : 'lock', hidden ? 'Mostrar en la web' : 'Ocultar en la web') +
-        btn('del', 'trash', 'Eliminar bloque');
+        btn('del', 'trash', 'Eliminar bloque'));
       sec.appendChild(bar);
     },
     bindEditing(send) {

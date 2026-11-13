@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/pages/rubros.css" />
   <link rel="stylesheet" href="css/pages/boutique.css" />
   <link rel="stylesheet" href="css/pages/rosa.css" />
+  <link rel="stylesheet" href="css/pages/bloques.css" />
 </head>
 <body data-page="barberos">
 
@@ -49,23 +50,23 @@
 
   <main id="main" tabindex="-1">
     <section id="pub-barberos" class="page-view">
-      <section class="page-hero on-brand">
+      <section class="page-hero on-brand" data-page-std>
         <div class="container">
           <nav class="breadcrumb" aria-label="Ruta de navegación"><a href="index.html">Inicio</a><i data-icon="chevronRight"></i><span aria-current="page">Equipo</span></nav>
           <span class="eyebrow"><span data-v="StaffPlural">Profesionales</span></span>
           <h1>Nuestro equipo</h1>
           <p><span data-v-fmt="Conoce a cada {staff}, su especialidad y su trabajo. Filtra y reserva con quien prefieras.">Conoce a cada profesional, su especialidad y su trabajo. Filtra y reserva con quien prefieras.</span></p>
-          <div class="portfolio-filter-bar" id="pub-barber-filter-bar" role="group" aria-label="Filtrar por profesional" data-v-attr="aria-label:Filtrar por {staff}"></div>
+          <div class="portfolio-filter-bar" id="pub-barber-filter-bar" data-page-keep role="group" aria-label="Filtrar por profesional" data-v-attr="aria-label:Filtrar por {staff}"></div>
         </div>
       </section>
 
-      <section class="section" aria-label="Perfiles del equipo">
+      <section class="section" aria-label="Perfiles del equipo" data-page-core>
         <div class="container">
           <div class="showcase-list" id="pub-barbers-showcase-list"></div>
         </div>
       </section>
 
-      <section class="cta-band on-brand" aria-labelledby="cta-title">
+      <section class="cta-band on-brand" aria-labelledby="cta-title" data-page-std>
         <div class="container cta-band-inner">
           <div>
             <h2 id="cta-title" data-v-fmt="¿Listo para reservar tu {appointment}?">¿Listo para reservar tu cita?</h2>

@@ -9,6 +9,11 @@
    ========================================================================== */
 
 #pub-inicio.has-blocks > section { display: none !important; }
+/* Las demás páginas con diseño propio (migración 32): lo de siempre se oculta y
+   su contenido (lista, galería, formulario…) va dentro del bloque "pagina" */
+.page-view.has-blocks > [data-page-std] { display: none !important; }
+.blk.blk-pagina { padding: 0; background: none; color: inherit; }
+.blk-pagina .portfolio-filter-bar { margin-bottom: var(--s5); }
 
 .blk { position: relative; padding: var(--s8) 0; background: var(--paper); color: var(--text); }
 .blk-bg-suave { background: var(--paper-2); }

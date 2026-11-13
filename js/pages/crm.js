@@ -1878,9 +1878,9 @@ const CRM = {
       return;
     }
     if (btn) btn.disabled = false;
-    if (txt) txt.textContent = (t.webPage && Array.isArray(t.webPage.blocks) && t.webPage.blocks.length
-      ? 'Tu Inicio está armado con bloques. Cámbialos, ordénalos o agrega nuevos y mira cómo queda antes de publicar.'
-      : 'Arma el Inicio de tu web con bloques (portada, servicios, equipo, galería, contacto y más) y mira cómo queda antes de publicarlo.') +
+    if (txt) txt.textContent = (t.webPage && ((Array.isArray(t.webPage.blocks) && t.webPage.blocks.length) || t.webPage.pages)
+      ? 'Tu web está armada con bloques. Cambia el Inicio y las demás páginas (servicios, galería, reservar…), ordénalos o agrega nuevos y mira cómo queda antes de publicar.'
+      : 'Diseña el Inicio y las demás páginas de tu web con bloques (portada, textos, fotos, videos, servicios, equipo y más) y mira cómo queda antes de publicarlo.') +
       ' Los datos siguen saliendo del CRM.' + (sa && t.webEditor === false ? ' (El negocio no puede editarla: lo cambias dentro del editor.)' : '');
   },
   openSiteBuilder() {
