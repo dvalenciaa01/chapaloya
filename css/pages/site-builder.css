@@ -21,6 +21,8 @@
 .sb-top-id { display: grid; min-width: 0; margin-right: auto; }
 .sb-kicker { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sb-tx-3); font-weight: 700; }
 .sb-top-id strong { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-page-top { display: grid; gap: 2px; min-width: 180px; }
+.sb-page-top .sb-input { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
 .sb-devices { display: inline-flex; padding: 3px; border: 1px solid var(--sb-line); border-radius: 999px; }
 .sb-dev { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--sb-tx-2); cursor: pointer; }
 .sb-dev.is-on { background: var(--sb-card); color: var(--sb-tx); }
@@ -162,6 +164,7 @@ select.sb-input { cursor: pointer; }
 /* ---------------- Celular / tableta: panel arriba, vista previa abajo ---------------- */
 @media (max-width: 860px) {
   .sb-top { padding: 8px 12px; }
+  .sb-page-top { order: 5; flex: 1 1 100%; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
   .sb-dev span, .sb-top-actions .sb-btn-ghost span { display: none; }
   .sb-dev, .sb-top-actions .sb-btn-ghost { padding: 0 12px; }
   .sb-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 46vh); }

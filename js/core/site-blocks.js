@@ -816,6 +816,28 @@
     PAGE_KEYS, PAGES, pageTemplate,
 
     /* ---------------- Páginas (migración 32) ---------------- */
+    // Enlace del sitio → página ('servicios.html?b=x', '/ale/galeria', 'index.html'…); null si no es una página del sitio
+    pageOfHref(href) {
+      const h = String(href || '').trim();
+      if (!h || /^(mailto:|tel:|https?:|#|javascript:)/i.test(h) && !(h.indexOf(location.origin) === 0)) return null;
+      let path;
+      try { path = new URL(h, location.href).pathname; } catch (e) { return null; }
+      const files = { 'index.html': 'inicio', 'servicios.html': 'servicios', 'barberos.html': 'equipo', 'galeria.html': 'galeria', 'consultar-cita.html': 'mi-cita', 'reservar.html': 'reservar' };
+      const last = path.split('/').filter(Boolean).pop() || '';
+      if (files[last]) return files[last];
+      if (/\.[a-z0-9]+$/i.test(last)) return null;          // privacidad.html u otro archivo
+      const tb = TB(), slug = typeof DB !== 'undefined' && DB.tenant ? DB.tenant.slug : '';
+      const seg = path.split('/').filter(Boolean);
+      if (slug && seg[0] === slug) {
+        if (seg.length === 1) return 'inicio';
+        const name = seg[1];
+        const sec = tb && tb.effectiveSections ? tb.effectiveSections().find(x => x.type !== 'inicio' && tb.sectionSlug(x) === name) : null;
+        if (sec) return sec.type;
+        const plain = { servicios: 'servicios', barberos: 'equipo', equipo: 'equipo', galeria: 'galeria', 'mi-cita': 'mi-cita', 'consultar-cita': 'mi-cita', reservar: 'reservar', 'reservar-cita': 'reservar' };
+        return plain[name] || null;
+      }
+      return last === '' ? 'inicio' : null;
+    },
     // Página abierta: 'inicio', 'servicios', 'equipo', 'galeria', 'mi-cita', 'reservar' o null
     pageKey() { return PAGE_OF[document.body && document.body.getAttribute('data-page')] || null; },
     // Bloques de una página del diseño (null = esa página sin diseño)
@@ -1003,9 +1025,14 @@
         }
         const ftool = e.target.closest('[data-ed-fmt]');
         if (ftool) { e.preventDefault(); e.stopPropagation(); this.fmtClick(ftool); return; }
+        // El botón del menú en celular sigue abriendo el menú
+        if (e.target.closest('.nav-toggle')) return;
         // En la vista previa nada navega ni abre ventanas (reservar con un servicio, fotos…)
         const a = e.target.closest('a, button, form, [data-pb-action], [data-blk-zoom]');
         if (a) { e.preventDefault(); e.stopPropagation(); }
+        // Menú, logo, pie y ruta: el editor pasa a diseñar esa página (migración 32)
+        const nav = a && a.tagName === 'A' && a.closest('.site-header, .site-footer, .breadcrumb, .site-topbar, .rs-topbar') ? this.pageOfHref(a.getAttribute('href')) : null;
+        if (nav) { send({ cmd: 'nav', page: nav }); return; }
         const blk = e.target.closest('[data-blk]');
         if (blk) send({ cmd: 'pick', id: blk.getAttribute('data-blk') });
       }, true);
